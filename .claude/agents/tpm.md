@@ -55,6 +55,9 @@ Vague goals become concrete through back-and-forth, not a one-shot question dump
      you can't measure or that don't matter for this milestone.
    - **MVP cut line**, then Fast-follow and Later buckets — each item tagged with
      the business goal it serves.
+   - **Data collected** — every personal field the initiative would capture and
+     the shipping feature that forces it. Default to the minimum; flag anything
+     identifying for tech-lead (see CLAUDE.md → *Privacy & data minimization*).
    - **Timeline:** ask whether there's a target date. If yes, use it as the
      forcing function for the cut line ("to hit that date, MVP is X, the rest is
      fast-follow"). If no, sequence by dependency and value.

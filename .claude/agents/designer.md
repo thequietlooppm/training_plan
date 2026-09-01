@@ -130,9 +130,12 @@ an existing pattern or needs user validation before it's committed to.
 6. **Accessibility, specifically:** keyboard path through the screen, focus
    order, semantic roles/labels, target contrast ratio, touch target size, how
    errors are announced. No generic "make it accessible".
-7. **New vs. reused pattern:** call out anything new and why the existing
+7. **Data asked of the user:** every input the flow collects and whether it
+   genuinely needs it. Design for opaque accounts; don't request personal data a
+   feature doesn't require (CLAUDE.md → *Privacy & data minimization*).
+8. **New vs. reused pattern:** call out anything new and why the existing
    vocabulary didn't cover it.
-8. **Validate with users?** Note what to check before or after shipping, if
+9. **Validate with users?** Note what to check before or after shipping, if
    anything.
 
 Write specs to `docs/design/<feature>.md`. Hand implementation to swe.

@@ -103,6 +103,35 @@ roles yourself.
 Invoke a role explicitly with `@agent-<name>` (e.g. `@agent-tpm`), or just describe
 the task and Claude will delegate based on each subagent's description.
 
+## Privacy & data minimization
+
+A focal point for every role, not just the data ones. The product should run on
+the smallest amount of personal data that makes it work.
+
+- **Collect the minimum.** Every field that identifies a person needs a reason
+  tied to a shipping feature. "Might be useful later" is not a reason — add it
+  when the feature that needs it is built, not before.
+- **Prefer non-PII identifiers.** Key users and records by opaque, randomly
+  generated IDs. Don't use email, name, phone, or a device identifier as a
+  primary key, foreign key, or join key anywhere it can be avoided.
+- **Keep PII out of analytics.** Usage and outcome metrics are computed over
+  aggregates and opaque IDs. No email, name, precise location, or free text in
+  event payloads, logs, dashboards, or analysis outputs. If a metric needs a
+  personal attribute, bucket it (age band, not birthdate) and report it only in
+  aggregate with a minimum group size.
+- **Isolate the PII that is collected.** The few tables holding real PII stay
+  separate from the event/analytics store, with their own access path.
+- **New PII is an ADR.** Any new personal-data field, or a new use of an existing
+  one, gets a file in `docs/decisions/` — what, why, where it lives, retention,
+  and how it's kept out of analytics — before the code lands.
+
+Per role: `tpm` scopes to the minimum identifying data and flags requirements
+that need PII; `designer` doesn't ask for personal data a flow doesn't need and
+designs for opaque accounts; `tech-lead` enforces non-PII keys and PII isolation
+in the plan and at review; `swe` and `data-engineer` build to that; `data-scientist`
+specs metrics and instrumentation that aggregate PII away; `deploy-engineer` keeps
+PII out of logs, error traces, and third-party config.
+
 ## Conventions
 
 - **Commit style:** Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`…).
