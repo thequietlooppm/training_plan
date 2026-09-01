@@ -1,0 +1,34 @@
+# OS
+.DS_Store
+
+# Node
+node_modules/
+dist/
+build/
+.next/
+out/
+*.log
+npm-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Native (later)
+apps/ios/build/
+apps/ios/DerivedData/
+apps/ios/Pods/
+apps/android/.gradle/
+apps/android/build/
+apps/android/local.properties
+
+# Claude Code local overrides
+.claude/settings.local.json
