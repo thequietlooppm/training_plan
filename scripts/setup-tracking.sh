@@ -28,6 +28,8 @@ gh label create "platform:web"     --color "0052CC" --description "Web app" --fo
 gh label create "platform:ios"     --color "5319E7" --description "Native iOS app" --force
 gh label create "platform:android" --color "0E8A16" --description "Native Android app" --force
 gh label create "platform:shared"  --color "BFD4F2" --description "Shared across platforms (packages/)" --force
+gh label create "epic"             --color "3E4B9E" --description "Tracking issue linking child issues" --force
+gh label create "needs:plan"       --color "D4C5F9" --description "Scoped by tpm, awaiting tech-lead plan" --force
 
 echo "Creating project board..."
 gh project create --owner "$OWNER" --title "$(basename "$REPO") Roadmap"
