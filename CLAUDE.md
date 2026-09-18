@@ -19,13 +19,14 @@ inside `apps/web/`.
 
 ## Tech stack
 
-- **Web:** _to be decided_ — tracked in `docs/decisions/0002-web-app-stack.md`.
-  tech-lead + swe choose during planning of the first issue and record it as an ADR.
-- **Backend / API:** _to be decided_ (ADR).
-- **Data store:** _to be decided_ (ADR).
+- **Web:** TypeScript + React (Vite + React Router), TanStack Query, Tailwind + shadcn/ui.
+  Decided in `docs/decisions/0002-web-app-stack.md`.
+- **Backend / API:** Node.js + Fastify (`apps/api/`), TypeScript, REST + OpenAPI as the
+  cross-client contract, pg-boss for background jobs. ADR 0002.
+- **Data store:** Postgres, Drizzle ORM. ADR 0002.
 - **Native iOS (later):** Swift / SwiftUI.
 - **Native Android (later):** Kotlin.
-- **Infra / deploy:** _to be decided_ (ADR).
+- **Infra / deploy:** Fly.io (one app per environment: dev/staging/prod). ADR 0002.
 
 ## Repository layout
 
@@ -33,9 +34,10 @@ inside `apps/web/`.
 training_plan/
 ├── .claude/agents/     role subagents (tpm, tech-lead, designer, swe, …)
 ├── apps/
-│   └── web/            web app (start here)
+│   ├── web/            web app (start here)
+│   └── api/            backend server all clients talk to (web now, iOS/Android later)
 │       (later: apps/ios/, apps/android/)
-├── packages/           code shared across platforms (API client, types, validation)
+├── packages/           code shared across platforms (API client, domain types, validation, plan templates)
 ├── docs/
 │   ├── planning/       product brief, scope, milestones
 │   └── decisions/      ADRs — one file per architectural decision

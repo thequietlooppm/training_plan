@@ -30,6 +30,10 @@ personalized to them.
   15-week 10-mile plan. General plan ingestion (parsing arbitrary
   uploaded plans to scale the library) is an acknowledged future direction,
   not scoped for v1 — see Out of scope.
+  **The source club is never named in any artifact — including commits,
+  issues, and internal docs — for as long as v1/MVP lasts.** Branding it
+  properly (with permission) is a real possibility post-v1, not ruled out
+  forever, just not now.
 - **Pace-zone calculator.** Runner enters a recent race result (distance +
   time) and/or a goal race time.
   - A recent result derives Recovery, Easy, Threshold, 10K, 5K, and
@@ -60,7 +64,12 @@ personalized to them.
   calculated start date, the app backfills both the prescribed schedule and
   the Strava match for that plan's already-elapsed days only (plan-start →
   today, one-time at setup) — not a general or unbounded historical Strava
-  import.
+  import. Plan setup only accepts a future or current race date — a runner
+  can't set up a plan for a race that's already happened.
+- **Plan switching.** A runner can abandon their current plan and start a
+  different one mid-stream. The new plan gets the same bounded backfill
+  treatment as any mid-cycle join (new-plan-start → today). The abandoned
+  plan is preserved, not deleted, so its history stays visible.
 - **Completion status.** Every day — including freeform-described ones —
   gets a status via suggest-and-confirm sync: **Achieved / Partial / Missed
   / Rest**. Partial means an activity happened but was the wrong type or
@@ -89,6 +98,9 @@ personalized to them.
   `docs/planning/exploration-activity-sync.md`)
 - Periodization/progression modeling for non-running workout types
   (strength/cross-training is scheduled, not cycled)
+- Tracking more than one active plan concurrently (switching between plans
+  is supported — see above; running two plans at once is not)
+- Kilometer/metric units (miles-only for v1)
 
 ## Success signals
 
@@ -112,27 +124,45 @@ personalized to them.
   template format) to scale the template library beyond the two hand-built
   templates.
 
-## Open questions
+## Resolved (tech-lead hardening pass, 2026-09-18)
 
-- Web stack, backend, and data store — to be decided by tech-lead during
-  planning (`docs/decisions/0002-web-app-stack.md`).
-- **Post-race-window join.** If a runner joins after a plan's entire date
-  range has already elapsed, does the app refuse, or show a
-  historical/completed view?
-- **Unscheduled or extra activity handling.** An unscheduled Strava activity
-  on a Rest day, or a second activity on a day that already has a confirmed
-  match — ignored, surfaced as unlinked/bonus, or something else?
-- **Ambiguous same-day matches.** Two same-day activities both plausibly
-  match one prescribed day — which does suggest-and-confirm surface, or
-  both?
-- **Pace calculator with only a recent result (no goal time).** Does
-  Marathon/Half-Marathon goal pace fall back to equivalency from current
-  fitness, or stay unset until a goal time is provided?
-- **Pace calculator with only a goal time (no recent result).** Can the
-  other zones (Recovery/Easy/Threshold/10K/5K/Interval) still be produced,
-  or is a recent race result a hard prerequisite?
-- **Strava token as PII.** Connecting Strava means storing a per-user
-  access/refresh token. Per `CLAUDE.md`'s PII-isolation principle, this
-  needs to live isolated from analytics/event data, and is a likely
-  candidate for its own ADR when this is scoped (tech-lead's call, flagged
-  here so it isn't missed).
+- **Web stack, backend, and data store.** Decided — TypeScript/React on
+  `apps/web/`, Node/Fastify on `apps/api/`, Postgres/Drizzle, Fly.io. See
+  `docs/decisions/0002-web-app-stack.md` (Accepted).
+- **Post-race-window join.** Moot — plan setup only accepts a future or
+  current race date, so this state is unreachable. See Plan switching above.
+- **Unscheduled or extra activity handling.** Surfaced as an unlinked/bonus
+  entry in the day-detail sheet — never dropped, never auto-applied.
+- **Ambiguous same-day matches.** Single-select in the day-detail sheet
+  (radio-style, plus "none of these") — not both-apply.
+- **Pace calculator, recent result only (no goal time).** Marathon/Half
+  goal pace stays **unset**, not equivalency-derived — protects a declared
+  stretch target from being silently overwritten, and long-range VDOT/Riegel
+  extrapolation is weakest here anyway.
+- **Pace calculator, goal time only (no recent result).** The other six
+  zones (Recovery/Easy/Threshold/10K/5K/Interval) are **blocked**, not
+  derived from the goal — deriving Easy/Recovery from an aspirational goal
+  risks the highest-volume zone running too fast.
+- **Strength/cross-training completion.** Any non-running activity logged =
+  Achieved; a running-only activity = Partial; nothing = Missed. Prevents a
+  runner substituting a run for every strength day from showing false 100%
+  adherence.
+- **Template naming.** See Plan library above — never named, permanently,
+  for v1/MVP.
+- **Units.** Miles only for v1.
+- **Multiple plans.** See Plan switching above — one active plan, switching
+  supported.
+
+## Still open
+
+- **Strava token / activity PII.** Schema shape is settled (isolated
+  `provider_connections` table, encrypted token columns), but the actual
+  encryption/secrets-storage approach is a separate ADR, deliberately
+  deferred until the Strava-sync issue starts.
+- **`docs/design/training-calendar.md` needs a redo pass** — still describes
+  a binary mark-complete flow, not the Achieved/Partial/Missed/Rest model.
+  Designer's task, not blocking planning.
+- **Backfill job-status UX.** Backfill is async/queued, but a mid-cycle
+  joiner expects their calendar populated at setup — needs a design decision
+  (poll a job-status field vs. "populates over the next few minutes"
+  messaging).
