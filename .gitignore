@@ -32,3 +32,6 @@ apps/android/local.properties
 
 # Claude Code local overrides
 .claude/settings.local.json
+
+# Reference material, not project content
+plan_examples/
