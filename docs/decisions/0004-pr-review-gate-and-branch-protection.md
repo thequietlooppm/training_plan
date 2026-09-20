@@ -1,7 +1,7 @@
 # 4. PR review gate and branch protection on `main`
 
 Date: 2026-09-20
-Status: Proposed — blocked on a plan/visibility decision (see Decision)
+Status: Accepted
 
 ## Context
 
@@ -38,21 +38,24 @@ response for this account.
 
 ## Decision
 
-**Branch protection is not yet enabled — it needs one of these two choices
-made first, and neither is mine to make silently (one is a recurring cost,
-the other is a visibility change to product code):**
+Two options were on the table, and neither was mine to pick silently (one was
+a recurring cost, the other a visibility change to product code):
 
 | Option | Cost | Effect |
 |---|---|---|
-| **A. Upgrade `thequietlooppm` to GitHub Pro** | $4/month | Unlocks branch protection + rulesets on the private repo, no visibility change. Recommended: cheapest fix, keeps the repo private. |
-| **B. Make the repo public** | $0 | Unlocks the same features immediately, no subscription. Trades away privacy of the source (app code, and per ADR 0003, template-adjacent content already handled by keeping the source PDF out of git either way). Only worth it if there's no other reason to keep this repo private. |
+| A. Upgrade `thequietlooppm` to GitHub Pro | $4/month | Unlocks branch protection + rulesets on the private repo, no visibility change. |
+| **B. Make the repo public — chosen, 2026-09-20** | $0 | Unlocks the same features immediately, no subscription. Trades away privacy of the source. |
 
-I'm flagging this rather than picking one: (A) is a real recurring cost
-(small, but per my own remit anything with recurring cost is an ADR, not a
-silent call), and (B) is a product/privacy call outside deploy-engineer's
-remit. **Once either is decided, here is the exact configuration I will
-apply** (already drafted and tested against the API; only the 403 is
-blocking it):
+**The user chose Option B.** The repo was made public
+(`gh repo edit thequietlooppm/training_plan --visibility public
+--accept-visibility-change-consequences`), verified live via
+`gh repo view --json isPrivate,visibility` → `{"isPrivate": false, "visibility":
+"PUBLIC"}`. Before this, a check for anything that shouldn't be public found
+no secrets or `.env` files tracked (only `.env.example` files with variable
+names, no values) and no club-identifying content per ADR 0003 — no blocker.
+
+Branch protection on `main` was then applied and verified live by reading it
+back via the API (not just assumed from the `PUT` response):
 
 ```
 PUT /repos/thequietlooppm/training_plan/branches/main/protection
@@ -65,6 +68,12 @@ PUT /repos/thequietlooppm/training_plan/branches/main/protection
   "restrictions": null
 }
 ```
+
+Confirmed live via `GET /repos/thequietlooppm/training_plan/branches/main/protection`:
+`enforce_admins.enabled: true`, `required_pull_request_reviews
+.required_approving_review_count: 0`, `allow_force_pushes.enabled: false`,
+`allow_deletions.enabled: false`. Direct pushes to `main` — including from the
+repo owner's own account — are now blocked; a PR is the only path in.
 
 - **`enforce_admins: true`** is the actual point of this whole change: it
   means direct pushes to `main` are blocked for *everyone*, including the
@@ -119,14 +128,15 @@ being explicit that it now applies to docs too, not just app code.
 
 ## Consequences
 
-- Until Option A or B above is decided, `main` has **no technical
-  enforcement** — the PR-based flow for issue #5 happened because the
-  coordinator asked for it this one time, not because the repo requires it.
-  Anyone (including a future agent run without that explicit instruction)
-  can still push straight to `main`.
-- Once enabled, **every** change — docs included — needs a branch + PR;
-  direct push to `main` stops working for the repo owner's own account too
-  (that's `enforce_admins: true`, intentionally).
+- The repo is now **public**. Anyone can read the source, fork it, and see
+  issues/PRs/commit history. Nothing currently in the repo was found to need
+  redacting first (see the secrets/club-content check above), but this is a
+  standing fact to keep in mind for anything committed from here on —
+  there's no private fallback unless a future ADR reverses this one.
+- `main` now has **real technical enforcement**: direct pushes are rejected
+  for everyone, including the repo owner's own account
+  (`enforce_admins: true`). Every change — docs included — needs a branch +
+  PR; there's no more "direct push because it's just a docs edit."
 - The "approval" gate is process, not a GitHub-enforced button, for as long
   as this is a one-human-identity repo. Re-evaluate
   `required_approving_review_count` if a second reviewer with their own
