@@ -2,46 +2,56 @@
 
 > Owned by `@designer`. The short list of what we've adopted for standard UI, so
 > basic elements are reused, not hand-built. Update on first use of anything new.
-> Nothing here is locked until the web stack ADR (`docs/decisions/0002-web-app-stack.md`)
-> is Accepted — until then, recommendations are framed by framework.
 
-## Status: proposed, pending ADR 0002
+## Status: locked — per ADR 0002 (Accepted 2026-09-18)
 
-No stack decision yet, so no library is installed. This file records the
-**intended** picks and the reasoning, for whoever scaffolds `apps/web/`.
+`docs/decisions/0002-web-app-stack.md` is now **Accepted**: React via Vite,
+Tailwind CSS, **shadcn/ui** (over Radix primitives), **Lucide** icons. The
+picks below are no longer a proposal framed by framework — they're the
+decision for `apps/web/`. The former "if React / if framework-agnostic" table
+is collapsed accordingly; the agnostic column is kept struck through for
+reference only (useful if a non-React surface ever comes up) and is not live
+guidance for this repo.
 
 ## Component library
 
-| If the stack is… | Pick | Why | Cost | Alternative to weigh |
-|---|---|---|---|---|
-| React | **shadcn/ui** (MIT, copy-in) over Radix primitives | Gives us accordion, dialog, drawer, progress, button, toast, and a `react-day-picker` calendar — almost the entire training-calendar screen — as code we own and restyle. Accessible primitives (Radix) underneath. | Tailwind buy-in; you maintain the copied components; needs a bundler. | **Mantine** — batteries-included, own styling engine, installed as a dep rather than copied. Faster to start, heavier to escape. |
-| Framework-agnostic (Vue, Svelte, plain, htmx, etc.) | **Tailwind CSS + DaisyUI** for component classes; hand-roll disclosure with native `<details>` | No JS framework lock-in; DaisyUI covers buttons/cards/progress/modal styling. | DaisyUI has a visual opinion to override; complex widgets (drawer, focus-trapped sheet) still need real JS. | **Pico.css** — near-zero-config semantic styling; too thin for the sheet/drawer interaction, would need custom JS anyway. |
+**Decided: shadcn/ui (MIT, copy-in) over Radix UI primitives, styled with
+Tailwind CSS.**
 
-Screen-by-screen mapping lives in `docs/design/training-calendar.md` § Interface detail.
+| | Pick | Why | Cost | Alternative to weigh |
+|---|---|---|---|---|
+| ~~React~~ **(decided)** | **shadcn/ui** over Radix primitives | Gives us accordion, dialog, drawer, progress, button, toast, and a `react-day-picker` calendar — almost the entire training-calendar screen — as code we own and restyle. Accessible primitives (Radix) underneath. | Tailwind buy-in; you maintain the copied components; needs a bundler (Vite, already decided). | **Mantine** — batteries-included, own styling engine, installed as a dep rather than copied. Faster to start, heavier to escape. Not pursued. |
+| ~~Framework-agnostic~~ *(moot — stack is React; kept for reference only)* | Tailwind CSS + DaisyUI | N/A — not applicable now that the stack is React. | — | — |
+
+Screen-by-screen mapping lives in `docs/design/training-calendar.md` § Interface
+detail. Scaffold-time component list for the hello-world shell (issue #5) lives
+in the designer's consult response on that issue, not duplicated here.
 
 ## Icon set
 
-**Lucide** (ISC licence). One set, used throughout.
+**Lucide** (ISC licence). One set, used throughout. Decided — matches ADR 0002.
 
-- Covers this screen: `menu`, `settings`, `check`, `chevron-left`, `chevron-right`,
-  `chevron-down`, `chevron-up`, `flag` (race day), `footprints` / `activity` (run),
-  `moon` or `minus` (rest day), `calendar`, `alert-triangle` (error state).
-- Why Lucide: actively maintained fork of Feather, consistent 24px grid, framework
-  packages for React/Vue/Svelte plus a plain SVG sprite, permissive licence.
-- Alternative worth considering: **Phosphor** — has literal `person-simple-run` /
-  `sneaker` glyphs that suit a running app, and multiple weights. Slightly larger,
-  less of a default in the React ecosystem.
+- Covers the training-calendar screen: `menu`, `settings`, `check`,
+  `chevron-left`, `chevron-right`, `chevron-down`, `chevron-up`, `flag` (race
+  day), `footprints` / `activity` (run), `moon` or `minus` (rest day),
+  `calendar`, `alert-triangle` (error state).
+- Why Lucide: actively maintained fork of Feather, consistent 24px grid, a
+  proper `lucide-react` package, permissive licence.
+- Alternative considered: **Phosphor** — has literal `person-simple-run` /
+  `sneaker` glyphs that suit a running app, and multiple weights. Slightly
+  larger, less of a default in the React ecosystem. Not pursued.
 
 ## Font
 
-**Deferred.** Numbers are the hero on this screen (mileage, week counts,
-weeks-to-go), so whatever we choose needs **tabular figures**. Tentative shortlist,
-all free via Google Fonts / Fontsource:
+**Deferred.** Numbers are the hero on the calendar screen (mileage, week
+counts, weeks-to-go), so whatever we choose needs **tabular figures**.
+Tentative shortlist, all free via Google Fonts / Fontsource:
 
 - **Inter** — has `font-feature-settings: "tnum"`, wide weight range, screen-tuned.
 - **IBM Plex Sans** — tabular figures, a little more character.
 
-Pick when the first real screen is built.
+Pick when the first real screen is built (not needed for the hello-world
+scaffold — system font stack is fine there).
 
 ## Illustration
 
