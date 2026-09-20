@@ -8,7 +8,7 @@ import { fetchHealth } from "@/lib/health";
 export function HomePage() {
   const query = useQuery({
     queryKey: ["health"],
-    queryFn: fetchHealth,
+    queryFn: ({ signal }) => fetchHealth({ signal }),
   });
 
   // Treat both the initial load and a manual refetch as "loading" — the

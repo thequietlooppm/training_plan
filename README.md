@@ -7,6 +7,7 @@ Monorepo for the training_plan product. Web app first; native iOS and Android la
 | Path | What |
 |---|---|
 | `apps/web/` | Web app — the current focus |
+| `apps/api/` | Backend API (Node.js + Fastify) serving the web app and, later, native clients |
 | `apps/ios/` | Native iOS app (Swift/SwiftUI) — later |
 | `apps/android/` | Native Android app (Kotlin) — later |
 | `packages/` | Code shared across platforms (API contract, domain types, validation) |
