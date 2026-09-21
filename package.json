@@ -1,0 +1,9 @@
+{
+  "name": "training_plan",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@12.5.1"
+}
