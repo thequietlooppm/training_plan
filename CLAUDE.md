@@ -26,10 +26,8 @@ inside `apps/web/`.
 - **Data store:** Postgres, Drizzle ORM. ADR 0002.
 - **Native iOS (later):** Swift / SwiftUI.
 - **Native Android (later):** Kotlin.
-- **Infra / deploy:** Fly.io for `apps/api` (one app per environment:
-  dev/staging/prod); Cloudflare Pages for `apps/web` static hosting
-  (no server-side logic, so no reason to pay for an idle Fly container).
-  ADR 0002.
+- **Infra / deploy:** `apps/web` → Cloudflare Pages. `apps/api` → Render.com
+  free tier for dev, Fly.io for staging/prod later. ADR 0002 + addenda.
 
 ## Repository layout
 

@@ -242,6 +242,198 @@ API routes colocated with the frontend, or anything beyond a static build
 Pages' Functions or a move back to a Fly-hosted server would need
 re-evaluating. Not expected, not designed around preemptively.
 
+## Addendum — `apps/api` dev hosting re-derived: Render.com, not Fly.io; self-host on a home Pi considered and rejected for now (2026-09-21)
+
+Issue #7 (walking-skeleton deploy) originally specced `apps/api`'s dev
+environment on Fly.io per this ADR's original hosting line. Setting that up
+surfaced a real objection: Fly.io now requires a card on file even though
+`min_machines_running: 0` should keep actual dev usage near $0. The user
+asked, in good faith, whether `apps/api` could instead run for genuinely $0
+on a Raspberry Pi (4/5, 4GB+ RAM) they already own, which currently runs
+**Home Assistant OS (HAOS)**. `@deploy-engineer` re-derived the hosting
+choice as a genuine three-way comparison — self-host, Fly.io, Render.com —
+rather than defaulting back to Fly.
+
+**Decision: `apps/api`'s dev environment moves to Render.com's free tier.**
+Self-hosting on the Pi was seriously evaluated, not dismissed, and rejected
+for *this* purpose. Fly.io remains the plan for **staging/prod** once that
+work starts — unchanged, since the original case for Fly (persistent
+process, prompt webhook ACK, background jobs) was never about dev-environment
+cost.
+
+### Why not self-host on the Pi
+
+Not rejected on reliability grounds — see calibration below, that's
+deliberately not the deciding factor here. Rejected because making it
+actually satisfy issue #7's own acceptance criteria (a stable, scriptable,
+repeatable public URL that `apps/web`'s `.env.production` can bake in and
+keep working across redeploys) costs more, in real terms, than it saves:
+
+- **HAOS forces a choice between two imperfect integration paths**, since the
+  Supervisor owns the system and you can't `docker run` an unrelated
+  container the normal way:
+  1. **Advanced SSH & Web Terminal add-on with protected mode disabled** —
+     gives raw `docker` access on the host. This is the one we'd pick if we
+     self-hosted at all: `apps/api` is a generic Fastify/Node service with
+     zero relation to home automation, so treating the Pi as "a Docker host
+     that happens to also run HA" is the right mental model, not forcing a
+     generic web app through HA's own packaging conventions. But disabling
+     protected mode is a real, permanent reduction in HAOS's isolation
+     posture on a device the user depends on for actual home automation —
+     not a footnote, a genuine cost, and one they'd be accepting knowingly
+     for a dev-only convenience.
+  2. **Package `apps/api` as a proper local HA add-on** (`config.yaml` /
+     `build.yaml`, HA's build/ingress conventions) — the "correct" HAOS-native
+     path, but disproportionate, HA-specific packaging overhead for a service
+     that has nothing to do with home automation. Rejected as effort that
+     buys nothing.
+- **A home Pi behind residential NAT/CGNAT needs Cloudflare Tunnel
+  (`cloudflared`)** to be reachable at all — free, no port-forwarding, no
+  static IP, works behind CGNAT, and pairs naturally with `apps/web` already
+  being on Cloudflare Pages. But a **stable** public hostname (one that
+  doesn't change every time `cloudflared` restarts) requires a **named**
+  tunnel routed through a domain added to the Cloudflare account. We don't
+  own a domain yet (confirmed — nothing in `docs/` or `CLAUDE.md` references
+  one). `cloudflared`'s no-domain option, **Quick Tunnels**, hands out a
+  random `*.trycloudflare.com` URL that changes on every restart —
+  explicitly meant for a five-minute ad-hoc test, not something
+  `apps/web/.env.production` can be committed against and expected to keep
+  working after the Pi reboots (a home power blip, not a hypothetical). That
+  breaks the "scripted and repeatable" acceptance criterion outright, not
+  just makes it worse. Getting a stable hostname means buying a domain
+  (roughly $10–15/yr at cost through Cloudflare Registrar) — a real,
+  non-zero recurring cost, which directly contradicts the "genuinely $0"
+  premise of the ask. (This cost isn't uniquely caused by the Pi option — a
+  real domain is coming eventually for prod regardless — but it's not
+  currently a cost, and self-hosting is the one option that pulls it forward
+  to right now.)
+- **Fly's and Render's free subdomains solve Strava's one-callback-domain-
+  per-app requirement for free**, the same way this ADR already noted for
+  Fly's `*.fly.dev`. Self-hosting is the only one of the three options that
+  loses this benefit — it needs a purchased domain to get a comparable
+  stable hostname, cloud hosts don't.
+- Net effect: self-hosting doesn't actually land at "genuinely $0" once
+  built correctly for this issue's own requirements, costs real setup effort
+  (SSH-based deploy scripting, tunnel config, domain purchase) that isn't
+  reusable for staging/prod (those still go to Fly per this ADR), and asks
+  the user to knowingly weaken the security posture of a device with real
+  home-automation authority — for a benefit (dev-only $0 hosting) that
+  Render.com already provides without any of those costs.
+
+### Why Render.com over Fly.io, for dev specifically
+
+Render's free tier for web services has historically **not required a
+card on file** — the actual friction the user hit with Fly. It also gives a
+free `*.onrender.com` subdomain (same Strava-callback-domain benefit Fly's
+`*.fly.dev` gave), supports the same Docker-based deploy issue #7 already
+scoped (a `Dockerfile` built from the repo root, not `apps/api/` alone —
+that would work today and break silently once `apps/api` imports from
+`packages/*`), and needs no new bespoke SSH/tunnel tooling — it's the same
+class of managed host Fly is, just without the card requirement at our
+scale.
+
+**Live-verified 2026-09-21** (checked directly against `render.com/docs/free`
+and `render.com/pricing`, not asserted from memory — this was flagged as the
+one load-bearing fact this whole recommendation depended on):
+
+- **No credit card required** to create or run a Free Web Service. Render's
+  own docs describe what happens *without* a payment method on file
+  (services get suspended if you exceed free limits) — phrasing that only
+  makes sense if a card was never required to begin with. One caveat: a
+  Render community-feedback thread has scattered reports of a
+  "please enter your payment information" prompt, but on inspection that's
+  tied to selecting a paid/higher-limit *instance type* in the dashboard, not
+  the Free instance type itself — worth a quick manual signup check, but not
+  a reason to expect a card gate on the plan actually being used here.
+- **Cold start is concretely ~1 minute, not "a few seconds."** A Free
+  service spins down after **15 minutes with no inbound traffic** and spins
+  back up on the next request, taking **about 60 seconds** (Render shows a
+  loading page to browsers while it wakes). This is materially slower than
+  the vague "generally slower than Fly" framing first used here — the
+  "still connecting…" affordance already scoped for swe (appears after ~3s,
+  no fixed cutoff) covers this correctly as designed, but it's worth
+  building and testing against a real ~60s wait, not assuming it's a
+  two-or-three-second gap. This is also the concrete reason swe was right
+  not to add a client-side fetch timeout for this issue — a short timeout
+  would misfire on every cold start.
+- **750 free instance-hours/month** shared across all Free services in the
+  workspace (unused hours don't roll over), plus capped bandwidth and build
+  minutes. Not a real constraint at solo-dev usage with 15-minute
+  spin-down — a service that's mostly idle stays far under 750 hours/month
+  — but worth knowing if usage patterns change.
+- Ephemeral filesystem (wiped on spin-down/redeploy) and no persistent disk
+  on the Free plan — irrelevant to `apps/api` today (stateless, no local
+  writes), but a real constraint to remember if a future decision considers
+  colocating anything stateful here (it shouldn't — Postgres has its own,
+  separate hosting decision ahead per ADR 0002's Data Store section).
+
+Net: the recommendation holds. No open fact-check remains blocking
+implementation.
+
+### Reliability, calibrated to what this actually is
+
+A home Pi is a real single point of failure a managed host isn't — a home
+power outage, an ISP outage, SD-card wear, or HA's own workload competing
+for the Pi's resources can all take `apps/api` down in a way Fly or Render
+can't. Naming this plainly, not glossing over it. But it is **not** the
+reason self-hosting was rejected above — issue #7 is a dev-only walking
+skeleton with no real users and no uptime expectation, so a Pi being down
+for the length of a power blip has close to zero real-world consequence
+today. This calculus is explicitly different for **staging/prod**, where
+this ADR already requires prod to be always-on because Strava webhook
+deliveries need a prompt ACK — a home Pi was never a candidate for that
+environment, and nothing here changes that.
+
+### If self-hosting is revisited later
+
+Documented so this doesn't need to be re-derived from scratch: pick
+integration path 1 (Advanced SSH & Web Terminal, protected mode off), not
+the HA-add-on route. `apps/api`'s Dockerfile (to be added in issue #7; not
+in-tree yet) runs unchanged in a `docker-compose.yml` on the Pi (no
+Fly-specific bits to strip, since the build itself is host-agnostic).
+`cloudflared` runs as its own host-level
+service — a named tunnel's routing config (`config.yml`, hostname →
+`http://localhost:3001`) is low-sensitivity and could be checked into the
+repo (e.g. `infra/cloudflared/config.yml`) as a template; the tunnel's
+credentials file is a secret and stays Pi-local only, never committed, same
+convention as every other secret in this project. Since there's no
+`fly deploy`-equivalent CLI for a home box, "scripted, not manual" means a
+`scripts/deploy-pi-dev.sh` that SSHes into the Pi (host/user from an env
+var) and runs `git pull && docker compose up -d --build` against the Pi's
+own clone of the repo, ending in the same `curl .../health` verification the
+Fly- and Render-based scripts will end with (per issue #7's plan — neither
+exists in-tree yet). Rollback is
+`git checkout <last-good-sha> && docker compose up -d --build` on the Pi —
+same "redeploy the last-good build" shape as the cloud options, via a git
+ref instead of an image registry.
+
+### What would revisit this
+
+- Render's free-tier terms turning out to have changed (card now required,
+  tier discontinued/reduced) — check this first, before implementing, since
+  it's the one fact this whole recommendation leans on.
+- The project buying a domain anyway once staging/prod work starts (a real
+  custom domain will be needed for Cloudflare Pages and Strava's prod
+  callback regardless) — that removes self-hosting's domain-purchase
+  objection and is worth a fresh look at that point, if $0-and-no-card still
+  matters more than the HAOS security trade-off by then.
+- Postgres landing on the same Pi later (a separate, future decision — not
+  needed for this issue, not designed here) — changes the resource and
+  SD-card-endurance math for HA + API + DB sharing one box, and deserves its
+  own look when it comes up, not an assumption carried over from this
+  addendum.
+- Strava OAuth/webhook work starting sooner than expected and needing
+  prod-adjacent reliability pre-launch (Strava's webhook delivery doesn't
+  tolerate a flaky ACK path well even in testing) — pulls toward Fly/Render
+  over a Pi sooner than "prod only."
+- The user deciding, on reflection, that disabling HAOS protected mode isn't
+  acceptable on a device they depend on for real home automation — decisive
+  on its own, independent of every cost/effort argument above.
+
+`CLAUDE.md`'s "Infra / deploy" line is updated in this same pass:
+Render.com (`apps/api` dev) + Fly.io (`apps/api` staging/prod, later) +
+Cloudflare Pages (`apps/web`).
+
 ## What would change this
 
 - If `@data-scientist`'s future precision/recall work on Strava-match
