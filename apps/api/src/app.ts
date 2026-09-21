@@ -12,9 +12,11 @@ const WEB_DEV_ORIGIN = process.env.WEB_DEV_ORIGIN ?? "http://localhost:5173";
  * `.inject()`) without binding a real port. `src/index.ts` is the thin
  * entrypoint that calls `.listen()` on the instance this returns.
  */
-export async function buildApp(): Promise<FastifyInstance> {
+export async function buildApp(
+  opts: { logger?: boolean } = {},
+): Promise<FastifyInstance> {
   const app = Fastify({
-    logger: true,
+    logger: opts.logger ?? true,
   });
 
   await app.register(cors, {
