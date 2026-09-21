@@ -24,3 +24,4 @@ Monorepo for the training_plan product. Web app first; native iOS and Android la
 3. Start planning: invoke `@tpm` to scope the first requirement into a GitHub issue.
 
 See `CLAUDE.md` for how work is tracked and how the role subagents fit together.
+
