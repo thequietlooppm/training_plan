@@ -21,6 +21,15 @@ if (WEB_APP_ORIGIN.length === 0) {
   );
 }
 
+// @fastify/cors treats the literal string "*" anywhere in an origin array as
+// "allow all origins" (see its normalizeCorsOptions behavior), silently
+// defeating the point of an explicit allow-list. A plausible operator typo
+// (e.g. `WEB_APP_ORIGIN=*` meaning "allow everything for testing") would
+// otherwise start the server wide open with no warning — fail fast instead.
+if (WEB_APP_ORIGIN.includes("*")) {
+  throw new Error("WEB_APP_ORIGIN must be explicit origins, not '*'");
+}
+
 /**
  * Builds and configures the Fastify instance (CORS, error handler, routes)
  * without starting a listener, so it's importable and testable (e.g. via
