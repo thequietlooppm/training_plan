@@ -12,7 +12,7 @@ pnpm --filter @training-plan/api dev
 ```
 
 Copy `.env.example` to `.env` to override the defaults (port, host, the
-`apps/web` dev origin allowed by CORS). Defaults work out of the box for local
-dev without a `.env` file.
+comma-separated `apps/web` origin(s) allowed by CORS via `WEB_APP_ORIGIN`).
+Defaults work out of the box for local dev without a `.env` file.
 
 Server listens on `http://localhost:3001` by default.

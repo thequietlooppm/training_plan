@@ -1,10 +1,34 @@
 import Fastify, { type FastifyError, type FastifyInstance } from "fastify";
 import cors from "@fastify/cors";
 
-// Local dev origin for apps/web (Vite default). Scoped narrowly per the
-// plan — this only needs to unblock the cross-app health-check fetch, not
-// serve as a general CORS policy.
-const WEB_DEV_ORIGIN = process.env.WEB_DEV_ORIGIN ?? "http://localhost:5173";
+// Origin(s) for apps/web allowed by CORS — a comma-separated list so local
+// dev (Vite default) and a real deployed web origin can both be allowed at
+// once, without flipping this back and forth between the two. Scoped
+// narrowly per the plan — this only needs to unblock the cross-app
+// health-check fetch, not serve as a general CORS policy.
+const WEB_APP_ORIGIN = (process.env.WEB_APP_ORIGIN ?? "http://localhost:5173")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter((origin) => origin.length > 0);
+
+// An explicit-but-empty WEB_APP_ORIGIN (e.g. `WEB_APP_ORIGIN=""` or `","`)
+// parses to an empty array, which @fastify/cors treats as deny-all with no
+// indication anything is wrong. That's a confusing silent failure mode for
+// what's almost certainly an operator error — fail fast at boot instead.
+if (WEB_APP_ORIGIN.length === 0) {
+  throw new Error(
+    "WEB_APP_ORIGIN parsed to an empty origin list — check the env var value",
+  );
+}
+
+// @fastify/cors treats the literal string "*" anywhere in an origin array as
+// "allow all origins" (see its normalizeCorsOptions behavior), silently
+// defeating the point of an explicit allow-list. A plausible operator typo
+// (e.g. `WEB_APP_ORIGIN=*` meaning "allow everything for testing") would
+// otherwise start the server wide open with no warning — fail fast instead.
+if (WEB_APP_ORIGIN.includes("*")) {
+  throw new Error("WEB_APP_ORIGIN must be explicit origins, not '*'");
+}
 
 /**
  * Builds and configures the Fastify instance (CORS, error handler, routes)
@@ -20,7 +44,7 @@ export async function buildApp(
   });
 
   await app.register(cors, {
-    origin: [WEB_DEV_ORIGIN],
+    origin: WEB_APP_ORIGIN,
   });
 
   app.setErrorHandler((error: FastifyError, request, reply) => {
