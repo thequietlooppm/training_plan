@@ -112,6 +112,50 @@ repo owner's own account — are now blocked; a PR is the only path in.
   job(s) by name, so a red pipeline blocks merge exactly as `CLAUDE.md`
   requires — not just "a PR exists."
 
+### Update, 2026-09-21 — `required_status_checks` is no longer a placeholder
+
+Issue #6's CI workflow merged to `main` (PR #43, merge commit `7b587e6`). Per
+tech-lead's plan on that issue, the check-run name was confirmed live against
+that merge commit — `gh api repos/.../commits/7b587e6.../check-runs` returned
+exactly one check run, `name: "ci"`, `conclusion: "success"` — before trusting
+it, not assumed from the workflow YAML's `job.name` alone (a push-triggered
+run on `main` is a distinct event from the PR's `pull_request`-triggered run,
+so this had to be checked for real).
+
+Branch protection was updated (full replace, since the API's `PUT` isn't a
+patch — every other existing setting was re-sent unchanged, not dropped):
+
+```
+PUT /repos/thequietlooppm/training_plan/branches/main/protection
+{
+  "required_status_checks": { "strict": false, "contexts": ["ci"] },
+  "enforce_admins": true,
+  "required_pull_request_reviews": {
+    "dismiss_stale_reviews": false,
+    "require_code_owner_reviews": false,
+    "require_last_push_approval": false,
+    "required_approving_review_count": 0
+  },
+  "restrictions": null
+}
+```
+
+Confirmed live via a fresh `GET` afterward: `required_status_checks.contexts:
+["ci"]`, `enforce_admins.enabled: true` and the rest unchanged from before.
+`strict: false` (not requiring the branch to be up to date with `main` before
+merge) — kept simple for now; revisit if stale-branch merges start causing
+problems.
+
+Sanity-checked end to end with a real throwaway PR (#44, closed and its
+branch deleted immediately after, no debris left): opened against `main`
+while `ci` was still running, and `gh api .../pulls/44` reported
+`mergeable_state: "blocked"` — correctly refused to merge. Once `ci`
+completed (`conclusion: "success"`), the same PR reported
+`mergeable_state: "unstable"`, `mergeable: true` (`"unstable"` here only
+reflects an unrelated, non-required check — an external code-review
+automation — still running; it doesn't gate merging). Confirmed both
+directions: blocked while `ci` is pending, mergeable once `ci` is green.
+
 ### Docs changes go through PRs too, going forward
 
 Once `enforce_admins: true` is live, there is no carve-out available anyway —
@@ -141,8 +185,8 @@ being explicit that it now applies to docs too, not just app code.
   as this is a one-human-identity repo. Re-evaluate
   `required_approving_review_count` if a second reviewer with their own
   GitHub account joins.
-- `required_status_checks` needs a follow-up update once issue #6 (CI) ships
-  a workflow — flagging that here so it isn't forgotten.
+- `required_status_checks` is now enforced (`contexts: ["ci"]`, as of
+  2026-09-21) — a red or pending `ci` run blocks merge, not just a missing PR.
 - CODEOWNERS was deliberately not added — it only does anything once branch
   protection can require code-owner review, and with one identity in the
   repo it would just point back at the same account. Revisit alongside the
