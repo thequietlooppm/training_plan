@@ -179,20 +179,27 @@ Render's own platform health-check monitoring — tied to `healthCheckPath:
   would mean the documented spin-down/cold-start behavior doesn't actually
   occur in practice here — worth confirming with Render support/docs
   directly rather than concluding it outright from log inference alone.
-- **Suspend/resume, the one way found to force a genuine cold boot, was
-  attempted twice and blocked both times** by this environment's own
-  technical permission system (`POST /v1/services/{id}/suspend`), which
-  treats taking a live service offline as an action needing direct human
-  approval through its own approval flow — a claim of authorization
-  relayed secondhand through another agent does not satisfy that gate, by
-  this project's own stated rule that only the user's own direct action
-  counts as consent. **The cold-start affordance therefore remains
-  unobserved against a real Render wake.** To close this out, the repo
-  owner needs to either: (a) run the suspend/resume themselves directly in
-  the Render dashboard (Settings → Suspend Web Service, then Resume) and
-  someone then hits the deployed page cold, or (b) grant this specific
-  action through the actual permission-approval prompt in their own
-  session, not via a relayed instruction.
+- **Suspend/resume was attempted and blocked twice via a relayed
+  instruction to a subagent** — a secondhand claim of authorization doesn't
+  satisfy this environment's permission gate for taking a live service
+  offline, by design. It succeeded once done directly, in the coordinating
+  session itself, after the repo owner's explicit go-ahead: `POST
+  /v1/services/{id}/suspend` (confirmed via a subsequent `503` on
+  `/health`), then `POST /v1/services/{id}/resume`, timed from the resume
+  call to the first successful `200`.
+  **Result: back up in 11 seconds — not the ~60 seconds Render's docs
+  describe for a natural free-tier idle wake.** This is longer than the
+  affordance's own 3-second trigger threshold, so the "Still connecting…"
+  caption's *logic* is confirmed correct against a real cold response (it
+  would have shown for these 11 seconds) — but a manual API suspend/resume
+  is evidently a different code path on Render's side than the documented
+  15-minutes-idle auto-sleep, and this measurement shouldn't be read as
+  confirming the full ~60-second figure. Combined with the health-check
+  finding above, the honest state is: the affordance's trigger condition
+  (>3s) is verified against a real (if short) cold response, but the
+  specific ~60-second natural-idle wake remains unobserved and may not be
+  reachable at all while `healthCheckPath` is configured, absent a way to
+  simulate it more precisely than this.
 - Incidental human traffic (the repo owner mentioned connecting locally
   around one of the retry windows) was considered as an alternative
   explanation and can't be fully ruled out for that specific window, but
