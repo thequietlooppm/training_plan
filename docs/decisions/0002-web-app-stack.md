@@ -196,6 +196,52 @@ implication, verified with `@data-engineer` rather than assumed:
 No structural change to the materialized-rows model this ADR already
 decided — confirmed, not assumed.
 
+## Addendum — web hosting split from Fly.io (2026-09-20)
+
+Issue #7 (deploying the walking skeleton to a real dev environment) is the
+first point this ADR's blanket "Infra / deploy: Fly.io" line actually got
+tested against a concrete requirement, rather than reasoned about in the
+abstract. `@deploy-engineer` was asked to re-derive it, not assume it — same
+treatment issue #5 gave the frontend framework pick.
+
+**Refinement: `apps/api` stays on Fly.io as decided. `apps/web` (a pure
+static SPA build, no SSR, no server-side logic) deploys to Cloudflare Pages
+instead**, not Fly. Reasoning: this ADR's original Fly.io pick was driven by
+`apps/api`'s needs specifically — a persistent process, a future webhook
+receiver, background jobs — none of which apply to a static build artifact.
+Hosting a static SPA on Fly would mean paying for an idle container running a
+file server; Cloudflare Pages serves the same artifact from its edge CDN for
+free (unlimited requests/bandwidth on the free tier, generous per-deployment
+file limits), with no cold start at all — strictly better on both cost and
+latency for this specific workload. Splitting hosting providers between the
+two apps was weighed and rejected as a real complexity concern: the two apps
+share no runtime, only a URL contract (an env var), so "one platform for
+operational simplicity" wasn't actually buying anything a single `fly deploy`
+/ `wrangler pages deploy` pair doesn't already give a solo operator.
+
+This changes `CLAUDE.md`'s "Infra / deploy" line from "Fly.io" to "Fly.io
+(`apps/api`) + Cloudflare Pages (`apps/web` static hosting)" — updated in the
+same pass as this addendum.
+
+Concretely, for the dev environment (full detail in issue #7's plan comment):
+Fly app `training-plan-api-dev` (Dockerfile build from the repo root, so the
+pnpm workspace's lockfile and `packages/*` are reachable — not `apps/api/`
+alone, which would break the first time `apps/api` imports shared code);
+Cloudflare Pages project `training-plan-web-dev`, deployed via `wrangler
+pages deploy`, not Cloudflare's git-integration auto-deploy-on-push (that's
+CI-triggered auto-deploy, explicitly out of scope for #7). `apps/web`'s
+`VITE_API_BASE_URL` is baked in at build time via a committed
+`.env.production` (a public URL, not a secret — consistent with the
+`.env.example` convention already in the repo) pointed at the Fly app's
+deterministic `*.fly.dev` hostname, which is reserved the moment the Fly app
+is created, before it needs to be fully deployed.
+
+**What would change this:** if `apps/web` ever needs server-side rendering,
+API routes colocated with the frontend, or anything beyond a static build
+(none of which is in scope anywhere in the current product brief), Cloudflare
+Pages' Functions or a move back to a Fly-hosted server would need
+re-evaluating. Not expected, not designed around preemptively.
+
 ## What would change this
 
 - If `@data-scientist`'s future precision/recall work on Strava-match
