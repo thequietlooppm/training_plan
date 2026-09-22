@@ -1,0 +1,38 @@
+# Render Blueprint for apps/api's dev environment.
+# https://render.com/docs/blueprint-spec
+#
+# Applied once via the Render dashboard (New > Blueprint, pointed at this
+# repo) to create the service the first time — Render's Blueprint sync is a
+# one-time, GitHub-App-authorized action with no headless/API equivalent
+# that doesn't already assume the repo is connected. See
+# docs/decisions/0002-web-app-stack.md and scripts/deploy-dev.sh for the
+# rest of the (scripted, repeatable) deploy path once the service exists.
+#
+# autoDeploy is deliberately false: deploys are triggered explicitly via
+# scripts/deploy-dev.sh (Render API), not implicitly on every git push to
+# main — same "explicit trigger, not implicit auto-deploy" principle as
+# apps/web's `wrangler pages deploy` (not Cloudflare's git integration).
+
+services:
+  - type: web
+    name: training-plan-api-dev
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    autoDeploy: false
+    healthCheckPath: /health
+    envVars:
+      # Matches apps/api's own PORT default (see apps/api/.env.example) —
+      # set explicitly so Render's Docker-runtime port routing doesn't
+      # depend on its own default (10000) instead.
+      - key: PORT
+        value: 3001
+      # The deployed Cloudflare Pages URL for apps/web. Not known until
+      # that Pages project exists (see scripts/deploy-dev.sh), and not a
+      # secret — but still set out-of-band (dashboard or `render env set`
+      # via the API), not hardcoded here, so this file doesn't need an edit
+      # + redeploy every time the dev Pages URL changes.
+      - key: WEB_APP_ORIGIN
+        sync: false
