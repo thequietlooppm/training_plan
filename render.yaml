@@ -1,0 +1,56 @@
+# Render Blueprint for apps/api's dev environment.
+# https://render.com/docs/blueprint-spec
+#
+# Applied once via the Render dashboard (New > Blueprint, pointed at this
+# repo) to create the service the first time — Render's Blueprint sync is a
+# one-time, GitHub-App-authorized action with no headless/API equivalent
+# that doesn't already assume the repo is connected. See
+# docs/decisions/0002-web-app-stack.md and scripts/deploy-dev.sh for the
+# rest of the (scripted, repeatable) deploy path once the service exists.
+#
+# autoDeployTrigger is deliberately 'off': deploys are triggered explicitly
+# via scripts/deploy-dev.sh (Render API), not implicitly on every git push to
+# main — same "explicit trigger, not implicit auto-deploy" principle as
+# apps/web's `wrangler pages deploy` (not Cloudflare's git integration).
+# Quoted because bare `off` parses as YAML boolean `false`, not the string
+# Render's schema expects — matches the quoting in Render's own example.
+#
+# Verified live against https://render.com/docs/blueprint-spec (2026-09-22):
+# `autoDeploy` is deprecated in favor of `autoDeployTrigger`; `autoDeploy:
+# false` is documented as equivalent to `autoDeployTrigger: off`, not
+# silently ignored — but the current field is used here to avoid relying on
+# deprecated behavior going forward.
+
+services:
+  - type: web
+    name: training-plan-api-dev
+    runtime: docker
+    plan: free
+    region: oregon
+    # Set explicitly (rather than left to omit-defaults to "the Blueprint's
+    # branch") because this service uses the same repo as this Blueprint
+    # file with no `repo:` override, and the Blueprint may first be synced
+    # from a feature branch (e.g. this PR's) before it's merged. Without
+    # this, the service would track whatever branch was active at sync
+    # time — a branch that gets deleted after merge, leaving nothing to
+    # build. scripts/deploy-dev.sh pins deploys to a commit SHA regardless,
+    # but this still matters for any manual "Deploy latest commit" from the
+    # Render dashboard.
+    branch: main
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    autoDeployTrigger: 'off'
+    healthCheckPath: /health
+    envVars:
+      # Matches apps/api's own PORT default (see apps/api/.env.example) —
+      # set explicitly so Render's Docker-runtime port routing doesn't
+      # depend on its own default (10000) instead.
+      - key: PORT
+        value: 3001
+      # The deployed Cloudflare Pages URL for apps/web. Not known until
+      # that Pages project exists (see scripts/deploy-dev.sh), and not a
+      # secret — but still set out-of-band (dashboard or `render env set`
+      # via the API), not hardcoded here, so this file doesn't need an edit
+      # + redeploy every time the dev Pages URL changes.
+      - key: WEB_APP_ORIGIN
+        sync: false

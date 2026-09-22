@@ -16,6 +16,12 @@ yarn-error.log*
 .env
 .env.*
 !.env.example
+# apps/web/.env.production holds a public deployed API URL baked into the
+# static build at build time — not a secret, same convention as
+# .env.example, so it's checked in rather than ignored. Scoped to
+# apps/web/ specifically so a future apps/api/.env.production (or any other
+# app's) doesn't get accidentally un-ignored by this rule too.
+!apps/web/.env.production
 
 # Editor
 .vscode/
