@@ -27,6 +27,16 @@ services:
     runtime: docker
     plan: free
     region: oregon
+    # Set explicitly (rather than left to omit-defaults to "the Blueprint's
+    # branch") because this service uses the same repo as this Blueprint
+    # file with no `repo:` override, and the Blueprint may first be synced
+    # from a feature branch (e.g. this PR's) before it's merged. Without
+    # this, the service would track whatever branch was active at sync
+    # time — a branch that gets deleted after merge, leaving nothing to
+    # build. scripts/deploy-dev.sh pins deploys to a commit SHA regardless,
+    # but this still matters for any manual "Deploy latest commit" from the
+    # Render dashboard.
+    branch: main
     dockerfilePath: ./Dockerfile
     dockerContext: .
     autoDeployTrigger: 'off'

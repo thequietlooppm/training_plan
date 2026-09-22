@@ -63,6 +63,10 @@ DEPLOY_ID=$(echo "$DEPLOY_RESPONSE" | node -e 'process.stdout.write(JSON.parse(r
 echo "    Deploy ${DEPLOY_ID} started."
 
 echo "==> Polling deploy status (Render free-tier cold builds can take a few minutes)..."
+# Terminal failure statuses per the live `deployStatus` enum at
+# https://api-docs.render.com/reference/retrieve-deploy — includes
+# `pre_deploy_failed` (a pre-deploy-hook failure) so that fails fast
+# instead of spinning the full poll loop to timeout.
 STATUS=""
 for _ in $(seq 1 60); do
   STATUS=$(curl -sf \
@@ -72,7 +76,7 @@ for _ in $(seq 1 60); do
   echo "    status: ${STATUS}"
   case "$STATUS" in
     live) break ;;
-    build_failed|update_failed|canceled|deactivated)
+    build_failed|update_failed|canceled|deactivated|pre_deploy_failed)
       echo "!! Render deploy ${DEPLOY_ID} ended in status '${STATUS}'." >&2
       exit 1
       ;;
