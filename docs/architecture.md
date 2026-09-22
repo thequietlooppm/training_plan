@@ -3,7 +3,7 @@
 Source content for a separate visual/diagram writeup (built outside this
 repo). This file is the accurate reference it should be drawn from — it
 distinguishes what's actually built and deployed today from what's planned,
-rather than blending the two. Last updated 2026-09-21 against issue #7.
+rather than blending the two. Last updated 2026-09-22 against issue #7.
 
 ## Service topology
 
@@ -82,8 +82,14 @@ diagram directly:
    secret), so it can't be changed post-build without rebuilding and
    redeploying.
 3. That request crosses the public internet to `apps/api`'s Render URL.
-   Render's free tier spins a service down after **15 minutes idle**; the
-   next request wakes it, taking up to **~60 seconds** before it responds.
+   Render's free tier is documented to spin a service down after **15
+   minutes idle**, waking it (up to **~60 seconds**) on the next request —
+   see "Current status" below for a real-log-evidenced caveat: in practice,
+   Render's own platform health-check polling (tied to `healthCheckPath:
+   /health` in `render.yaml`) hits `/health` roughly every 5 seconds,
+   continuously, which appears to keep the free instance perpetually warm
+   rather than idle. The cold-start path below is what the code is built
+   for, not yet something observed happening naturally in this environment.
 4. `apps/api`'s Fastify server has `@fastify/cors` registered with an
    allow-list read from the `WEB_APP_ORIGIN` env var — a **comma-separated
    list** (so a locally-running `apps/web` dev server and the real deployed
@@ -116,47 +122,82 @@ between the two deployed services (no shared runtime, no shared network).
 
 ## Current status
 
-**Deployed today:**
+**Deployed today, both real and live:**
 - `apps/web` → Cloudflare Pages project `training-plan-web-dev`,
-  `https://training-plan-web-dev.pages.dev` — live, direct-upload deploy via
-  `wrangler pages deploy` (not Cloudflare's git-integration auto-deploy).
-- `apps/api` → **not yet deployed.** The `Dockerfile` (repo-root build
-  context) and `render.yaml` Blueprint are written and the Docker build has
-  been verified locally (`docker build` + `docker run` + `curl /health`
-  succeed, including a CORS preflight-style check against the real intended
-  Pages origin) — but the `training-plan-api-dev` Render Web Service itself
-  does not exist yet. Creating it is a one-time action that needs the
-  repo owner directly: either completing a Render device-login flow
-  (`render login`, browser-based) or a one-time dashboard step connecting
-  this GitHub repo and applying the `render.yaml` Blueprint (Render's
-  Blueprint sync requires GitHub-App repo authorization, which has no
-  headless/API equivalent), or providing a Render API key so
-  `scripts/deploy-dev.sh` can drive it end-to-end. See the PR for issue #7
-  for the exact ask.
-- `scripts/deploy-dev.sh` is written and its guard clauses / syntax are
-  verified, but it hasn't completed a real end-to-end run yet — it's
-  blocked on the same Render prerequisite above.
+  **https://training-plan-web-dev.pages.dev** — live, direct-upload deploy
+  via `wrangler pages deploy` (not Cloudflare's git-integration
+  auto-deploy).
+- `apps/api` → Render.com free-tier web service `training-plan-api-dev`,
+  **https://training-plan-api-dev.onrender.com** — live, deployed via the
+  `Dockerfile` + `render.yaml` Blueprint described above. `WEB_APP_ORIGIN`
+  is set as a Render environment variable to the Pages URL. The service was
+  created via a one-time Render-dashboard Blueprint sync (a GitHub-App repo
+  authorization step with no headless/API equivalent — the same kind of
+  one-time login step Fly/Cloudflare needed earlier in this project) plus a
+  Render API key the repo owner generated afterward for scripted use.
 
-**Verified working:**
-- The Docker image builds correctly from the repo root and only installs
-  `@training-plan/api`'s dependency subgraph (not `apps/web`'s toolchain),
-  confirming the workspace-aware `pnpm install --filter` approach in the
-  `Dockerfile` is correct.
-- The running container binds correctly, serves `GET /health`, and
-  correctly echoes `Access-Control-Allow-Origin` for the real deployed
-  Cloudflare Pages origin when `WEB_APP_ORIGIN` is set to it — verified
-  locally against a real container, not just read from source.
-- `apps/web`'s production build correctly bakes the intended Render URL
-  into its JS bundle from the committed `.env.production`.
-- The Cloudflare Pages deploy itself is real and live (`curl` returns
-  `200` with the real page HTML).
+**Verified working, with how:**
+- **Docker build correctness** — `docker build` from the repo root
+  installs only `@training-plan/api`'s dependency subgraph (not `apps/web`'s
+  toolchain), and a locally-run container correctly serves `GET /health`
+  and echoes `Access-Control-Allow-Origin` for the real Pages origin.
+- **The actual cross-network call, browser-verified** — a real headless
+  Chromium session (Playwright) loaded `https://training-plan-web-dev.pages.dev`
+  and was observed, via the browser's own network events, issuing
+  `GET https://training-plan-api-dev.onrender.com/health`, receiving a real
+  `200` with `access-control-allow-origin:
+  https://training-plan-web-dev.pages.dev` and body `{"status":"ok"}`, and
+  rendering "Backend connected / GET /health → ok" in the DOM — confirmed
+  by reading the rendered page text and a screenshot, not just replaying
+  the request with curl.
+- **`scripts/deploy-dev.sh`'s Cloudflare Pages leg** — the build +
+  `wrangler pages deploy` + health-check-chain portion of the script has
+  been exercised directly and works. Its Render-triggering leg (`POST
+  /v1/services/{id}/deploys` + poll) is implemented and its read-only
+  counterparts (listing the service, listing deploys, reading logs) have
+  been verified against the real Render API with a real API key — but an
+  actual state-changing run (triggering a fresh deploy through the script)
+  was blocked by this environment's own auto-mode safety classifier, which
+  treats "trigger a deploy against a live external service" as an action
+  needing explicit human sign-off. **Needs the repo owner to either run
+  `scripts/deploy-dev.sh` themselves once with `RENDER_API_KEY` /
+  `RENDER_SERVICE_ID` set, or grant that action explicitly**, to close this
+  out.
 
-**Not yet verified (blocked on the above):**
-- The actual live cross-network call from the deployed `apps/web` to a
-  deployed `apps/api` on Render.
-- The cold-start "Still connecting…" affordance against a real ~60s Render
-  wake (only exercisable once a real service exists and has been left idle
-  15+ minutes).
+**Cold-start affordance — investigated with real evidence, not yet
+observed, and here's exactly why:** Two independent ~15-20 minute idle
+waits, each followed by a real cold hit via headless browser, came back
+warm (sub-second response, no "Still connecting…" caption) rather than
+showing the expected ~60s wake. Rather than accept "inconclusive," this was
+run down using Render's own request logs (`GET /v1/logs`, pulled with the
+provided API key): **`GET /health` requests arrive roughly every 5 seconds,
+continuously and without gaps, from the moment the service went live
+straight through to the time of writing** — confirmed across multiple
+non-adjacent time windows the deploy-engineer agent never itself touched.
+This traffic pattern (fixed ~5s cadence, `/health` only, present even
+minutes after the container's own deploy-readiness checks finished) is
+consistent with Render's own platform health-check monitoring — tied to
+`healthCheckPath: /health` in `render.yaml` — not a human or CI. Two open
+items follow from this, both flagged rather than guessed past:
+- **This appears to prevent the free-tier instance from ever reaching a
+  true 15-minutes-idle state while `healthCheckPath` is configured**, which
+  would mean the documented spin-down/cold-start behavior doesn't actually
+  occur in practice here — worth confirming with Render support/docs
+  directly rather than concluding it outright from log inference alone.
+- **The one way found to force a genuine cold boot** — explicitly
+  suspending the service via Render's API (`POST
+  /v1/services/{id}/suspend`) and then resuming it — was also blocked by
+  the auto-mode safety classifier (it takes the live dev service offline,
+  even briefly). This needs the repo owner's explicit go-ahead before it's
+  attempted, since it's a real state change to a live service, not a
+  read-only check.
+- Incidental human traffic (the repo owner mentioned connecting locally
+  around one of the retry windows) was considered as an alternative
+  explanation and can't be fully ruled out for that specific window, but
+  the ~5-second-cadence, `/health`-only, gap-free pattern observed across
+  *multiple, separated* time windows — including ones with no known human
+  involvement — points to platform health-check traffic as the primary
+  driver, not incidental use.
 
 **Explicitly out of scope for now** (per issue #7): staging/prod
 environments (still planned for Fly.io later), self-hosting `apps/api` on
