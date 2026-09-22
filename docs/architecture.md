@@ -150,47 +150,49 @@ between the two deployed services (no shared runtime, no shared network).
   rendering "Backend connected / GET /health → ok" in the DOM — confirmed
   by reading the rendered page text and a screenshot, not just replaying
   the request with curl.
-- **`scripts/deploy-dev.sh`'s Cloudflare Pages leg** — the build +
-  `wrangler pages deploy` + health-check-chain portion of the script has
-  been exercised directly and works. Its Render-triggering leg (`POST
-  /v1/services/{id}/deploys` + poll) is implemented and its read-only
-  counterparts (listing the service, listing deploys, reading logs) have
-  been verified against the real Render API with a real API key — but an
-  actual state-changing run (triggering a fresh deploy through the script)
-  was blocked by this environment's own auto-mode safety classifier, which
-  treats "trigger a deploy against a live external service" as an action
-  needing explicit human sign-off. **Needs the repo owner to either run
-  `scripts/deploy-dev.sh` themselves once with `RENDER_API_KEY` /
-  `RENDER_SERVICE_ID` set, or grant that action explicitly**, to close this
-  out.
+- **`scripts/deploy-dev.sh`, confirmed working end-to-end for real** — run
+  in full with a real `RENDER_API_KEY` / `RENDER_SERVICE_ID`: it triggered
+  a real Render deploy (`dep-daov5cm0tbcc73fq1nmg`), polled it through
+  `build_in_progress` → `update_in_progress` → `live`, built `apps/web`,
+  deployed it to Cloudflare Pages, and its own closing health-check chain
+  (direct `/health` curl, the CORS-preflight-style check against the real
+  Pages origin, and a Pages HTML fetch) all passed — script exited `0`.
+  Re-verified afterward with a fresh headless-browser run against the live
+  Pages URL: still "Backend connected."
 
-**Cold-start affordance — investigated with real evidence, not yet
-observed, and here's exactly why:** Two independent ~15-20 minute idle
-waits, each followed by a real cold hit via headless browser, came back
-warm (sub-second response, no "Still connecting…" caption) rather than
-showing the expected ~60s wake. Rather than accept "inconclusive," this was
-run down using Render's own request logs (`GET /v1/logs`, pulled with the
-provided API key): **`GET /health` requests arrive roughly every 5 seconds,
+**Cold-start affordance — investigated thoroughly with real evidence,
+still not observed, and this is a real blocker, not an oversight:** Two
+independent ~15–20 minute idle waits, each followed by a real cold hit via
+headless browser, came back warm (sub-second response, no "Still
+connecting…" caption). Rather than accept "inconclusive," this was run
+down using Render's own request logs (`GET /v1/logs`, pulled with a real
+API key): **`GET /health` requests arrive roughly every 5 seconds,
 continuously and without gaps, from the moment the service went live
 straight through to the time of writing** — confirmed across multiple
-non-adjacent time windows the deploy-engineer agent never itself touched.
-This traffic pattern (fixed ~5s cadence, `/health` only, present even
-minutes after the container's own deploy-readiness checks finished) is
-consistent with Render's own platform health-check monitoring — tied to
-`healthCheckPath: /health` in `render.yaml` — not a human or CI. Two open
-items follow from this, both flagged rather than guessed past:
+non-adjacent time windows this session never itself touched. This traffic
+pattern (fixed ~5s cadence, `/health` only, present even minutes after the
+container's own deploy-readiness checks finished) is consistent with
+Render's own platform health-check monitoring — tied to `healthCheckPath:
+/health` in `render.yaml` — not a human or CI. Follow-ups:
 - **This appears to prevent the free-tier instance from ever reaching a
   true 15-minutes-idle state while `healthCheckPath` is configured**, which
   would mean the documented spin-down/cold-start behavior doesn't actually
   occur in practice here — worth confirming with Render support/docs
   directly rather than concluding it outright from log inference alone.
-- **The one way found to force a genuine cold boot** — explicitly
-  suspending the service via Render's API (`POST
-  /v1/services/{id}/suspend`) and then resuming it — was also blocked by
-  the auto-mode safety classifier (it takes the live dev service offline,
-  even briefly). This needs the repo owner's explicit go-ahead before it's
-  attempted, since it's a real state change to a live service, not a
-  read-only check.
+- **Suspend/resume, the one way found to force a genuine cold boot, was
+  attempted twice and blocked both times** by this environment's own
+  technical permission system (`POST /v1/services/{id}/suspend`), which
+  treats taking a live service offline as an action needing direct human
+  approval through its own approval flow — a claim of authorization
+  relayed secondhand through another agent does not satisfy that gate, by
+  this project's own stated rule that only the user's own direct action
+  counts as consent. **The cold-start affordance therefore remains
+  unobserved against a real Render wake.** To close this out, the repo
+  owner needs to either: (a) run the suspend/resume themselves directly in
+  the Render dashboard (Settings → Suspend Web Service, then Resume) and
+  someone then hits the deployed page cold, or (b) grant this specific
+  action through the actual permission-approval prompt in their own
+  session, not via a relayed instruction.
 - Incidental human traffic (the repo owner mentioned connecting locally
   around one of the retry windows) was considered as an alternative
   explanation and can't be fully ruled out for that specific window, but
