@@ -57,7 +57,7 @@ export function HomePage() {
               <Skeleton className="h-4 w-40" />
               <Skeleton className="h-3 w-32" />
               {stillConnecting ? (
-                <p className="text-sm text-muted-foreground">
+                <p role="status" className="text-sm text-muted-foreground">
                   Still connecting — waking up the API&hellip;
                 </p>
               ) : null}

@@ -81,6 +81,14 @@ describe("buildApp — CORS (WEB_APP_ORIGIN)", () => {
     }
   });
 
+  it("fails fast at module load when WEB_APP_ORIGIN parses to an empty list", async () => {
+    process.env.WEB_APP_ORIGIN = ",";
+
+    await expect(import("./app.js")).rejects.toThrow(
+      "WEB_APP_ORIGIN parsed to an empty origin list",
+    );
+  });
+
   it("does not reflect an origin outside the allow-list", async () => {
     process.env.WEB_APP_ORIGIN = "https://training-plan-web-dev.pages.dev";
     const { buildApp: build } = await import("./app.js");

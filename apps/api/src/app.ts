@@ -11,6 +11,16 @@ const WEB_APP_ORIGIN = (process.env.WEB_APP_ORIGIN ?? "http://localhost:5173")
   .map((origin) => origin.trim())
   .filter((origin) => origin.length > 0);
 
+// An explicit-but-empty WEB_APP_ORIGIN (e.g. `WEB_APP_ORIGIN=""` or `","`)
+// parses to an empty array, which @fastify/cors treats as deny-all with no
+// indication anything is wrong. That's a confusing silent failure mode for
+// what's almost certainly an operator error — fail fast at boot instead.
+if (WEB_APP_ORIGIN.length === 0) {
+  throw new Error(
+    "WEB_APP_ORIGIN parsed to an empty origin list — check the env var value",
+  );
+}
+
 /**
  * Builds and configures the Fastify instance (CORS, error handler, routes)
  * without starting a listener, so it's importable and testable (e.g. via
