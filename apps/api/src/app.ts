@@ -1,10 +1,15 @@
 import Fastify, { type FastifyError, type FastifyInstance } from "fastify";
 import cors from "@fastify/cors";
 
-// Local dev origin for apps/web (Vite default). Scoped narrowly per the
-// plan — this only needs to unblock the cross-app health-check fetch, not
-// serve as a general CORS policy.
-const WEB_DEV_ORIGIN = process.env.WEB_DEV_ORIGIN ?? "http://localhost:5173";
+// Origin(s) for apps/web allowed by CORS — a comma-separated list so local
+// dev (Vite default) and a real deployed web origin can both be allowed at
+// once, without flipping this back and forth between the two. Scoped
+// narrowly per the plan — this only needs to unblock the cross-app
+// health-check fetch, not serve as a general CORS policy.
+const WEB_APP_ORIGIN = (process.env.WEB_APP_ORIGIN ?? "http://localhost:5173")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter((origin) => origin.length > 0);
 
 /**
  * Builds and configures the Fastify instance (CORS, error handler, routes)
@@ -20,7 +25,7 @@ export async function buildApp(
   });
 
   await app.register(cors, {
-    origin: [WEB_DEV_ORIGIN],
+    origin: WEB_APP_ORIGIN,
   });
 
   app.setErrorHandler((error: FastifyError, request, reply) => {
