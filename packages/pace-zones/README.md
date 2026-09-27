@@ -142,9 +142,17 @@ zone's displayed pace because they each rounded independently.
   equations (no lookup table in this step).
 - **VDOT → Easy/Threshold/10K/5K/Interval**: linear interpolation over the
   sourced VDOT tables in `vdotTable.ts`, uniformly for all five
-  table-interpolated zones. Clamps at the table boundary (VDOT 30 / 85,
-  narrower for the sparser 10K anchors) rather than extrapolating. Recovery
-  is derived differently — see below.
+  table-interpolated zones. The two out-of-range directions are handled
+  differently, not symmetrically: above the table's top boundary (VDOT 85,
+  narrower for the sparser 10K anchors), `interpolate()` clamps to the
+  boundary row rather than extrapolating — genuinely conservative, since it
+  can only make the pace slower than a faster-than-table runner's real
+  fitness. Below the table's bottom boundary (VDOT 30, i.e. below
+  `VDOT_TABLE_MIN`), clamping would do the opposite — hand out a pace
+  *faster* than the runner's demonstrated fitness supports — so `calculate()`
+  rejects a below-`VDOT_TABLE_MIN` recent result outright, via `{ ok: false
+  }`, before interpolation ever runs on it. Recovery is derived
+  differently — see below.
 - **Goal time → goal pace**: a direct division
   (`goalTimeSeconds / (goalDistanceMeters / 1609.344)`) — no VDOT involved.
   This is why a goal zone is never "equivalency-derived": it doesn't share

@@ -8,6 +8,7 @@ import {
   RECOVERY_VO2_PERCENT_OF_VDOT,
   TEN_K_TABLE,
   THRESHOLD_TABLE,
+  VDOT_TABLE_MIN,
   type VdotPoint,
 } from "./vdotTable.js";
 
@@ -245,14 +246,53 @@ describe("invalid input — non-throwing", () => {
   });
 });
 
-describe("invariants", () => {
-  const sampleVdotRaceTimes = [30, 40, 50, 60, 70, 80].map((vdot) => {
-    const row = FIVE_K_TABLE.find((p) => p.vdot === vdot);
-    if (!row) throw new Error(`no 5K row for VDOT ${vdot} in fixture`);
-    return raceTimeFromPace(DISTANCE_METERS["5k"], row.value);
+describe("low-VDOT rejection, not clamping (bug fix: a below-table VDOT must never be clamped up to a faster pace)", () => {
+  it("rejects a 5K in 40:00 (derives VDOT ~21.7, below VDOT_TABLE_MIN) via ok:false", () => {
+    const result = calculate({
+      recentResult: { distance: "5k", timeSeconds: 40 * 60 }, // 40:00
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors.length).toBeGreaterThan(0);
+      expect(result.errors[0]!.path).toBe("recentResult");
+      expect(result.errors[0]!.message).toMatch(/VDOT/i);
+    }
   });
 
-  it.each(sampleVdotRaceTimes)(
+  it("still returns ok:true for a VDOT essentially exactly at VDOT_TABLE_MIN (the boundary itself, not below it)", () => {
+    // Derive a boundary-exact input the same way the round-trip block above
+    // does: take the FIVE_K_TABLE row at VDOT_TABLE_MIN and convert its
+    // sourced pace back into a race time via raceTimeFromPace, rather than
+    // hand-computing a race time — this avoids fighting floating-point
+    // noise right at the boundary `calculate()` now checks against.
+    const boundaryRow = FIVE_K_TABLE.find((p) => p.vdot === VDOT_TABLE_MIN);
+    if (!boundaryRow) {
+      throw new Error(`no 5K row for VDOT_TABLE_MIN (${VDOT_TABLE_MIN}) in fixture`);
+    }
+    const raceTimeSeconds = raceTimeFromPace(DISTANCE_METERS["5k"], boundaryRow.value);
+
+    const result = calculate({
+      recentResult: { distance: "5k", timeSeconds: raceTimeSeconds },
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.zones.fiveK.state).toBe("computed");
+    }
+  });
+});
+
+describe("invariants", () => {
+  // Every VDOT in FIVE_K_TABLE (not just a 6-point sample) for better real
+  // coverage — see the INTERVAL_TABLE/FIVE_K_TABLE tolerance comment below
+  // for why widening this was safe to do only after loosening one specific
+  // comparison.
+  const allVdotRaceTimes = FIVE_K_TABLE.map((row) =>
+    raceTimeFromPace(DISTANCE_METERS["5k"], row.value),
+  );
+
+  it.each(allVdotRaceTimes)(
     "pace ordering holds for a 5K result of %i seconds: interval <= 5K <= threshold <= easy < recovery",
     (raceTimeSeconds) => {
       const zones = calculateZones({
@@ -265,6 +305,16 @@ describe("invariants", () => {
       const easy = computedZone(zones.easy);
       const recovery = computedZone(zones.recovery);
 
+      // Interval vs 5K: the sourced INTERVAL_TABLE/FIVE_K_TABLE columns
+      // themselves are not perfectly monotonic relative to each other at
+      // the elite end — confirmed against the committed tables, Interval is
+      // 1-2 sec/mile *slower* than 5K at VDOT 78, 79, 81, 82, 83, 84, and 85
+      // (e.g. VDOT 84: Interval 248 vs 5K 246). This is real, sourced Daniels
+      // data (not a bug in this codebase, and not something to "correct" by
+      // changing the data), so the comparison tolerates it with a +2
+      // sec/mile allowance rather than a strict <=. This slack is specific
+      // to Interval-vs-5K only — every other comparison below stays exact.
+      expect(interval).toBeLessThanOrEqual(fiveK + 2);
       // The sourced table itself has an occasional rounding tie between
       // adjacent columns at a given VDOT (e.g. VDOT 80's Interval and 5K
       // are both 257 sec/mi) — these comparisons are <=, not <, so the
@@ -274,7 +324,6 @@ describe("invariants", () => {
       // vdotTable.ts) because 59% < ~70% at every VDOT in range — not
       // because of a fixed offset between them (there isn't one; the gap
       // varies by VDOT, see vdotTable.ts).
-      expect(interval).toBeLessThanOrEqual(fiveK);
       expect(fiveK).toBeLessThanOrEqual(threshold);
       expect(threshold).toBeLessThanOrEqual(easy);
       expect(easy).toBeLessThan(recovery);

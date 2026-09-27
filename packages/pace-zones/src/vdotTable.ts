@@ -37,10 +37,19 @@
  * larger than the 1-2-VDOT gaps elsewhere in this file. Revisit if a fuller
  * 10K source turns up.
  *
- * Values below VDOT 30 or above VDOT 85 are not covered by any array here;
- * `calculator.ts` clamps to the boundary row rather than extrapolating -
- * clamping only ever makes the output more conservative, never more
- * aggressive, in either direction.
+ * Values below VDOT 30 or above VDOT 85 are not covered by any array here.
+ * The two directions are handled differently, because they are not
+ * symmetric safety-wise:
+ * - Above VDOT 85: `calculator.ts`'s `interpolate()` clamps to the top
+ *   boundary row rather than extrapolating. That's genuinely conservative —
+ *   a faster-than-table runner gets a slower-than-deserved pace, never a
+ *   faster one.
+ * - Below VDOT 30 (i.e. below `VDOT_TABLE_MIN`): clamping up to the bottom
+ *   boundary row would do the opposite — hand a runner paces *faster* than
+ *   their demonstrated fitness supports, which is unsafe, not conservative.
+ *   `calculator.ts`'s `calculate()` therefore rejects a below-`VDOT_TABLE_MIN`
+ *   derived VDOT with `{ ok: false }` *before* any interpolation runs, rather
+ *   than clamping it.
  */
 
 export interface VdotPoint {
@@ -374,3 +383,28 @@ export const EQUIVALENCY_ZONE_DEFINITIONS: Record<EquivalencyZoneId, ZoneComputa
   fiveK: { method: "interpolateTable", table: FIVE_K_TABLE },
   interval: { method: "interpolateTable", table: INTERVAL_TABLE },
 };
+
+/**
+ * The lowest VDOT any interpolated equivalency zone's table actually
+ * supports — derived from the tables themselves (each table's own first
+ * point), not a hardcoded magic number, so this stays correct automatically
+ * if a future zone's table starts at a different floor, with zero code
+ * change anywhere that references this constant. `Math.max` picks the
+ * *most restrictive* table's floor, since a VDOT below any one table's
+ * start has nothing to interpolate against for that zone. Evaluates to 30
+ * today, since every current table starts at VDOT 30.
+ *
+ * `calculator.ts`'s `calculate()` rejects a recent-result-derived VDOT below
+ * this threshold outright (`{ ok: false }`) rather than letting it reach
+ * `interpolate()`'s low-end clamp — see the header comment above and
+ * `interpolate()`'s docstring for why clamping at the low end would be
+ * unsafe rather than conservative.
+ */
+export const VDOT_TABLE_MIN = Math.max(
+  ...Object.values(EQUIVALENCY_ZONE_DEFINITIONS)
+    .filter(
+      (c): c is Extract<ZoneComputation, { method: "interpolateTable" }> =>
+        c.method === "interpolateTable",
+    )
+    .map((c) => c.table[0]!.vdot),
+);

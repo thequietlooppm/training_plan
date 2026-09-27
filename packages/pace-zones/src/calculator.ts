@@ -3,10 +3,10 @@ import {
   calculatorInputSchema,
   type CalculatorInput,
   type GoalTimeInput,
-  type RecentResultInput,
 } from "./schema.js";
 import {
   EQUIVALENCY_ZONE_DEFINITIONS,
+  VDOT_TABLE_MIN,
   type EquivalencyZoneId,
   type VdotPoint,
   type ZoneComputation,
@@ -87,10 +87,22 @@ function roundHalfUp(value: number): number {
  * points exist rather than assuming dense integer coverage — see
  * `vdotTable.ts`'s header comment for why several zones have real gaps.
  *
- * Clamps to the boundary point outside the table's range rather than
- * extrapolating: clamping only ever makes the output *more* conservative
- * (slower for the fast end, less aggressive for the slow end), never more
- * aggressive, in either direction.
+ * Clamps to the boundary point above the table's range rather than
+ * extrapolating: a VDOT above `last.vdot` is genuinely conservative to clamp
+ * (a faster-than-table runner gets a slower-than-deserved pace, never a
+ * faster one). The `vdot <= first.vdot` branch below is *not* the mirror-image
+ * safe case — clamping a below-range VDOT up to `first.value` would hand out
+ * a pace *faster* than that runner's demonstrated fitness supports, which is
+ * unsafe, not conservative. That's why it's not this function's job to
+ * reject a below-range VDOT: `calculate()` already rejects any
+ * recentResult-derived VDOT below `VDOT_TABLE_MIN` (see `vdotTable.ts`)
+ * before `interpolate()` is ever called with it, so in practice this branch
+ * is only ever reached at an exact boundary match (`vdot === first.vdot`),
+ * never as a genuine clamp-up-from-below. It's kept as a `<=` (rather than
+ * narrowed to `===`) for two reasons: correctness at the exact boundary
+ * either way, and defensive robustness if a future zone's table ever starts
+ * above `VDOT_TABLE_MIN` (per-zone floors are not currently enforced
+ * upstream, only the table-wide minimum is).
  */
 function interpolate(points: VdotPoint[], vdot: number): number {
   const first = points[0];
@@ -205,23 +217,25 @@ const EQUIVALENCY_ZONE_IDS = Object.keys(
   EQUIVALENCY_ZONE_DEFINITIONS,
 ) as EquivalencyZoneId[];
 
-function computeEquivalencyZones(
-  recentResult: RecentResultInput | undefined,
-): Pick<PaceZones, EquivalencyZoneId> {
-  if (!recentResult) {
-    const blocked: EquivalencyZone = { state: "blocked" };
-    return {
-      recovery: blocked,
-      easy: blocked,
-      threshold: blocked,
-      tenK: blocked,
-      fiveK: blocked,
-      interval: blocked,
-    };
+/**
+ * Takes an already-derived `vdot` (or `undefined` if no recent result was
+ * provided) rather than a `RecentResultInput` — `calculate()` derives VDOT
+ * itself (via `vdotFromRecentResult`) so it can validate it against
+ * `VDOT_TABLE_MIN` and return `{ ok: false }` *before* this function, or
+ * `interpolate()`, ever runs on an out-of-range value. This function no
+ * longer knows how VDOT is derived from a race result at all.
+ */
+function computeEquivalencyZones(vdot: number | undefined): Pick<PaceZones, EquivalencyZoneId> {
+  if (vdot === undefined) {
+    // Each zone gets its own object literal, not a single object literal
+    // shared by reference across all six keys — they're independent zones
+    // that happen to share a state today, not aliases of each other.
+    const zones = {} as Pick<PaceZones, EquivalencyZoneId>;
+    for (const id of EQUIVALENCY_ZONE_IDS) {
+      zones[id] = { state: "blocked" };
+    }
+    return zones;
   }
-
-  const distanceMeters = DISTANCE_METERS[recentResult.distance];
-  const vdot = vdotFromRecentResult(distanceMeters, recentResult.timeSeconds);
 
   const zones = {} as Pick<PaceZones, EquivalencyZoneId>;
   for (const id of EQUIVALENCY_ZONE_IDS) {
@@ -282,8 +296,36 @@ export function calculate(input: unknown): CalculateResult {
 
   const validated: CalculatorInput = parsed.data;
 
+  // VDOT is derived here, once, rather than inside `computeEquivalencyZones`,
+  // so it can be validated against `VDOT_TABLE_MIN` and rejected via
+  // `{ ok: false }` *before* any zone math (interpolation or VO2(v)-inversion)
+  // ever runs on it. See `vdotTable.ts`'s header comment and
+  // `interpolate()`'s docstring for why a below-range VDOT must be rejected
+  // outright rather than clamped up to the table's floor: clamping up would
+  // hand the runner paces faster than their demonstrated fitness supports.
+  let vdot: number | undefined;
+  if (validated.recentResult) {
+    const distanceMeters = DISTANCE_METERS[validated.recentResult.distance];
+    vdot = vdotFromRecentResult(distanceMeters, validated.recentResult.timeSeconds);
+
+    // Tiny epsilon, not a strict `<`, so a genuinely-at-the-boundary VDOT
+    // (e.g. a recent result that round-trips to ~30.0000001 through
+    // floating-point arithmetic) is never incorrectly rejected.
+    if (vdot < VDOT_TABLE_MIN - 1e-6) {
+      return {
+        ok: false,
+        errors: [
+          {
+            path: "recentResult",
+            message: `This result derives a VDOT of ${vdot.toFixed(1)}, below the supported table range (VDOT ${VDOT_TABLE_MIN}+). Try a faster recent result, or a longer/more standard race distance.`,
+          },
+        ],
+      };
+    }
+  }
+
   const zones: PaceZones = {
-    ...computeEquivalencyZones(validated.recentResult),
+    ...computeEquivalencyZones(vdot),
     goal: computeGoalZone(validated.goalTime),
   };
 
