@@ -140,10 +140,11 @@ zone's displayed pace because they each rounded independently.
 
 - **Recent race result → VDOT**: Daniels & Gilbert's two continuous
   equations (no lookup table in this step).
-- **VDOT → Recovery/Easy/Threshold/10K/5K/Interval**: linear interpolation
-  over the sourced VDOT tables in `vdotTable.ts`, uniformly for all six
-  zones. Clamps at the table boundary (VDOT 30 / 85, narrower for the
-  sparser 10K anchors) rather than extrapolating.
+- **VDOT → Easy/Threshold/10K/5K/Interval**: linear interpolation over the
+  sourced VDOT tables in `vdotTable.ts`, uniformly for all five
+  table-interpolated zones. Clamps at the table boundary (VDOT 30 / 85,
+  narrower for the sparser 10K anchors) rather than extrapolating. Recovery
+  is derived differently — see below.
 - **Goal time → goal pace**: a direct division
   (`goalTimeSeconds / (goalDistanceMeters / 1609.344)`) — no VDOT involved.
   This is why a goal zone is never "equivalency-derived": it doesn't share

@@ -290,10 +290,14 @@ export const TEN_K_TABLE: VdotPoint[] = [
  *    (Threshold), I (Interval), and R (Repetition) — "Recovery" appears
  *    nowhere as one of his zone labels. Multiple convergent secondary
  *    sources describe his E-pace zone as spanning a %VO2max *range*, not a
- *    single point: ~59-74% (some editions ~70-79%). Sources: Coach Ray
- *    (https://www.coachray.com/), Shuichi Running
- *    (https://www.shuichirunning.com/), and Teesche's review of *Daniels'
- *    Running Formula* (https://www.teesche.com/). No source assigns
+ *    single point: ~59-74% (some editions ~70-79%). Sources: Coach Ray,
+ *    "Jack Daniels' Running Intensity"
+ *    (https://www.coachray.nz/2023/05/03/jack-daniels-running-intensity/),
+ *    Shuichi Running, "Easy Run Training: Jack Daniels' E Pace & Heart Rate
+ *    Zones" (https://shuichi-running.com/en/easy-run-training/), and
+ *    Teesche's review of *Daniels' Running Formula*
+ *    (https://www.teesche.com/bookshelf/jack_daniels_daniels_running_formula).
+ *    No source assigns
  *    "recovery" its own distinct percentage — it's described only in prose
  *    as the slow end of easy effort.
  * 2. Empirical fact about our own data: this file's own sourced EASY_TABLE
