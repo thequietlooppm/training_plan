@@ -1,0 +1,977 @@
+{
+  "templateId": "club-style-marathon",
+  "templateVersion": 1,
+  "title": "Club-Style Marathon Training Plan",
+  "raceDistanceType": "marathon",
+  "totalWeeks": 18,
+  "weeks": [
+    {
+      "weekIndex": 1,
+      "phase": "base",
+      "days": [
+        {
+          "dayOfWeek": "mon",
+          "dayType": "run",
+          "workoutTag": "quality",
+          "description": "Group quality workout (structured track or tempo session)",
+          "distanceMiles": 6
+        },
+        {
+          "dayOfWeek": "tue",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "Recovery run",
+          "distanceMiles": 5,
+          "durationMinutes": 45
+        },
+        {
+          "dayOfWeek": "wed",
+          "dayType": "run",
+          "workoutTag": "quality",
+          "description": "Group quality workout (structured track or tempo session)",
+          "distanceMiles": 6
+        },
+        {
+          "dayOfWeek": "thu",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "Recovery run",
+          "distanceMiles": 5,
+          "durationMinutes": 45
+        },
+        {
+          "dayOfWeek": "fri",
+          "dayType": "strength",
+          "description": "Rest from running; core strengthening routine"
+        },
+        {
+          "dayOfWeek": "sat",
+          "dayType": "run",
+          "workoutTag": "long_run",
+          "description": "9-12 mile long run",
+          "distanceMiles": 10.5
+        },
+        {
+          "dayOfWeek": "sun",
+          "dayType": "rest",
+          "description": "Rest day"
+        }
+      ]
+    },
+    {
+      "weekIndex": 2,
+      "phase": "base",
+      "days": [
+        {
+          "dayOfWeek": "mon",
+          "dayType": "run",
+          "workoutTag": "quality",
+          "description": "Group quality workout (structured track or tempo session)",
+          "distanceMiles": 6
+        },
+        {
+          "dayOfWeek": "tue",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "Recovery run",
+          "distanceMiles": 5,
+          "durationMinutes": 45
+        },
+        {
+          "dayOfWeek": "wed",
+          "dayType": "run",
+          "workoutTag": "quality",
+          "description": "Group quality workout (structured track or tempo session)",
+          "distanceMiles": 6
+        },
+        {
+          "dayOfWeek": "thu",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "Recovery run",
+          "distanceMiles": 5,
+          "durationMinutes": 45
+        },
+        {
+          "dayOfWeek": "fri",
+          "dayType": "strength",
+          "description": "Rest from running; core strengthening routine"
+        },
+        {
+          "dayOfWeek": "sat",
+          "dayType": "run",
+          "workoutTag": "long_run",
+          "description": "10-14 mile long run",
+          "distanceMiles": 12
+        },
+        {
+          "dayOfWeek": "sun",
+          "dayType": "rest",
+          "description": "Rest day"
+        }
+      ]
+    },
+    {
+      "weekIndex": 3,
+      "phase": "base",
+      "isCutbackWeek": true,
+      "days": [
+        {
+          "dayOfWeek": "mon",
+          "dayType": "run",
+          "workoutTag": "quality",
+          "description": "Group quality workout (structured track or tempo session)",
+          "distanceMiles": 6
+        },
+        {
+          "dayOfWeek": "tue",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "Recovery run",
+          "distanceMiles": 5,
+          "durationMinutes": 45
+        },
+        {
+          "dayOfWeek": "wed",
+          "dayType": "run",
+          "workoutTag": "quality",
+          "description": "Group quality workout (structured track or tempo session)",
+          "distanceMiles": 6
+        },
+        {
+          "dayOfWeek": "thu",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "Recovery run",
+          "distanceMiles": 5,
+          "durationMinutes": 45
+        },
+        {
+          "dayOfWeek": "fri",
+          "dayType": "strength",
+          "description": "Rest from running; core strengthening routine"
+        },
+        {
+          "dayOfWeek": "sat",
+          "dayType": "run",
+          "workoutTag": "long_run",
+          "description": "10-12 mile long run",
+          "distanceMiles": 11
+        },
+        {
+          "dayOfWeek": "sun",
+          "dayType": "rest",
+          "description": "Rest day"
+        }
+      ]
+    },
+    {
+      "weekIndex": 4,
+      "phase": "base",
+      "days": [
+        {
+          "dayOfWeek": "mon",
+          "dayType": "run",
+          "workoutTag": "quality",
+          "description": "Group quality workout (structured track or tempo session)",
+          "distanceMiles": 6
+        },
+        {
+          "dayOfWeek": "tue",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "Recovery run",
+          "distanceMiles": 5,
+          "durationMinutes": 45
+        },
+        {
+          "dayOfWeek": "wed",
+          "dayType": "run",
+          "workoutTag": "quality",
+          "description": "Group quality workout (structured track or tempo session)",
+          "distanceMiles": 6
+        },
+        {
+          "dayOfWeek": "thu",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "Recovery run",
+          "distanceMiles": 5,
+          "durationMinutes": 45
+        },
+        {
+          "dayOfWeek": "fri",
+          "dayType": "strength",
+          "description": "Rest from running; core strengthening routine"
+        },
+        {
+          "dayOfWeek": "sat",
+          "dayType": "run",
+          "workoutTag": "long_run",
+          "description": "10-14 mile long run",
+          "distanceMiles": 12
+        },
+        {
+          "dayOfWeek": "sun",
+          "dayType": "rest",
+          "description": "Rest day"
+        }
+      ]
+    },
+    {
+      "weekIndex": 5,
+      "phase": "build",
+      "isCutbackWeek": true,
+      "days": [
+        {
+          "dayOfWeek": "mon",
+          "dayType": "run",
+          "workoutTag": "quality",
+          "description": "Group quality workout (structured track or tempo session)",
+          "distanceMiles": 6
+        },
+        {
+          "dayOfWeek": "tue",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "Recovery run",
+          "distanceMiles": 5,
+          "durationMinutes": 45
+        },
+        {
+          "dayOfWeek": "wed",
+          "dayType": "run",
+          "workoutTag": "quality",
+          "description": "Group quality workout (structured track or tempo session)",
+          "distanceMiles": 6
+        },
+        {
+          "dayOfWeek": "thu",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "Recovery run",
+          "distanceMiles": 5,
+          "durationMinutes": 45
+        },
+        {
+          "dayOfWeek": "fri",
+          "dayType": "strength",
+          "description": "Rest from running; core strengthening routine"
+        },
+        {
+          "dayOfWeek": "sat",
+          "dayType": "run",
+          "workoutTag": "long_run",
+          "description": "10-12 mile long run, last 4 miles at marathon goal pace (MGP)",
+          "distanceMiles": 11
+        },
+        {
+          "dayOfWeek": "sun",
+          "dayType": "rest",
+          "description": "Rest day"
+        }
+      ]
+    },
+    {
+      "weekIndex": 6,
+      "phase": "build",
+      "days": [
+        {
+          "dayOfWeek": "mon",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "Recovery run, 45-60 minutes",
+          "distanceMiles": 5,
+          "durationMinutes": 50
+        },
+        {
+          "dayOfWeek": "tue",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "Recovery run",
+          "distanceMiles": 5,
+          "durationMinutes": 45
+        },
+        {
+          "dayOfWeek": "wed",
+          "dayType": "run",
+          "workoutTag": "quality",
+          "description": "Group quality workout (structured track or tempo session)",
+          "distanceMiles": 6
+        },
+        {
+          "dayOfWeek": "thu",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "Recovery run",
+          "distanceMiles": 5,
+          "durationMinutes": 45
+        },
+        {
+          "dayOfWeek": "fri",
+          "dayType": "strength",
+          "description": "Rest from running; core strengthening routine"
+        },
+        {
+          "dayOfWeek": "sat",
+          "dayType": "run",
+          "workoutTag": "long_run",
+          "description": "12-16 mile long run",
+          "distanceMiles": 14
+        },
+        {
+          "dayOfWeek": "sun",
+          "dayType": "rest",
+          "description": "Rest day"
+        }
+      ]
+    },
+    {
+      "weekIndex": 7,
+      "phase": "build",
+      "isCutbackWeek": true,
+      "days": [
+        {
+          "dayOfWeek": "mon",
+          "dayType": "run",
+          "workoutTag": "quality",
+          "description": "Group quality workout (structured track or tempo session)",
+          "distanceMiles": 6
+        },
+        {
+          "dayOfWeek": "tue",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "Recovery run",
+          "distanceMiles": 5,
+          "durationMinutes": 45
+        },
+        {
+          "dayOfWeek": "wed",
+          "dayType": "run",
+          "workoutTag": "quality",
+          "description": "Group quality workout (structured track or tempo session)",
+          "distanceMiles": 6
+        },
+        {
+          "dayOfWeek": "thu",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "Recovery run",
+          "distanceMiles": 5,
+          "durationMinutes": 45
+        },
+        {
+          "dayOfWeek": "fri",
+          "dayType": "strength",
+          "description": "Rest from running; core strengthening routine"
+        },
+        {
+          "dayOfWeek": "sat",
+          "dayType": "run",
+          "workoutTag": "long_run",
+          "description": "10-14 mile long run, last 4-6 miles at MGP",
+          "distanceMiles": 12
+        },
+        {
+          "dayOfWeek": "sun",
+          "dayType": "rest",
+          "description": "Rest day"
+        }
+      ]
+    },
+    {
+      "weekIndex": 8,
+      "phase": "build",
+      "days": [
+        {
+          "dayOfWeek": "mon",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "Recovery run, 45-60 minutes",
+          "distanceMiles": 5,
+          "durationMinutes": 50
+        },
+        {
+          "dayOfWeek": "tue",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "Recovery run",
+          "distanceMiles": 5,
+          "durationMinutes": 45
+        },
+        {
+          "dayOfWeek": "wed",
+          "dayType": "run",
+          "workoutTag": "quality",
+          "description": "Group quality workout (structured track or tempo session)",
+          "distanceMiles": 6
+        },
+        {
+          "dayOfWeek": "thu",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "Recovery run",
+          "distanceMiles": 5,
+          "durationMinutes": 45
+        },
+        {
+          "dayOfWeek": "fri",
+          "dayType": "strength",
+          "description": "Rest from running; core strengthening routine"
+        },
+        {
+          "dayOfWeek": "sat",
+          "dayType": "run",
+          "workoutTag": "long_run",
+          "description": "14-18 mile long run",
+          "distanceMiles": 16
+        },
+        {
+          "dayOfWeek": "sun",
+          "dayType": "rest",
+          "description": "Rest day"
+        }
+      ]
+    },
+    {
+      "weekIndex": 9,
+      "phase": "build",
+      "isCutbackWeek": true,
+      "days": [
+        {
+          "dayOfWeek": "mon",
+          "dayType": "run",
+          "workoutTag": "quality",
+          "description": "Group quality workout (structured track or tempo session)",
+          "distanceMiles": 6
+        },
+        {
+          "dayOfWeek": "tue",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "Recovery run",
+          "distanceMiles": 5,
+          "durationMinutes": 45
+        },
+        {
+          "dayOfWeek": "wed",
+          "dayType": "run",
+          "workoutTag": "quality",
+          "description": "Group quality workout (structured track or tempo session)",
+          "distanceMiles": 6
+        },
+        {
+          "dayOfWeek": "thu",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "Recovery run",
+          "distanceMiles": 5,
+          "durationMinutes": 45
+        },
+        {
+          "dayOfWeek": "fri",
+          "dayType": "strength",
+          "description": "Rest from running; core strengthening routine"
+        },
+        {
+          "dayOfWeek": "sat",
+          "dayType": "run",
+          "workoutTag": "long_run",
+          "description": "12-14 mile long run, last 6 miles at MGP",
+          "distanceMiles": 13
+        },
+        {
+          "dayOfWeek": "sun",
+          "dayType": "rest",
+          "description": "Rest day"
+        }
+      ]
+    },
+    {
+      "weekIndex": 10,
+      "phase": "build",
+      "days": [
+        {
+          "dayOfWeek": "mon",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "Recovery run, 45-60 minutes",
+          "distanceMiles": 5,
+          "durationMinutes": 50
+        },
+        {
+          "dayOfWeek": "tue",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "Recovery run",
+          "distanceMiles": 5,
+          "durationMinutes": 45
+        },
+        {
+          "dayOfWeek": "wed",
+          "dayType": "run",
+          "workoutTag": "quality",
+          "description": "Group quality workout (structured track or tempo session)",
+          "distanceMiles": 6
+        },
+        {
+          "dayOfWeek": "thu",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "Recovery run",
+          "distanceMiles": 5,
+          "durationMinutes": 45
+        },
+        {
+          "dayOfWeek": "fri",
+          "dayType": "strength",
+          "description": "Rest from running; core strengthening routine"
+        },
+        {
+          "dayOfWeek": "sat",
+          "dayType": "run",
+          "workoutTag": "long_run",
+          "description": "16-20 mile long run",
+          "distanceMiles": 18
+        },
+        {
+          "dayOfWeek": "sun",
+          "dayType": "rest",
+          "description": "Rest day"
+        }
+      ]
+    },
+    {
+      "weekIndex": 11,
+      "phase": "build",
+      "isCutbackWeek": true,
+      "days": [
+        {
+          "dayOfWeek": "mon",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "Recovery run, 45-60 minutes",
+          "distanceMiles": 5,
+          "durationMinutes": 50
+        },
+        {
+          "dayOfWeek": "tue",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "Recovery run",
+          "distanceMiles": 5,
+          "durationMinutes": 45
+        },
+        {
+          "dayOfWeek": "wed",
+          "dayType": "run",
+          "workoutTag": "quality",
+          "description": "Group quality workout (structured track or tempo session)",
+          "distanceMiles": 6
+        },
+        {
+          "dayOfWeek": "thu",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "Recovery run",
+          "distanceMiles": 5,
+          "durationMinutes": 45
+        },
+        {
+          "dayOfWeek": "fri",
+          "dayType": "strength",
+          "description": "Rest from running; core strengthening routine"
+        },
+        {
+          "dayOfWeek": "sat",
+          "dayType": "run",
+          "workoutTag": "long_run",
+          "description": "12-14 mile long run, last 8 miles at MGP",
+          "distanceMiles": 13
+        },
+        {
+          "dayOfWeek": "sun",
+          "dayType": "rest",
+          "description": "Rest day"
+        }
+      ]
+    },
+    {
+      "weekIndex": 12,
+      "phase": "build",
+      "days": [
+        {
+          "dayOfWeek": "mon",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "Recovery run, 45-60 minutes",
+          "distanceMiles": 5,
+          "durationMinutes": 50
+        },
+        {
+          "dayOfWeek": "tue",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "Recovery run",
+          "distanceMiles": 5,
+          "durationMinutes": 45
+        },
+        {
+          "dayOfWeek": "wed",
+          "dayType": "run",
+          "workoutTag": "quality",
+          "description": "Group quality workout (structured track or tempo session)",
+          "distanceMiles": 6
+        },
+        {
+          "dayOfWeek": "thu",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "Recovery run",
+          "distanceMiles": 5,
+          "durationMinutes": 45
+        },
+        {
+          "dayOfWeek": "fri",
+          "dayType": "strength",
+          "description": "Rest from running; core strengthening routine"
+        },
+        {
+          "dayOfWeek": "sat",
+          "dayType": "run",
+          "workoutTag": "long_run",
+          "description": "18-20 mile long run",
+          "distanceMiles": 19
+        },
+        {
+          "dayOfWeek": "sun",
+          "dayType": "rest",
+          "description": "Rest day"
+        }
+      ]
+    },
+    {
+      "weekIndex": 13,
+      "phase": "build",
+      "isCutbackWeek": true,
+      "days": [
+        {
+          "dayOfWeek": "mon",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "Recovery run, 45-60 minutes",
+          "distanceMiles": 5,
+          "durationMinutes": 50
+        },
+        {
+          "dayOfWeek": "tue",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "Recovery run",
+          "distanceMiles": 5,
+          "durationMinutes": 45
+        },
+        {
+          "dayOfWeek": "wed",
+          "dayType": "run",
+          "workoutTag": "quality",
+          "description": "Group quality workout (structured track or tempo session)",
+          "distanceMiles": 6
+        },
+        {
+          "dayOfWeek": "thu",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "Recovery run",
+          "distanceMiles": 5,
+          "durationMinutes": 45
+        },
+        {
+          "dayOfWeek": "fri",
+          "dayType": "strength",
+          "description": "Rest from running; core strengthening routine"
+        },
+        {
+          "dayOfWeek": "sat",
+          "dayType": "run",
+          "workoutTag": "long_run",
+          "description": "12-14 mile long run, last 10 miles at MGP",
+          "distanceMiles": 13
+        },
+        {
+          "dayOfWeek": "sun",
+          "dayType": "rest",
+          "description": "Rest day"
+        }
+      ]
+    },
+    {
+      "weekIndex": 14,
+      "phase": "peak",
+      "days": [
+        {
+          "dayOfWeek": "mon",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "Recovery run, 45-60 minutes",
+          "distanceMiles": 5,
+          "durationMinutes": 50
+        },
+        {
+          "dayOfWeek": "tue",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "Recovery run",
+          "distanceMiles": 5,
+          "durationMinutes": 45
+        },
+        {
+          "dayOfWeek": "wed",
+          "dayType": "run",
+          "workoutTag": "quality",
+          "description": "Group quality workout (structured track or tempo session)",
+          "distanceMiles": 6
+        },
+        {
+          "dayOfWeek": "thu",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "Recovery run",
+          "distanceMiles": 5,
+          "durationMinutes": 45
+        },
+        {
+          "dayOfWeek": "fri",
+          "dayType": "strength",
+          "description": "Rest from running; core strengthening routine"
+        },
+        {
+          "dayOfWeek": "sat",
+          "dayType": "run",
+          "workoutTag": "long_run",
+          "description": "20-22 mile long run",
+          "distanceMiles": 21
+        },
+        {
+          "dayOfWeek": "sun",
+          "dayType": "rest",
+          "description": "Rest day"
+        }
+      ]
+    },
+    {
+      "weekIndex": 15,
+      "phase": "peak",
+      "isCutbackWeek": true,
+      "days": [
+        {
+          "dayOfWeek": "mon",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "Recovery run, 45-60 minutes",
+          "distanceMiles": 5,
+          "durationMinutes": 50
+        },
+        {
+          "dayOfWeek": "tue",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "Recovery run",
+          "distanceMiles": 5,
+          "durationMinutes": 45
+        },
+        {
+          "dayOfWeek": "wed",
+          "dayType": "run",
+          "workoutTag": "quality",
+          "description": "10-mile fartlek workout",
+          "distanceMiles": 10
+        },
+        {
+          "dayOfWeek": "thu",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "Recovery run",
+          "distanceMiles": 5,
+          "durationMinutes": 45
+        },
+        {
+          "dayOfWeek": "fri",
+          "dayType": "strength",
+          "description": "Rest from running; core strengthening routine"
+        },
+        {
+          "dayOfWeek": "sat",
+          "dayType": "run",
+          "workoutTag": "long_run",
+          "description": "14-18 mile long run, last 8 miles at MGP",
+          "distanceMiles": 16
+        },
+        {
+          "dayOfWeek": "sun",
+          "dayType": "rest",
+          "description": "Rest day"
+        }
+      ]
+    },
+    {
+      "weekIndex": 16,
+      "phase": "taper",
+      "days": [
+        {
+          "dayOfWeek": "mon",
+          "dayType": "run",
+          "workoutTag": "easy",
+          "description": "8 miles easy",
+          "distanceMiles": 8
+        },
+        {
+          "dayOfWeek": "tue",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "Recovery run + 10 x 100m strides, about 1 hour",
+          "distanceMiles": 6,
+          "durationMinutes": 60
+        },
+        {
+          "dayOfWeek": "wed",
+          "dayType": "run",
+          "workoutTag": "quality",
+          "description": "8 x 1000m repeats",
+          "distanceMiles": 7
+        },
+        {
+          "dayOfWeek": "thu",
+          "dayType": "run",
+          "workoutTag": "easy",
+          "description": "Easy run",
+          "distanceMiles": 5
+        },
+        {
+          "dayOfWeek": "fri",
+          "dayType": "strength",
+          "description": "Rest from running; core strengthening routine"
+        },
+        {
+          "dayOfWeek": "sat",
+          "dayType": "run",
+          "workoutTag": "long_run",
+          "description": "12-16 mile long run, last 6 miles at MGP",
+          "distanceMiles": 14
+        },
+        {
+          "dayOfWeek": "sun",
+          "dayType": "rest",
+          "description": "Rest day"
+        }
+      ]
+    },
+    {
+      "weekIndex": 17,
+      "phase": "taper",
+      "days": [
+        {
+          "dayOfWeek": "mon",
+          "dayType": "run",
+          "workoutTag": "quality",
+          "description": "Fartlek – 15 min warm-up, 10 min at half-marathon goal pace (HMGP), 2 min recovery, 3 x 5 min at 10K pace with 1 min recovery between reps, then 10 x 1 min at 5K pace with 1 min recovery between reps",
+          "distanceMiles": 7,
+          "durationMinutes": 65
+        },
+        {
+          "dayOfWeek": "tue",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "Recovery run",
+          "distanceMiles": 5,
+          "durationMinutes": 45
+        },
+        {
+          "dayOfWeek": "wed",
+          "dayType": "run",
+          "workoutTag": "quality",
+          "description": "Yasso 800s (10 x 800m at goal-pace-equivalent effort)",
+          "distanceMiles": 8
+        },
+        {
+          "dayOfWeek": "thu",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "Recovery run",
+          "distanceMiles": 5,
+          "durationMinutes": 45
+        },
+        {
+          "dayOfWeek": "fri",
+          "dayType": "strength",
+          "description": "Rest from running; core strengthening routine"
+        },
+        {
+          "dayOfWeek": "sat",
+          "dayType": "run",
+          "workoutTag": "long_run",
+          "description": "8-12 mile long run, last 4 miles at MGP",
+          "distanceMiles": 10
+        },
+        {
+          "dayOfWeek": "sun",
+          "dayType": "rest",
+          "description": "Rest day"
+        }
+      ]
+    },
+    {
+      "weekIndex": 18,
+      "phase": "taper",
+      "days": [
+        {
+          "dayOfWeek": "mon",
+          "dayType": "run",
+          "workoutTag": "race_pace",
+          "description": "3K at marathon goal pace",
+          "distanceMiles": 1.9
+        },
+        {
+          "dayOfWeek": "tue",
+          "dayType": "run",
+          "workoutTag": "quality",
+          "description": "Diagonal sprints (short speed drills)",
+          "distanceMiles": 3
+        },
+        {
+          "dayOfWeek": "wed",
+          "dayType": "run",
+          "workoutTag": "quality",
+          "description": "5-mile fartlek",
+          "distanceMiles": 5
+        },
+        {
+          "dayOfWeek": "thu",
+          "dayType": "rest",
+          "description": "Rest day"
+        },
+        {
+          "dayOfWeek": "fri",
+          "dayType": "rest",
+          "description": "Rest day"
+        },
+        {
+          "dayOfWeek": "sat",
+          "dayType": "run",
+          "workoutTag": "recovery",
+          "description": "30-minute easy shake-out run",
+          "distanceMiles": 3,
+          "durationMinutes": 30
+        },
+        {
+          "dayOfWeek": "sun",
+          "dayType": "run",
+          "workoutTag": "race_pace",
+          "description": "Marathon race day",
+          "distanceMiles": 26.2
+        }
+      ]
+    }
+  ]
+}
