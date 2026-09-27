@@ -6,13 +6,10 @@ import {
   type RecentResultInput,
 } from "./schema.js";
 import {
-  EASY_TABLE,
-  FIVE_K_TABLE,
-  INTERVAL_TABLE,
-  RECOVERY_OFFSET_SECONDS_PER_MILE,
-  TEN_K_TABLE,
-  THRESHOLD_TABLE,
+  EQUIVALENCY_ZONE_DEFINITIONS,
+  type EquivalencyZoneId,
   type VdotPoint,
+  type ZoneComputation,
 } from "./vdotTable.js";
 
 /**
@@ -137,14 +134,80 @@ function vdotFromRecentResult(distanceMeters: number, timeSeconds: number): numb
   return vo2 / pct;
 }
 
+/**
+ * Inverts the same VO2(v) equation used above (`vo2 = -4.6 + 0.182258*v +
+ * 0.000104*v^2`) to solve for velocity (meters/minute) given a target VO2
+ * (ml/kg/min), rather than a lookup table. Used by `computeZoneValue`'s
+ * `vo2PercentOfVdot` branch — currently only Recovery, see `vdotTable.ts`'s
+ * comment above `RECOVERY_VO2_PERCENT_OF_VDOT` for why.
+ *
+ * Rearranged as a quadratic in `v`:
+ *   0.000104*v^2 + 0.182258*v + (-4.6 - targetVo2) = 0
+ * with `a = 0.000104`, `b = 0.182258`, `c = -4.6 - targetVo2`. Solved via
+ * the quadratic formula, taking the `+` root:
+ *   v = (-b + sqrt(b^2 - 4ac)) / (2a)
+ *
+ * This is guaranteed to be the correct, unique positive root for any
+ * realistic VDOT, so there's no defensive handling below for a
+ * negative-discriminant or negative-root case:
+ * - `a = 0.000104 > 0` always.
+ * - `targetVo2` is a positive percentage of a positive VDOT, so
+ *   `c = -4.6 - targetVo2 < 0` always.
+ * - Whenever `a > 0` and `c < 0`, `-4ac > 0`, so the discriminant
+ *   `b^2 - 4ac` is strictly greater than `b^2` — always positive, never
+ *   the negative-discriminant case a general quadratic solver has to guard.
+ * - With the discriminant `> b^2`, `sqrt(discriminant) > |b|`, so the `+`
+ *   root `(-b + sqrt(discriminant)) / (2a)` is always positive (a real
+ *   velocity) and the `-` root would always be negative (physically
+ *   meaningless) — so returning the `+` root is unconditionally correct
+ *   here, not merely the common case.
+ */
+function velocityFromVo2(targetVo2: number): number {
+  const a = 0.000104;
+  const b = 0.182258;
+  const c = -4.6 - targetVo2;
+  return (-b + Math.sqrt(b * b - 4 * a * c)) / (2 * a);
+}
+
+/**
+ * Dispatches a single equivalency zone's `ZoneComputation` (see
+ * `vdotTable.ts`) into a pace value (seconds/mile, unrounded — the caller
+ * rounds once via `roundHalfUp`). The two branches are the only two ways an
+ * equivalency zone's pace gets derived from a VDOT today:
+ * - `interpolateTable`: linear interpolation over a sourced Daniels column.
+ * - `vo2PercentOfVdot`: invert the VO2(v) equation for velocity at a target
+ *   %VO2max, then convert velocity to pace.
+ */
+function computeZoneValue(computation: ZoneComputation, vdot: number): number {
+  switch (computation.method) {
+    case "interpolateTable":
+      return interpolate(computation.table, vdot);
+    case "vo2PercentOfVdot": {
+      const targetVo2 = computation.percent * vdot;
+      const velocityMetersPerMinute = velocityFromVo2(targetVo2);
+      return (MILE_METERS * 60) / velocityMetersPerMinute;
+    }
+  }
+}
+
 function paceSecPerMile(distanceMeters: number, timeSeconds: number): number {
   const miles = distanceMeters / MILE_METERS;
   return roundHalfUp(timeSeconds / miles);
 }
 
+/**
+ * Every equivalency-zone id, in the same order `EQUIVALENCY_ZONE_DEFINITIONS`
+ * declares them. Kept as a plain array (rather than re-deriving it from the
+ * `Record` at runtime) so the `blocked` branch below doesn't need to iterate
+ * anything to build its all-`blocked` result.
+ */
+const EQUIVALENCY_ZONE_IDS = Object.keys(
+  EQUIVALENCY_ZONE_DEFINITIONS,
+) as EquivalencyZoneId[];
+
 function computeEquivalencyZones(
   recentResult: RecentResultInput | undefined,
-): Pick<PaceZones, "recovery" | "easy" | "threshold" | "tenK" | "fiveK" | "interval"> {
+): Pick<PaceZones, EquivalencyZoneId> {
   if (!recentResult) {
     const blocked: EquivalencyZone = { state: "blocked" };
     return {
@@ -160,34 +223,26 @@ function computeEquivalencyZones(
   const distanceMeters = DISTANCE_METERS[recentResult.distance];
   const vdot = vdotFromRecentResult(distanceMeters, recentResult.timeSeconds);
 
-  const easyPace = roundHalfUp(interpolate(EASY_TABLE, vdot));
-  // Recovery is not a Daniels table value — see vdotTable.ts's header
-  // comment. Both operands are already-rounded integers, so no further
-  // rounding is needed for the sum.
-  const recoveryPace = easyPace + RECOVERY_OFFSET_SECONDS_PER_MILE;
-
-  return {
-    recovery: { state: "computed", paceSecPerMile: recoveryPace },
-    easy: { state: "computed", paceSecPerMile: easyPace },
-    threshold: {
+  const zones = {} as Pick<PaceZones, EquivalencyZoneId>;
+  for (const id of EQUIVALENCY_ZONE_IDS) {
+    zones[id] = {
       state: "computed",
-      paceSecPerMile: roundHalfUp(interpolate(THRESHOLD_TABLE, vdot)),
-    },
-    tenK: {
-      state: "computed",
-      paceSecPerMile: roundHalfUp(interpolate(TEN_K_TABLE, vdot)),
-    },
-    fiveK: {
-      state: "computed",
-      paceSecPerMile: roundHalfUp(interpolate(FIVE_K_TABLE, vdot)),
-    },
-    interval: {
-      state: "computed",
-      paceSecPerMile: roundHalfUp(interpolate(INTERVAL_TABLE, vdot)),
-    },
-  };
+      paceSecPerMile: roundHalfUp(computeZoneValue(EQUIVALENCY_ZONE_DEFINITIONS[id], vdot)),
+    };
+  }
+  return zones;
 }
 
+/**
+ * The goal zone is deliberately *not* one of the `EQUIVALENCY_ZONE_DEFINITIONS`
+ * entries above, and never will be by adding a config entry alone: it's a
+ * direct time/distance division with no VDOT involved at all, a
+ * fundamentally different input shape (a distance+time the runner entered
+ * directly, not a VDOT-derived equivalency). The config-driven refactor
+ * above is about future *VDOT-derived* equivalency zones (e.g. from a
+ * target/benchmark time feeding into VDOT) — not about generalizing this
+ * path too.
+ */
 function computeGoalZone(goalTime: GoalTimeInput | undefined): GoalZone {
   if (!goalTime) {
     return { state: "unset" };

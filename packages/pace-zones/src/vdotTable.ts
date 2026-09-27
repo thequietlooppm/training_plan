@@ -279,10 +279,94 @@ export const TEN_K_TABLE: VdotPoint[] = [
 ];
 
 /**
- * Recovery is NOT a Daniels table value - Daniels publishes a single
- * "Easy/Long" number per VDOT, not a two-ended easy/recovery range. Since
- * the product needs two distinct displayed zones, Recovery is defined as a
- * product convention: Easy pace + this offset. Cheap to retune; flagged in
- * the issue #11 plan as an open item to sanity-check once it's rendered.
+ * Recovery pace, unlike the five zones above, is not read off a Daniels
+ * table row — it's derived from the same VO2(v) equation `calculator.ts`
+ * already uses for the recent-result -> VDOT step, inverted to solve for
+ * velocity at a target %VO2max. Three separate claims, kept explicit and in
+ * this order so a future reader doesn't conflate them:
+ *
+ * 1. Cited fact: Daniels' own methodology has no distinct, separately-named
+ *    "Recovery" zone. His named zones are E (Easy/Long), M (Marathon), T
+ *    (Threshold), I (Interval), and R (Repetition) — "Recovery" appears
+ *    nowhere as one of his zone labels. Multiple convergent secondary
+ *    sources describe his E-pace zone as spanning a %VO2max *range*, not a
+ *    single point: ~59-74% (some editions ~70-79%). Sources: Coach Ray
+ *    (https://www.coachray.com/), Shuichi Running
+ *    (https://www.shuichirunning.com/), and Teesche's review of *Daniels'
+ *    Running Formula* (https://www.teesche.com/). No source assigns
+ *    "recovery" its own distinct percentage — it's described only in prose
+ *    as the slow end of easy effort.
+ * 2. Empirical fact about our own data: this file's own sourced EASY_TABLE
+ *    above, back-calculated through the VO2(v) equation for every row
+ *    (invert VO2 -> velocity -> compare to the table's velocity), is
+ *    internally consistent with a single ~70% VO2max anchor — not a range.
+ *    Measured band: 69.86%-70.34% across VDOT 30-85, a very tight spread.
+ *    This table and the cited 59-74% range in (1) come from two different
+ *    sourcing lineages describing two different things (one edition's
+ *    single-point table vs. a cross-edition range description) — not noise,
+ *    and not in tension with each other.
+ * 3. Product convention (explicitly ours, not Daniels-published): Recovery
+ *    pace = the pace at 59% VO2max, i.e. Daniels' cited E-range floor from
+ *    (1) — the most-repeated figure across sources, and the slowest end of
+ *    the easy-effort continuum in mainstream coaching convention. Computed
+ *    with the *same* VO2(v)-inversion mechanism Daniels uses to derive his
+ *    own zone bounds (see `computeZoneValue`'s `vo2PercentOfVdot` branch in
+ *    `calculator.ts`), not an offset from Easy.
+ *
+ * Because (2) and (3) come from different source lineages, the Easy-to-
+ * Recovery gap is *not* constant across VDOT — it's roughly 35-105 sec/mile
+ * depending on VDOT, wider for slower runners. That's an expected
+ * consequence of the VO2-vs-velocity curve being quadratic, not a bug, and
+ * it should never be described in UI copy or code comments as "N seconds
+ * slower than Easy."
  */
-export const RECOVERY_OFFSET_SECONDS_PER_MILE = 30;
+export const RECOVERY_VO2_PERCENT_OF_VDOT = 0.59;
+
+/**
+ * Discriminated union for how a given equivalency zone's pace is derived
+ * from a VDOT. `interpolateTable` covers the five sourced Daniels columns
+ * above; `vo2PercentOfVdot` covers Recovery's VO2(v)-inversion path (see
+ * comment above). Adding a future VDOT-derived zone means adding one case
+ * here (if a genuinely new computation method is needed) and one entry to
+ * `EQUIVALENCY_ZONE_DEFINITIONS` below — not new per-zone logic in
+ * `calculator.ts`.
+ */
+export type ZoneComputation =
+  | { method: "interpolateTable"; table: VdotPoint[] }
+  | { method: "vo2PercentOfVdot"; percent: number };
+
+/**
+ * The six equivalency-zone ids that are always `computed`/`blocked`
+ * together (see `EquivalencyZone` in `calculator.ts`). Deliberately
+ * excludes `goal` — the goal zone is a direct time/distance division with
+ * no VDOT involved at all, a fundamentally different input shape (a
+ * distance+time the runner entered directly, not a VDOT-derived
+ * equivalency), so it is not part of this table-driven config and is
+ * computed separately in `calculator.ts`'s `computeGoalZone`.
+ */
+export type EquivalencyZoneId =
+  | "recovery"
+  | "easy"
+  | "threshold"
+  | "tenK"
+  | "fiveK"
+  | "interval";
+
+/**
+ * One computation definition per equivalency zone. A `Record` over the
+ * fixed `EquivalencyZoneId` union (not an array) so TypeScript enforces that
+ * every zone id has a definition — a missing entry is a compile error, not
+ * a silent runtime gap. `calculator.ts`'s `computeEquivalencyZones` maps
+ * over this once, generically, rather than hand-writing one branch per
+ * zone. To add a future VDOT-derived zone: add its id to
+ * `EquivalencyZoneId`, add one field to `PaceZones` in `calculator.ts`, and
+ * add one entry here — no new function.
+ */
+export const EQUIVALENCY_ZONE_DEFINITIONS: Record<EquivalencyZoneId, ZoneComputation> = {
+  recovery: { method: "vo2PercentOfVdot", percent: RECOVERY_VO2_PERCENT_OF_VDOT },
+  easy: { method: "interpolateTable", table: EASY_TABLE },
+  threshold: { method: "interpolateTable", table: THRESHOLD_TABLE },
+  tenK: { method: "interpolateTable", table: TEN_K_TABLE },
+  fiveK: { method: "interpolateTable", table: FIVE_K_TABLE },
+  interval: { method: "interpolateTable", table: INTERVAL_TABLE },
+};

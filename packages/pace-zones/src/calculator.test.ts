@@ -5,7 +5,7 @@ import {
   EASY_TABLE,
   FIVE_K_TABLE,
   INTERVAL_TABLE,
-  RECOVERY_OFFSET_SECONDS_PER_MILE,
+  RECOVERY_VO2_PERCENT_OF_VDOT,
   TEN_K_TABLE,
   THRESHOLD_TABLE,
   type VdotPoint,
@@ -17,6 +17,37 @@ const MILE_METERS = 1609.344;
 function raceTimeFromPace(distanceMeters: number, paceSecPerMile: number): number {
   const miles = distanceMeters / MILE_METERS;
   return Math.round(paceSecPerMile * miles);
+}
+
+/** Round-half-up, mirroring calculator.ts's own private helper. */
+function roundHalfUp(value: number): number {
+  return Math.floor(value + 0.5);
+}
+
+/**
+ * The same VO2(v) equation `calculator.ts` uses internally
+ * (`vdotFromRecentResult`), exposed here only so this test file can
+ * independently derive a reference Recovery pace at a given VDOT without
+ * importing calculator.ts's private functions.
+ */
+function vo2FromVelocity(v: number): number {
+  return -4.6 + 0.182258 * v + 0.000104 * v * v;
+}
+
+/**
+ * Independent reference implementation of the quadratic inversion
+ * calculator.ts uses for Recovery: solve `VO2(v) = targetVo2` for `v` via
+ * the quadratic formula's positive root, then convert to pace. Kept
+ * deliberately separate from (not imported from) calculator.ts so these
+ * tests don't just re-assert the implementation against itself.
+ */
+function paceFromVo2Percent(vdot: number, percent: number): number {
+  const targetVo2 = percent * vdot;
+  const a = 0.000104;
+  const b = 0.182258;
+  const c = -4.6 - targetVo2;
+  const v = (-b + Math.sqrt(b * b - 4 * a * c)) / (2 * a);
+  return roundHalfUp((MILE_METERS * 60) / v);
 }
 
 function computedZone(zone: EquivalencyZone): number {
@@ -86,10 +117,21 @@ describe("calculate() — table-driven against sourced Daniels rows (via 5K roun
       if (easyRow) {
         expect(computedZone(zones.easy)).toBeGreaterThanOrEqual(easyRow.value - TOLERANCE_PRIMARY);
         expect(computedZone(zones.easy)).toBeLessThanOrEqual(easyRow.value + TOLERANCE_PRIMARY);
-        expect(computedZone(zones.recovery)).toBe(
-          computedZone(zones.easy) + RECOVERY_OFFSET_SECONDS_PER_MILE,
-        );
       }
+
+      // Recovery is formula-derived (VO2(v)-inversion at the 59% VO2max
+      // floor — see vdotTable.ts), not read off a table, so it's checked
+      // against an independent reference implementation of that same
+      // formula rather than a sourced table row. Same tolerance as the
+      // other zones in this round-trip test, since the only slop is the
+      // recentResult -> VDOT round-trip, not the (deterministic) formula.
+      const expectedRecovery = paceFromVo2Percent(vdot, RECOVERY_VO2_PERCENT_OF_VDOT);
+      expect(computedZone(zones.recovery)).toBeGreaterThanOrEqual(
+        expectedRecovery - TOLERANCE_PRIMARY,
+      );
+      expect(computedZone(zones.recovery)).toBeLessThanOrEqual(
+        expectedRecovery + TOLERANCE_PRIMARY,
+      );
     },
   );
 
@@ -227,8 +269,11 @@ describe("invariants", () => {
       // adjacent columns at a given VDOT (e.g. VDOT 80's Interval and 5K
       // are both 257 sec/mi) — these comparisons are <=, not <, so the
       // invariant reflects the real data rather than an idealized strict
-      // ordering. Recovery is always strictly slower than Easy since it is
-      // defined as Easy + a fixed positive offset (see vdotTable.ts).
+      // ordering. Recovery (VO2(v)-inversion at 59% VO2max) is always
+      // strictly slower than Easy (~70% VO2max, empirically, per
+      // vdotTable.ts) because 59% < ~70% at every VDOT in range — not
+      // because of a fixed offset between them (there isn't one; the gap
+      // varies by VDOT, see vdotTable.ts).
       expect(interval).toBeLessThanOrEqual(fiveK);
       expect(fiveK).toBeLessThanOrEqual(threshold);
       expect(threshold).toBeLessThanOrEqual(easy);
@@ -246,6 +291,58 @@ describe("invariants", () => {
 
     for (const key of ["recovery", "easy", "threshold", "tenK", "fiveK", "interval"] as const) {
       expect(computedZone(fasterZones[key])).toBeLessThanOrEqual(computedZone(slowerZones[key]));
+    }
+  });
+});
+
+/**
+ * Recovery pace: formula-derived (VO2(v)-inversion at 59% VO2max), not a
+ * Daniels table value — see vdotTable.ts's comment above
+ * `RECOVERY_VO2_PERCENT_OF_VDOT` for the full sourcing rationale (cited
+ * Daniels E-range floor vs. our own table's empirical ~70% anchor vs. this
+ * product's 59% convention).
+ *
+ * Two independent checks, deliberately not the same assertion twice:
+ * 1. Spot-check against data-scientist's four closed-form reference values
+ *    (computed independently via the same 59%-VO2max formula) — this
+ *    validates the *constants* (59%, the VO2(v) coefficients) are wired up
+ *    correctly.
+ * 2. A round-trip through the VO2(v) equation and back, for an arbitrary
+ *    velocity with no dependency on the 59% constant at all — this
+ *    validates the *algebra* of the quadratic inversion itself, so it can't
+ *    pass merely because a sign error happens to cancel out for one
+ *    specific percent value.
+ *
+ * The "table-driven against sourced Daniels rows" describe block above
+ * separately confirms `calculate()`'s production code path produces
+ * Recovery values matching this same formula (within the round-trip
+ * tolerance already used for every other zone there), across VDOT 30-85 —
+ * so between that block and this one, both the formula's correctness and
+ * calculate()'s use of it are covered.
+ */
+describe("Recovery pace formula (59% VO2max, VO2(v)-inversion)", () => {
+  it.each([
+    [30, 841], // 840.9s/mi
+    [50, 566], // 566.3s/mi
+    [70, 432], // 432.3s/mi
+    [85, 369], // 369.4s/mi
+  ])("VDOT %i solves to %i sec/mile at 59%% VO2max", (vdot, expectedPaceSecPerMile) => {
+    const actual = paceFromVo2Percent(vdot, RECOVERY_VO2_PERCENT_OF_VDOT);
+    expect(actual).toBeGreaterThanOrEqual(expectedPaceSecPerMile - 1);
+    expect(actual).toBeLessThanOrEqual(expectedPaceSecPerMile + 1);
+  });
+
+  it("recovers the original velocity by round-tripping through VO2(v) and its inverse", () => {
+    // Deliberately arbitrary velocities (m/min), unrelated to any VDOT or
+    // percent — this validates the quadratic-formula algebra itself, not
+    // the 59% product convention.
+    for (const v of [150, 200, 220.7, 260, 310, 400]) {
+      const vo2 = vo2FromVelocity(v);
+      const a = 0.000104;
+      const b = 0.182258;
+      const c = -4.6 - vo2;
+      const recoveredV = (-b + Math.sqrt(b * b - 4 * a * c)) / (2 * a);
+      expect(recoveredV).toBeCloseTo(v, 6);
     }
   });
 });

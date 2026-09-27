@@ -16,11 +16,16 @@ sourcing of the reference data in `src/vdotTable.ts`.
   `goalTime`) plus the shared distance/plausibility-bounds constants. Zod is
   used only on input, not output — see "Why no Zod on the output" below.
 - `src/vdotTable.ts` — sourced Daniels VDOT lookup data (Easy/Threshold/
-  Interval/5K/10K), with citations and documented gaps/corrections. See the
-  file's header comment for the two source URLs, the VDOT 66 Easy misprint,
-  and the VDOT 45 Threshold cross-source discrepancy.
+  Interval/5K/10K), with citations and documented gaps/corrections; the
+  Recovery-pace formula and its sourcing rationale; and
+  `EQUIVALENCY_ZONE_DEFINITIONS`, the config-driven map each equivalency
+  zone's pace computation is defined in. See the file's header comment for
+  the two source URLs, the VDOT 66 Easy misprint, and the VDOT 45 Threshold
+  cross-source discrepancy, and the comment above
+  `RECOVERY_VO2_PERCENT_OF_VDOT` for Recovery's sourcing.
 - `src/calculator.ts` — the pure `calculate()` entry point: VDOT derivation,
-  table interpolation, goal-pace division, zone-state assembly.
+  table interpolation/VO2(v)-inversion dispatch, goal-pace division,
+  zone-state assembly.
 - `src/index.ts` — the public barrel export. Import from here, not from the
   individual source files.
 
@@ -142,10 +147,35 @@ zone's displayed pace because they each rounded independently.
 - **Goal time → goal pace**: a direct division
   (`goalTimeSeconds / (goalDistanceMeters / 1609.344)`) — no VDOT involved.
   This is why a goal zone is never "equivalency-derived": it doesn't share
-  any code path with the six equivalency zones above.
-- **Recovery** is `Easy pace + 30 sec/mile` — a documented product
-  convention, not a literal Daniels table value. See `vdotTable.ts`'s header
-  comment.
+  any code path with the six equivalency zones above, and is deliberately
+  not part of the config-driven table described below.
+- **Recovery** is the pace at **59% VO2max** — Daniels' cited E-pace-zone
+  floor (his own methodology has no distinct "Recovery" sub-zone; see below)
+  — solved from the same `VO2(v)` equation used in the recent-result → VDOT
+  step above, inverted for velocity, rather than an offset from Easy. See
+  `vdotTable.ts`'s comment above `RECOVERY_VO2_PERCENT_OF_VDOT` for the full,
+  three-part sourcing rationale (cited fact / our own table's empirical
+  anchor / this product's convention) and why the Easy-to-Recovery gap is
+  *not* constant across VDOT.
+
+### Config-driven zone computation
+
+Each of the six equivalency zones' pace-from-VDOT logic is one entry in
+`EQUIVALENCY_ZONE_DEFINITIONS` (`vdotTable.ts`), not a hand-written case in
+`calculator.ts`. A zone's `ZoneComputation` is either `{ method:
+"interpolateTable", table }` (the five sourced Daniels columns) or `{
+method: "vo2PercentOfVdot", percent }` (Recovery's VO2(v)-inversion path).
+`calculator.ts`'s `computeEquivalencyZones` derives VDOT once per call, then
+maps every entry in `EQUIVALENCY_ZONE_DEFINITIONS` through one generic
+`computeZoneValue()` dispatcher — there's no per-zone function to write.
+
+Adding a future VDOT-derived equivalency zone (e.g. from a target/benchmark
+time) means: add its id to `EquivalencyZoneId`, add one field to `PaceZones`,
+and add one entry to `EQUIVALENCY_ZONE_DEFINITIONS` — no new computation
+function, and no change to `computeEquivalencyZones` itself. The `goal` zone
+is intentionally excluded from this table (see `computeGoalZone`'s comment
+in `calculator.ts`): it's a direct time/distance division with no VDOT
+involved, a fundamentally different input shape than the other six.
 
 "Riegel" in the issue title refers to Riegel's race-time-prediction power
 law, a different tool that predicts a race time at a different *distance*
