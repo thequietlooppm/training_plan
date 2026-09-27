@@ -46,7 +46,7 @@ describe("committed plan templates", () => {
       ).not.toBeNull();
 
       const template = planTemplateSchema.parse(readTemplateFile(filename));
-      expect(template.templateVersion).toBe(Number(match!.groups!.version));
+      expect(template.templateVersion).toBe(Number(match?.groups?.version));
     },
   );
 
@@ -54,8 +54,13 @@ describe("committed plan templates", () => {
     "%s: filename templateId matches the internal templateId field",
     (filename) => {
       const match = FILENAME_VERSION_PATTERN.exec(filename);
+      expect(
+        match,
+        `filename '${filename}' must match <templateId>.v<N>.json`,
+      ).not.toBeNull();
+
       const template = planTemplateSchema.parse(readTemplateFile(filename));
-      expect(template.templateId).toBe(match!.groups!.templateId);
+      expect(template.templateId).toBe(match?.groups?.templateId);
     },
   );
 

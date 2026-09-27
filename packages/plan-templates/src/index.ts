@@ -16,3 +16,4 @@ export {
   type Week,
   type WorkoutTag,
 } from "./schema.js";
+export { loadCommittedPlanTemplates } from "./load.js";

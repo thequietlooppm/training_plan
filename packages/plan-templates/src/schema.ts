@@ -40,40 +40,46 @@ export type WorkoutTag = (typeof WORKOUT_TAGS)[number];
 /**
  * Day level.
  *
- * `distanceMiles` is schema-required whenever `dayType === "run"` — enforced
- * below via `.superRefine()`, not left to convention — because plan-instance
- * volume math (peak-week mileage, in #13) sums this field across run days.
- * `workoutTag` is only meaningful for run days and is hand-set at
- * transcription time, never parsed out of `description`.
+ * A discriminated union on `dayType`, rather than one flat optional-field
+ * object, so the shape itself — not a hand-written `.superRefine()` — rules
+ * out nonsensical combinations: `distanceMiles`/`workoutTag` genuinely don't
+ * exist on the `rest`/`strength`/`cross_training` variants' types, and
+ * `distanceMiles` is a required (not optional) `number` on `run` days. This
+ * also means consumers (plan-instance volume math in #13) get real type
+ * narrowing from `if (day.dayType === "run")` instead of `day.distanceMiles!`
+ * or `?? 0`.
+ *
+ * `workoutTag` is hand-set at transcription time, never parsed out of
+ * `description`.
  */
-const dayShape = z.object({
+const dayBase = {
   dayOfWeek: z.enum(DAYS_OF_WEEK),
-  dayType: z.enum(DAY_TYPES),
-  workoutTag: z.enum(WORKOUT_TAGS).optional(),
   description: z.string().min(1),
-  distanceMiles: z.number().positive().optional(),
   durationMinutes: z.number().positive().optional(),
-});
+};
 
-export const daySchema = dayShape.superRefine((day, ctx) => {
-  if (day.dayType === "run" && day.distanceMiles === undefined) {
-    ctx.addIssue({
-      code: "custom",
-      message: "distanceMiles is required when dayType is 'run'",
-      path: ["distanceMiles"],
-    });
-  }
+export const daySchema = z.discriminatedUnion("dayType", [
+  z.strictObject({
+    ...dayBase,
+    dayType: z.literal("run"),
+    distanceMiles: z.number().positive(),
+    workoutTag: z.enum(WORKOUT_TAGS).optional(),
+  }),
+  z.strictObject({
+    ...dayBase,
+    dayType: z.literal("rest"),
+  }),
+  z.strictObject({
+    ...dayBase,
+    dayType: z.literal("strength"),
+  }),
+  z.strictObject({
+    ...dayBase,
+    dayType: z.literal("cross_training"),
+  }),
+]);
 
-  if (day.dayType !== "run" && day.workoutTag !== undefined) {
-    ctx.addIssue({
-      code: "custom",
-      message: "workoutTag is only meaningful when dayType is 'run'",
-      path: ["workoutTag"],
-    });
-  }
-});
-
-export type Day = z.infer<typeof dayShape>;
+export type Day = z.infer<typeof daySchema>;
 
 /**
  * Week level. Exactly 7 days, Monday-start, in `DAYS_OF_WEEK` order — a
@@ -81,7 +87,7 @@ export type Day = z.infer<typeof dayShape>;
  * since #13 anchors "race day = Sunday of the final week" positionally on
  * this ordering.
  */
-const weekShape = z.object({
+const weekShape = z.strictObject({
   weekIndex: z.number().int().positive(),
   phase: z.enum(PHASES),
   isCutbackWeek: z.boolean().optional(),
@@ -106,7 +112,7 @@ export type Week = z.infer<typeof weekShape>;
  * Plan level. `weeks` is forward-indexed 1..totalWeeks from plan start (not
  * a race countdown — the countdown is trivially `totalWeeks - weekIndex`).
  */
-const planTemplateShape = z.object({
+const planTemplateShape = z.strictObject({
   templateId: z.string().min(1),
   templateVersion: z.number().int().positive(),
   title: z.string().min(1),
