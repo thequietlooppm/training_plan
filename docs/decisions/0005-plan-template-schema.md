@@ -102,8 +102,7 @@ transcription should follow:
   10–15) — source gives only a duration (45 minutes, or a 45–60 minute
   range), no distance; estimated at **5 miles**.
 - **Week 16 Wed, "8 x 1000m repeats"** — source names the interval structure,
-  not a total session distance; estimated at **7 miles** (repeats plus
-  warm-up/cool-down).
+  not a total session distance; estimated at **7 miles**.
 - **Week 16 Thu, "Easy run"** — no distance given; estimated at **5 miles**.
 - **Week 17 Mon, the multi-segment fartlek workout** — source describes
   pace/duration segments, not a total distance; estimated at **7 miles**
@@ -121,6 +120,28 @@ marathon distance, not an estimate.
 If a future edit changes the estimation policy (e.g. once real pace-zone
 data lets a "6-mile tempo" be sized more precisely), update this list along
 with the template file.
+
+### `distanceMiles` is a planning estimate, not a completion record
+
+Every `distanceMiles` value above — sourced or estimated — reflects only
+what the day's `description` states, with no implied warm-up, cooldown, or
+extra mileage added on top of a stated segment. Week 18 Monday's "3K at
+marathon goal pace" is deliberately left at **1.9 miles** (the prescribed
+segment, converted directly) rather than padded up toward the ~6-mile
+figure used for an unspecified recovery/quality day — inflating a number
+the source actually gave us to match an estimate for days where the source
+gave us nothing would make the sourced value *less* accurate, not more
+consistent.
+
+This field exists to drive the plan template's own volume math (peak-week
+detection, FR6) before any workout has happened — it is a planning number,
+not a prediction of what a runner's watch will show. Once Strava activity
+sync (#19) lands, a plan instance's *actual* completed distance for a given
+day comes from the synced activity, which supersedes this field for
+anything downstream of "did the workout happen and how far was it" —
+`distanceMiles` is never reconciled against a synced activity, and a
+runner's real warm-up/cooldown miles are expected to show up there, not
+here.
 
 ### Versioning policy
 
