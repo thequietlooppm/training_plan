@@ -82,6 +82,46 @@ periodization stepback is a judgment call about training structure, not a
 value mechanically derivable from a single field the way peak volume is —
 there's no equivalent "sum this column" rule for it.
 
+### Estimated vs. sourced distances (transcription record)
+
+`distanceMiles` is schema-required on every `run` day, but a number of
+source-table entries specified a workout only by description or duration —
+not an explicit mileage figure. Every number the source *did* give is
+transcribed as-is or converted directly (each Saturday long-run range taken
+at its midpoint, "8 miles easy," "10-mile fartlek workout," "5-mile
+fartlek," and "3K at marathon goal pace" via km→mi). The entries below are
+the only `distanceMiles` values with no source figure to transcribe, and the
+estimate applied to each — recorded here, not just in the PR description, so
+the distinction survives past review and sets the precedent `#10`'s
+transcription should follow:
+
+- **Recurring "Group quality workout" days** (Mon/Wed across most weeks) —
+  source gives only "structured track or tempo session," no distance;
+  estimated at **6 miles**.
+- **Recurring "Recovery run" days** (Tue/Thu, and Monday in weeks 6, 8,
+  10–15) — source gives only a duration (45 minutes, or a 45–60 minute
+  range), no distance; estimated at **5 miles**.
+- **Week 16 Wed, "8 x 1000m repeats"** — source names the interval structure,
+  not a total session distance; estimated at **7 miles** (repeats plus
+  warm-up/cool-down).
+- **Week 16 Thu, "Easy run"** — no distance given; estimated at **5 miles**.
+- **Week 17 Mon, the multi-segment fartlek workout** — source describes
+  pace/duration segments, not a total distance; estimated at **7 miles**
+  (~65 minutes).
+- **Week 17 Wed, "Yasso 800s (10 x 800m)"** — named-workout structure only,
+  no total distance; estimated at **8 miles**.
+- **Week 18 Tue, "Diagonal sprints"** — no distance given; estimated at
+  **3 miles**.
+- **Week 18 Sat, "30-minute easy shake-out run"** — duration given, not
+  distance; estimated at **3 miles**.
+
+Week 18 Sun ("Marathon race day") uses **26.2 miles** — the standard
+marathon distance, not an estimate.
+
+If a future edit changes the estimation policy (e.g. once real pace-zone
+data lets a "6-mile tempo" be sized more precisely), update this list along
+with the template file.
+
 ### Versioning policy
 
 Both a filename convention (`<templateId>.v<N>.json`) and internal fields
