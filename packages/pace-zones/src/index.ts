@@ -16,6 +16,7 @@ export {
   calculate,
   type CalculateResult,
   type EquivalencyZone,
+  type EquivalencyZoneSource,
   type GoalZone,
   type PaceZones,
   type ValidationError,
