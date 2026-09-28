@@ -3,9 +3,11 @@
 > Owned by `@designer`. Status: **ready for implementation once PR #53 is
 > merged into this branch** (see "Dependencies" below) — scoped against issues
 > #16/#17/#18 (calendar + day-detail) and #24 (Strava activity-match UI in the
-> day-detail sheet), FR8–FR22 in `docs/planning/web-v1-requirements.md`, and
-> ADR 0005 (`docs/decisions/0005-plan-template-schema.md`) for the template's
-> `dayType` / `description` / `distanceMiles` / `phase` fields.
+> day-detail sheet), FR8–FR22 in `docs/planning/web-v1-requirements.md` (as
+> updated by **PR #58**, "docs: update completion-status FRs (Planned, any run =
+> Achieved, activity swap)"), and ADR 0005
+> (`docs/decisions/0005-plan-template-schema.md`) for the template's `dayType` /
+> `description` / `distanceMiles` / `phase` fields.
 > Companion spec: `docs/design/strava-connect-settings.md` (issue #20 — the
 > connect/disconnect flow this screen assumes already exists). Old throwaway
 > wireframe `docs/design/wireframes/training-calendar-marathon.html` is stale
@@ -23,27 +25,45 @@
 > | Referenced here | Defined in | Arrives with |
 > |---|---|---|
 > | **Tempo** color/type system (tokens `text/secondary`, `accent/solid`, `border/subtle`, `destructive/text`, Display / Numeral / H2 / Body roles) | `docs/design/ui-toolkit.md` | #53 |
-> | **Completion-status decision** (Achieved / Partial / Missed / Rest: icon + label + hex + verified contrast ratios) | `docs/design/ui-toolkit.md` | #53 |
+> | **Completion-status decision** (Achieved / Partial / Missed / Rest: icon + label + hex + verified contrast ratios). **Planned is not in #53's table** — it is a fifth value added by PR #58; its chip is specified in §5.7 and must be added to the toolkit with verified contrast (§10). | `docs/design/ui-toolkit.md` | #53 (+ §10 addition) |
 > | `plan-setup-flow.md` §7.4 (compact pace-reference chip strip, deferred to this day-detail sheet; `PaceZoneTable` helpers, `lib/pace-zone-display.ts`) | `docs/design/plan-setup-flow.md` | #53 |
 > | Already-adopted primitives cited here (`Alert`, `RadioGroup`, `Skeleton`) | `plan-setup-flow.md` / `ui-toolkit.md` | #53 |
 >
 > The rows this spec **adds** to the toolkit (`StatusBadge`, `AlertDialog`,
-> the new Lucide glyphs, custom-component entries) are **not** in
-> `ui-toolkit.md` yet. They are listed in §10 so whoever lands the first
-> consumer can add them once #53 is in. Until then, treat any "see
-> `ui-toolkit.md`" pointer below as a pointer to #53's version of that file.
+> the new Lucide glyphs, custom-component entries, the Planned chip and
+> activity-swap tag) are **not** in `ui-toolkit.md` yet. They are listed in §10
+> so whoever lands the first consumer can add them once #53 is in. Until then,
+> treat any "see `ui-toolkit.md`" pointer below as a pointer to #53's version of
+> that file.
 >
-> **Revision (2026-09-28) — full rewrite of the flow, plus review fixes.**
-> The previous version designed a manual binary **"Mark complete / Skip"**
-> button. That no longer matches the product: per FR13–FR14, activities sync
-> **automatically** from Strava and the runner **confirms or dismisses a
-> suggested match**. Per FR19–FR22, status (Achieved / Partial / Missed /
-> Rest) is **computed**, not toggled. Review round 1 (PR #55) then corrected:
-> template pace-zone shorthand + compact pace reference on every running day
-> (FR8/FR10); no blank/undetermined status (FR19); strength/cross-training
-> going through `ActivityMatchCard` (FR14); an explicit FR22 mapping; race
-> week kept as a real 7-day block; the auth-expired banner drawn here (§4.1c);
-> a Partial running-day state; and an API-shape requirement (§5.6).
+> **Revision history**
+>
+> - **2026-09-28, pass 1 — full rewrite of the flow, plus review fixes.**
+>   The previous version designed a manual binary **"Mark complete / Skip"**
+>   button. That no longer matches the product: per FR13–FR14, activities sync
+>   **automatically** from Strava and the runner **confirms or dismisses a
+>   suggested match**. Status is **computed**, not toggled. Review round 1
+>   (PR #55) then corrected: template pace-zone shorthand + compact pace
+>   reference on every running day (FR8/FR10); no blank/undetermined status
+>   (FR19); strength/cross-training going through `ActivityMatchCard` (FR14); an
+>   explicit FR22 mapping; race week kept as a real 7-day block; the
+>   auth-expired banner drawn here (§4.1c); and an API-shape requirement (§5.6).
+> - **2026-09-28, pass 2 — follows PR #58 (completion-status FRs).** Status is
+>   now **five** values: **Planned** / Achieved / Partial / Missed / Rest.
+>   Changes: (1) new **Planned** status for today until an activity is
+>   confirmed — replaces the earlier "today shows Missed" treatment; Planned
+>   becomes Missed at the runner's local midnight (FR19); (2) **any confirmed
+>   run of any Strava run type is Achieved** on a running day — no distance
+>   threshold, the old "short run = Partial" state is removed (FR20); (3) a
+>   confirmed **non-run on a run day** (Walk, Hike, Ride…) stays **Missed** but
+>   shows an **"activity swap"** indicator (FR20); (4) a **Rest day with an
+>   activity stays Rest**, shown as a bonus entry (FR17); (5) **Partial** is
+>   reachable in v1 only by a run on a strength day (FR21); (6) unconfirmed or
+>   dismissed suggestions never change status, elapsed Missed days carry a
+>   quiet **"Suggestion"** cue, and late-synced suggestions on old days are
+>   drawn (§4.2j); (7) race day is a normal running day; freeform days (FR22)
+>   remain deferred; (8) run classification comes from Strava sport type
+>   (§5.7); (9) weekly totals are informational (§5.7, §8).
 
 ---
 
@@ -62,17 +82,20 @@ start and forward to race day. It answers three questions at a glance:
   template's **freeform pace-zone description** plus the hand-set distance/
   duration, or "Rest" (FR10); strength/cross-training days show as scheduled
   entries with no computed pace/distance target (FR11).
-- See each elapsed/current day's **computed** status — Achieved / Partial /
-  Missed / Rest (FR19–FR22) — never manually toggled and **never blank**.
+- See each elapsed/current day's **computed** status — Planned (today only) /
+  Achieved / Partial / Missed / Rest (FR19–FR22) — never manually toggled and
+  **never blank**. Future days show no status.
 - Open a single day for detail: prescription, the **compact pace reference**,
   any Strava-matched activity/activities, and the status that follows.
 - **Confirm or dismiss** a suggested Strava match (FR14) on **every day type**
   (running, strength/cross-training), **undo** a confirmed match, and **pick
   one** from multiple plausible same-day matches (FR18, "none of these"
   always an option).
-- See unscheduled or extra activities as **unlinked/bonus entries** — never
-  dropped, never silently applied (FR17).
-- See race day as a milestone, with **race week kept as a full 7-day block**.
+- See a confirmed **non-run on a run day** as an **activity swap** (Missed,
+  with the activity shown), and unscheduled or extra activities as
+  **unlinked/bonus entries** — never dropped, never silently applied (FR17).
+- See race day as a milestone (and a normal running day for scoring), with
+  **race week kept as a full 7-day block**.
 
 **Explicitly not in this pass:**
 - **No manual "Mark complete" / "Skip" button** — superseded by FR13/FR14.
@@ -86,6 +109,13 @@ start and forward to race day. It answers three questions at a glance:
 - Strava connect/disconnect itself (`strava-connect-settings.md`); this doc
   covers only what the calendar looks like once a connection state exists (or
   doesn't), including the two connection banners (§4.1b, §4.1c).
+- **Detecting day swaps after the fact** (e.g. the runner did Thursday's
+  workout on Wednesday) — Backlog issue #57, "Detect day swaps after the
+  fact". The "activity swap" here is only the FR20 case: a non-run confirmed
+  on a run day.
+- **Race-day aftermath** (what a runner does after race day) — Backlog issue
+  #56, "Define what a runner does after race day (post-race
+  baseline/maintenance plan)".
 
 ### Assumptions carried forward
 
@@ -127,9 +157,9 @@ conventions) and **todo/checklist apps** (done/pending/skipped visual language
 
 | App | What it does well | Borrow | Skip |
 |---|---|---|---|
-| **Things 3** | A completed item gets a small, solid, **muted** check circle plus a fade — color does almost no work; icon shape and text-muting carry "done". | Icon + label do the primary work, color is supporting, never the only signal. **Fade-not-delete** for a Missed day: fully legible, just quieter than Achieved. | Strikethrough on the title — the prescription is a historical record, not a to-do to cross out. Use muting/weight instead. |
+| **Things 3** | A completed item gets a small, solid, **muted** check circle plus a fade — color does almost no work; icon shape and text-muting carry "done". Today's items sit **open** (hollow circle) until checked. | Icon + label do the primary work, color is supporting, never the only signal. **Fade-not-delete** for a Missed day: fully legible, just quieter than Achieved. The hollow circle as the "not yet, but still possible" state — the model for **Planned**. | Strikethrough on the title — the prescription is a historical record, not a to-do to cross out. Use muting/weight instead. |
 | **Todoist** | Done tasks go grey + a light checkmark, not green — de-emphasis more than bright color. | The case for a muted, low-saturation Achieved green. | Priority-flag color dots (different semantic). |
-| **Apple Reminders** | The unfilled-circle → filled-circle transition is the clearest part, more than the fill color. | Unfilled-outline → filled-shape as the *primary* signal, color secondary; matches TrainingPeaks' outline-to-fill. | Smart-list chrome (Today/Scheduled/Flagged). |
+| **Apple Reminders** | The unfilled-circle → filled-circle transition is the clearest part, more than the fill color. | Unfilled-outline → filled-shape as the *primary* signal, color secondary; matches TrainingPeaks' outline-to-fill. Planned = outline, Achieved = filled. | Smart-list chrome (Today/Scheduled/Flagged). |
 
 ### Direction (one paragraph)
 
@@ -140,7 +170,9 @@ pairing and Strava's calm done/not-done contrast, each elapsed **or current**
 day carries a small, **muted** status chip — icon + label + restrained color
 (Things/Todoist's lesson) — while exactly one element per screen is visually
 loud: **today**, using Notion Calendar's and Apple Calendar's single-idiom
-"today" treatment. Every day states its workout in the **template's own
+"today" treatment. Today's chip reads **Planned** (a hollow, dashed-outline
+chip — "still possible") until something is confirmed or the runner's local day
+ends. Every day states its workout in the **template's own
 words** (pace-zone shorthand such as `3–4x1K @ TP`) and the day-detail sheet
 resolves that shorthand against the runner's personal pace reference
 (`E 8:15 · T 7:05 · …`) — the plan's authoring vocabulary is the product, not
@@ -160,13 +192,18 @@ dismissed in one tap too.
 - Planned is quiet; an elapsed/current day's status is a small, muted
   icon+label+color chip, never a loud wash; **today is loud** — one thing
   pops per screen.
-- **Status is never blank for an elapsed or current day (FR19).** Until a
-  match is confirmed nothing is applied (FR14), so the day reads **Missed**
-  (or **Rest**); Confirm then recomputes. Only **future** days show no status.
+- **Status is never blank for an elapsed or current day (FR19).** Today reads
+  **Planned** until a match is confirmed; an elapsed day reads **Missed** (or
+  **Rest**) until one is. Confirm then recomputes. Only **future** days show no
+  status. Never say "Missed" about a day that is still in progress.
+- **A suggestion never changes status** (FR14/FR19) — pending or dismissed, on
+  today or on a day from months ago. Only a confirmed activity does.
+- **Any run counts.** On a running day, a confirmed run of any distance is
+  Achieved. The Logged-vs-Planned comparison is information, not a grade.
 - Numbers are the hero **only where they're a comparison column**; a
   standalone hero stat (the countdown) is large body type, not mono.
-- Never rely on colour alone: status, today, rest, and long run each carry a
-  text label.
+- Never rely on colour alone: status, today, rest, planned, swap, and long run
+  each carry a text label (and, for status, a distinct icon shape).
 - A suggested match is a **suggestion**, never silently applied (FR14), for
   **every** day type — confirm/dismiss must feel as fast as the old "mark
   complete" tap.
@@ -222,6 +259,42 @@ dismissed in one tap too.
                      A (populated, row reflects it / returns to A)
 ```
 
+### Status lifecycle (one running/strength day, FR14/FR19–FR21)
+
+Rest days are always **Rest** (a bonus activity does not change that) and
+future days have no status, so this lifecycle covers the day types that can
+change. "Confirmed" always means the runner tapped Confirm (or Confirm
+selection); a pending or dismissed suggestion never moves the day.
+
+```
+   (future: no status)
+          │  the day arrives (runner's local midnight → today)
+          ▼
+   ┌────────────┐  Confirm a run (running day)          ┌────────────┐
+   │  PLANNED   │──────────────────────────────────────▶│  ACHIEVED  │
+   │ (today     │  Confirm any non-run (strength day)   └────────────┘
+   │  only)     │──────────────────────────────────────▶ ACHIEVED
+   │            │  Confirm a run on a strength day      ┌────────────┐
+   │            │──────────────────────────────────────▶│  PARTIAL   │
+   │            │                                        └────────────┘
+   │            │  Confirm a non-run on a RUN day       ┌────────────┐
+   │            │──────────────────────────────────────▶│  MISSED +  │
+   └────────────┘                                        │ activity   │
+          │  runner's local midnight,                    │ swap       │
+          │  nothing confirmed                           └────────────┘
+          ▼
+   ┌────────────┐  Confirm (any time later, incl. late-synced suggestions,
+   │  MISSED    │  no time limit) → ACHIEVED / PARTIAL / MISSED + swap,
+   │ (elapsed)  │  by the same rules as above
+   └────────────┘
+
+   UNDO a confirmed match:  today → back to PLANNED · elapsed day → back to MISSED
+   DISMISS / "None of these": status unchanged (PLANNED today, MISSED elapsed)
+```
+
+Note: a swap is drawn as "Missed + indicator", not as a sixth status —
+FR19's stored enum is Planned / Achieved / Partial / Missed / Rest.
+
 ### Flow 1 — viewing a week
 
 1. Screen opens on the current week (expanded); past weeks collapsed above,
@@ -243,9 +316,9 @@ dismissed in one tap too.
 2. **B. Day detail** opens — bottom sheet on mobile/tablet, right-hand side
    panel on desktop (calendar stays visible).
 3. Contents, always: weekday + date and the day's **prescription**:
-   - **Running day (`dayType: 'run'`):** workout title, the template's
-     **`description` verbatim** (pace-zone shorthand), the `Planned` row
-     (distance/duration), and — directly beneath — the **compact pace
+   - **Running day (`dayType: 'run'`, includes race day):** workout title, the
+     template's **`description` verbatim** (pace-zone shorthand), the `Planned`
+     row (distance/duration), and — directly beneath — the **compact pace
      reference** strip (`E 8:15 · T 7:05 · I 6:40 · M 7:30`), reusing
      `PaceZoneTable`'s formatting helpers from `plan-setup-flow.md` §7.4
      (`lib/pace-zone-display.ts`, arrives with #53). The full table stays in
@@ -255,37 +328,44 @@ dismissed in one tap too.
      strip** (nothing to resolve).
    - **Rest (`rest`):** "Rest".
    - For an **elapsed or current** day (FR19): the computed **status chip**
-     (Achieved / Partial / Missed / Rest) — **always present**. Future days:
-     no chip, no activity section.
+     (Planned [today only] / Achieved / Partial / Missed / Rest) — **always
+     present**. Future days: no chip, no activity section.
 4. Contents, conditionally, depending on what Strava has synced — **exactly
    one** of these renders in the activity section. The rule for all of them:
    **nothing is applied until Confirm (FR14)**, so before Confirm a
-   running/strength day's status is **Missed** and a Rest day's is **Rest**.
+   running/strength day's status is **Planned** (today) or **Missed**
+   (elapsed), and a Rest day's is **Rest**.
    - **a. No connection / nothing synced:** quiet note, no card. Status
-     **Missed** (or **Rest**).
+     **Planned** (today) / **Missed** (elapsed) / **Rest**.
    - **b. One plausible match, unconfirmed (FR14):** an `ActivityMatchCard`
      (type, distance/duration, start time, **Confirm** and **Dismiss**) **on
-     running and strength/cross-training days alike**. Status chip reads
-     **Missed** while it is pending. **Confirm** → the match applies and the
-     status recomputes by day type: **running → FR20** (Achieved if the type
-     matches and it meets the prescription; **Partial** if right type but
-     short, or wrong type); **strength/cross-training → FR21** (Achieved if
-     any non-running activity; **Partial** if a running-only activity);
-     the card becomes state (c) with **Undo**. **Dismiss** → suggestion
-     cleared, status stays **Missed**; the activity is **not** deleted (see
-     §8 #6 on re-offering).
+     running and strength/cross-training days alike**. Status chip is
+     unchanged while it is pending (**Planned** today, **Missed** elapsed).
+     **Confirm** → the match applies and the status recomputes by day type:
+     **running day → FR20** (any confirmed run type → **Achieved**, whatever
+     the distance; a confirmed non-run → stays **Missed** with the **activity
+     swap** indicator); **strength/cross-training → FR21** (any non-running
+     activity → **Achieved**; a running-only activity → **Partial**); the card
+     becomes state (c) with **Undo**. **Dismiss** → suggestion cleared, status
+     unchanged; the activity is **not** deleted (see §8 on re-offering).
    - **c. Confirmed match:** logged activity's real detail against the
-     Planned row, status chip shows the computed result, secondary **Undo**
-     returns to (b) — status returns to **Missed**; nothing is un-synced or
-     deleted (FR14).
+     Planned row (informational — see §4.2d-2), status chip shows the computed
+     result, secondary **Undo** returns to (b) — status returns to **Planned**
+     (today) or **Missed** (elapsed); nothing is un-synced or deleted (FR14).
    - **d. Multiple plausible matches (FR18):** single-select list plus
-     **"None of these"** and **Confirm selection**. Chip reads **Missed**
-     until Confirm. Confirm behaves like (b)'s Confirm; "None of these"
-     behaves like (b)'s Dismiss for all candidates.
+     **"None of these"** and **Confirm selection**. Chip unchanged until
+     Confirm. Confirm behaves like (b)'s Confirm; "None of these" behaves
+     like (b)'s Dismiss for all candidates.
+   - **e. Late-synced suggestion on an elapsed day:** same as (b)/(d) — an
+     activity that arrives days or months late creates a suggestion on its
+     day (FR19: re-evaluated with no time limit) and still needs Confirm. See
+     §4.2j and the row cue in §4.1.
 5. **Unlinked/bonus entries (FR17)** render as read-only cards **below** the
    prescription/match section: an unscheduled activity on a Rest day, or an
    extra activity on an already-matched day. Type, distance/duration, start
-   time, "Extra activity" outline chip. Nothing to do with it in this pass.
+   time, "Extra activity" outline chip. A Rest day with a bonus entry stays
+   **Rest**; the entry counts toward the week's total (§5.7). Nothing to do
+   with it in this pass.
 6. In-sheet nav: **‹ / ›** step to the previous/next day; the calendar behind
    updates its scroll/expansion.
 7. Every state change (confirm / dismiss / undo / pick) triggers a polite
@@ -311,20 +391,27 @@ dismissed in one tap too.
    "Marathon · 26.2 mi", and **"N weeks to go"** (→ "Race week" → "Race day
    is today").
 4. Trigger: **tap the race block, or the Sunday row of race week** → **C.
-   Race day detail** — same sheet pattern, content is the race (date,
-   distance, countdown, a note that the week before is a taper). Post-race
-   recap and post-race status are open (§8 #4).
+   Race day detail** — same sheet pattern as a running day. **Race day is a
+   normal running day (FR20)**: on race day itself the chip reads **Planned**;
+   it becomes **Achieved** when a confirmed run is applied (any distance) and
+   **Missed** at the runner's local midnight if nothing is. The sheet shows
+   the race (date, distance, countdown, a note that the week before is a
+   taper), the same status chip, and the same `ActivityMatchCard` as any
+   running day. What follows race day (recap, archive, next plan) is
+   Backlog issue #56.
 
 ### Backfill note (FR16/FR25 — kept lightweight)
 
 Joining a plan after its start date, or switching plans, triggers a bounded
 backfill (≤5 min per NFR4). While it runs, affected days simply render per
-state (a) — **Missed/Rest, as if nothing has synced** — rather than a spinner
-per day; a single dismissible `Alert` at the top reads **"Filling in your
-recent history — this can take a few minutes."** and disappears when the job
-completes (poll vs. push is a swe/deploy-engineer call). It sits in its own
-slot **below** any connection banner (§4.1b/c). Not a full backfill-status
-spec; see §8 #7.
+state (a) — **Missed/Rest (Planned for today), as if nothing has synced** —
+rather than a spinner per day; a single dismissible `Alert` at the top reads
+**"Filling in your recent history — this can take a few minutes."** and
+disappears when the job completes (poll vs. push is a swe/deploy-engineer
+call). It sits in its own slot **below** any connection banner
+(§4.1b/c). Backfilled activities arrive as **suggestions** that need Confirm
+like any other (§4.2j) — they don't retroactively flip days to Achieved. Not a
+full backfill-status spec; see §8.
 
 ---
 
@@ -344,14 +431,16 @@ ASCII only. All states drawn.
 ├─────────────────────────────────────┤
 │ ▸  Week 8   Mar 3–Mar 9    28/28mi ✓│  COLLAPSED past week (all Achieved). tap header = expand
 ├─────────────────────────────────────┤
-│ ▾  Week 9   Mar 10–Mar 16  18/32 mi │  EXPANDED current week. header is a button (aria-expanded)
-│  ┌───────────────────────────────┐  │
-│  │ Mon 10 Easy run    5 mi ●Achvd│  │  Achieved — green chip, check-circle-2 icon
-│  │ Tue 11 Intervals    6 mi ◐Part│  │  Partial — amber chip, circle-dot icon
-│  │ Wed 12 Rest             ☾Rest│  │  Rest — grey chip, moon icon, STILL a tap target (FR17)
-│  │ Thu 13 Tempo        7 mi ●Achvd│  │  Achieved
-│  │▎Fri 14 Easy · Today  4 mi ✕Msd›│  │  TODAY — accent left border + "Today" label; status is
-│  │                               │  │  NEVER blank (FR19): Missed until a match is confirmed
+│ ▾  Week 9   Mar 10–Mar 16  18/32 mi │  EXPANDED current week. header is a button (aria-expanded).
+│  ┌───────────────────────────────┐  │  Completed total includes swap + bonus activity miles (§5.7)
+│  │ Mon 10 Easy run    5 mi ●Achvd│  │  Achieved — green chip, check-circle-2 icon (any confirmed run)
+│  │ Tue 11 Intervals    6 mi ✕Msd │  │  Missed + ACTIVITY SWAP: red x-circle chip, plus a second
+│  │        ⇄ Swap · Walk 2.1 mi  ›│  │  line tag with arrow-left-right icon + text (§4.2d-3)
+│  │ Wed 12 Rest             ☾Rest │  │  Rest — grey chip, moon icon, STILL a tap target (FR17)
+│  │ Thu 13 Tempo        7 mi ✕Msd │  │  Missed (elapsed) with a pending/late suggestion:
+│  │        ◇ Suggestion          ›│  │  quiet outline "Suggestion" tag — status unchanged (§4.2j)
+│  │▎Fri 14 Easy · Today  4 mi ○Plan›│  │  TODAY — accent left border + "Today" label; chip = Planned
+│  │                               │  │  (dashed-outline circle, NOT red, NOT filled grey)
 │  │ Sat 15 Rest                   │  │  future Rest day: no chip (future)
 │  │ Sun 16 Long run [LONG] 14 mi ›│  │  UPCOMING long run — "Long" tag, no status (future)
 │  └───────────────────────────────┘  │
@@ -372,9 +461,29 @@ ASCII only. All states drawn.
 └─────────────────────────────────────┘
 ```
 
+(Week 9's figures are illustrative; the point is which chip/tag each
+situation gets.)
+
 Each running-day row shows the template's workout name (from `description`'s
 leading label / `workoutTag`) — the full `description` text appears in the
-day-detail sheet, not in the row (row stays one line).
+day-detail sheet, not in the row (row stays one line, plus at most one
+secondary tag line for **Swap** or **Suggestion**).
+
+**Row cues — decisions:**
+
+- **"Suggestion" cue on elapsed Missed days: yes.** A late-synced activity
+  (FR19: no time limit) would otherwise be invisible on an old, collapsed-past
+  day that still says Missed — the runner would never learn a match is
+  waiting. The cue is a quiet **outline text tag `Suggestion`** with the
+  neutral `link-2` glyph (wireframes draw it as ◇) — no fill, no status color, so it
+  can never be mistaken for a status. It appears on any day (today or elapsed)
+  with at least one pending suggestion, and disappears on Confirm or Dismiss.
+  It never changes the chip. Cost: one extra tag line on affected rows only.
+- **Not on the collapsed week header in v1.** A per-week "N suggestions"
+  count would need the summary payload (§5.6) to carry it; cheap to add later
+  if runners miss late suggestions (§9).
+- **"Swap" tag** (text `Swap`, `arrow-left-right` icon) sits beside the
+  Missed chip on any day whose confirmed activity is a non-run on a run day.
 
 Interactive: menu, Today pill, settings, each week header, **every** day row
 including Rest and every race-week day, the `• • •` control, the race block.
@@ -397,9 +506,9 @@ Only the progress bar is non-interactive.
 ```
 
 Without a connection, every elapsed/current day still computes a status —
-always **Missed** (running/strength days) or **Rest** — correct per
-FR19–22 (nothing can sync). Not an error state; the banner nudges without
-blocking.
+**Missed** (elapsed running/strength days), **Planned** (today), or **Rest**
+— correct per FR19–22 (nothing can sync). Not an error state; the banner
+nudges without blocking.
 
 ### 4.1c "Reconnect needed" banner (Strava auth expired) — new, drawn here
 
@@ -424,9 +533,9 @@ Behavior: shown whenever the connection is in the auth-expired state;
 dismissal is session-local (reappears next visit while still expired, same
 rule as 4.1b). Already-synced activities and confirmed matches stay as they
 are; only *new* activities stop arriving, so a day whose activity never
-synced reads **Missed** — the banner is the explanation. Precedence when
-several banners apply: connection banner (4.1b **or** 4.1c) first, backfill
-banner (§3) below it.
+synced reads **Missed** (or **Planned** today) — the banner is the
+explanation. Precedence when several banners apply: connection banner (4.1b
+**or** 4.1c) first, backfill banner (§3) below it.
 
 ### 4.1d Race week expanded (mobile) — a full 7-day block
 
@@ -439,8 +548,8 @@ banner (§3) below it.
 │  │ Thu 8  Shakeout      2 mi     ›│  │
 │  │ Fri 9  Rest                   ›│  │
 │  │ Sat 10 Easy run      2 mi     ›│  │
-│  │ Sun 11 [⚑] Race day  26.2 mi  ›│  │  race-day row → opens C. Race day detail
-│  └───────────────────────────────┘  │
+│  │ Sun 11 [⚑] Race day  26.2 mi  ›│  │  race-day row → opens C. Race day detail. A normal running
+│  └───────────────────────────────┘  │  day: chip = Planned on the day, then Achieved / Missed
 ```
 
 (Day names/distances illustrative; the real rows come from the template.)
@@ -464,7 +573,7 @@ banner (§3) below it.
 │  ── future day: nothing below here — no status chip, no activity section ──
 ```
 
-**4.2b — Running day, elapsed OR current, Strava connected, nothing synced**
+**4.2b — Running day, ELAPSED, Strava connected, nothing synced**
 
 ```
 │  Easy run                            │
@@ -472,22 +581,40 @@ banner (§3) below it.
 │  Planned      6 mi · threshold       │
 │  E 8:15 · T 7:05 · I 6:40 · M 7:30  │
 │                                      │
-│  Missed  ✕                           │  status chip (red, x-circle) — FR20: nothing logged
-│  No activity logged for this day.    │  plain note, no card
+│  Missed  ✕                           │  status chip (red, x-circle) — FR20: nothing confirmed
+│  No activity logged for this day.    │  once the local day ended; plain note, no card
 ```
 
-Same layout for **today**: chip reads **Missed**, note unchanged. (TPM
-question in §8 #1 — a same-morning "Missed" — the spec follows FR19 as
-written.)
+**4.2b-2 — Running day, TODAY, nothing confirmed yet — status is Planned**
 
-**4.2c — One plausible match, unconfirmed (FR14) — status is Missed, not blank**
+```
+│  Easy run                            │
+│  4 mi easy @ E                       │
+│  Planned      4 mi · easy            │  the prescription row keeps its label "Planned" (it is the
+│  E 8:15 · T 7:05 · I 6:40 · M 7:30  │  plan); the status chip below is a separate element
+│                                      │
+│  ○ Planned  (dashed outline)         │  status chip: dashed-outline circle icon (circle-dashed) +
+│  No activity logged yet today.       │  label. Not red, not filled — see §5.7 for the identity rules
+```
+
+Planned is the only status that can still move to Achieved/Partial "for
+free" by the day ending well; it becomes **Missed** at the runner's local
+midnight (FR19). Because the prescription row is also labeled `Planned`, the
+status chip carries a leading icon and sits on its own line below the pace
+strip, and the prescription label is set in `text/secondary` while the chip
+is the status element (accessible names disambiguate, §6).
+
+**4.2c — One plausible match, unconfirmed (FR14) — status does not change**
+
+Elapsed day shown (chip Missed). On **today** the same card sits under a
+**Planned** chip.
 
 ```
 │  Planned      4 mi · easy            │
 │  E 8:15 · T 7:05 · I 6:40 · M 7:30  │
 │                                      │
-│  Missed  ✕                           │  nothing is applied until Confirm (FR14) → FR20 "nothing
-│  ┌───────────────────────────────┐   │  logged"; recomputes on Confirm
+│  Missed  ✕                           │  nothing is applied until Confirm (FR14); on today this
+│  ┌───────────────────────────────┐   │  chip reads "○ Planned"; recomputes on Confirm
 │  │ Is this it?                   │   │  ActivityMatchCard
 │  │ Run · 4.1 mi · 34:12           │   │
 │  │ Fri, Mar 14 · 6:42 AM          │   │
@@ -497,7 +624,7 @@ written.)
 │  └───────────────────────────────┘   │
 ```
 
-**4.2d — Confirmed match, Achieved (FR20: right type, meets prescription)**
+**4.2d — Confirmed run, Achieved (FR20: any confirmed run type)**
 
 ```
 │  Planned      4 mi · easy            │
@@ -506,36 +633,64 @@ written.)
 │                                      │
 │  Achieved  ✓                         │  status chip (green, check-circle-2)
 │  ┌───────────────────────────────┐   │
-│  │           Undo                │   │  returns to 4.2c (status back to Missed)
-│  └───────────────────────────────┘   │
+│  │           Undo                │   │  returns to 4.2c (status back to Planned if today,
+│  └───────────────────────────────┘   │  Missed if elapsed)
 ```
 
-**4.2d-2 — Confirmed match, Partial running day (FR20: right type but short, or wrong type)**
+**4.2d-2 — Confirmed run, any distance — still Achieved (logged vs. planned is informational)**
 
 ```
 │  Planned      6 mi · threshold       │
 │  E 8:15 · T 7:05 · I 6:40 · M 7:30  │
-│  Logged       3.2 mi · 27:40 · Run   │  short of the prescription
+│  Logged       3.2 mi · 27:40 · Trail run │  Strava sport type TrailRun (any run variant counts)
 │                                      │
-│  Partial  ◐                          │  status chip (amber, circle-dot)
-│  Ran 3.2 of 6 mi.                    │  one plain line saying why (short of prescription).
-│  ┌───────────────────────────────┐   │  Wrong-type case: "Logged activity was a ride, not a run."
+│  Achieved  ✓                         │  same chip as 4.2d — FR20 has no distance/duration threshold
+│  ┌───────────────────────────────┐   │
 │  │           Undo                │   │
 │  └───────────────────────────────┘   │
 ```
 
-The explanation line is a plain-language restatement of FR20's rule, shown
-only on Partial, so the chip is never a mystery. Exact "short of it"
-threshold is FR20's/swe's to define (tpm question, §8 #2) — the UI only
-renders the computed result and, if the API supplies it, the reason.
+The `Planned` and `Logged` rows sit side by side purely so the runner can see
+what they did against what was prescribed. **No "short of it" wording, no
+"Ran 3.2 of 6 mi." line, no progress bar, no threshold, no muted or warning
+treatment on the Logged row.** The earlier "Partial short run" state
+(pass 1's 4.2d-2) is **removed**: FR20 in v1 never computes Partial on a
+running day. **Reserved for later:** `Partial` stays in the enum and in the
+`StatusBadge` module (its amber styling is unchanged and is still used on
+strength days, 4.2h). If a future FR adds a short-of-prescription rule for run
+days, a Partial-run wireframe would be redrawn then, with a one-line plain
+reason under the chip; not built now.
 
-**4.2e — Multiple plausible matches (FR18) — status is Missed until Confirm**
+**4.2d-3 — Confirmed NON-run on a run day: Missed + activity swap (FR20)**
+
+```
+│  Planned      5 mi · easy            │
+│  E 8:15 · T 7:05 · I 6:40 · M 7:30  │
+│  Logged       2.1 mi · 41:00 · Walk  │  the activity is shown on the day
+│                                      │
+│  Missed  ✕   ⇄ Activity swap         │  chip stays Missed (red, x-circle); indicator is a separate
+│  You did a walk instead of the       │  outline tag: arrow-left-right icon + "Activity swap"
+│  planned run. It counts toward your  │  plain, neutral line. No blame, no "only".
+│  weekly total.                       │
+│  ┌───────────────────────────────┐   │
+│  │           Undo                │   │  returns to 4.2c (Planned today / Missed elapsed)
+│  └───────────────────────────────┘   │
+```
+
+The status does **not** change to Achieved or Partial; the swap indicator
+exists so the runner sees their effort was recorded and counted (FR20), not
+that the day was empty. Applies to any confirmed non-run sport type on a run
+day (Walk, Hike, Ride, Swim, Yoga…), per §5.7's classification. The
+"Activity swap" tag is never shown without the Missed chip, and never on rest,
+strength or cross-training days.
+
+**4.2e — Multiple plausible matches (FR18) — status does not change until Confirm**
 
 ```
 │  Planned      4 mi · easy            │
 │  E 8:15 · T 7:05 · I 6:40 · M 7:30  │
 │                                      │
-│  Missed  ✕                           │  unchanged until a choice is confirmed
+│  Missed  ✕                           │  unchanged until a choice is confirmed (today: ○ Planned)
 │  Which one is this?                  │  h3, group legend
 │  ○ Run · 4.0 mi · 33:50 · 6:41 AM    │  RadioGroupItem
 │  ○ Run · 4.3 mi · 36:02 · 7:15 AM    │  RadioGroupItem
@@ -546,8 +701,8 @@ renders the computed result and, if the API supplies it, the reason.
 ```
 
 A run + Confirm selection behaves like 4.2c's Confirm; "None of these" +
-Confirm selection behaves like Dismiss (stays Missed; not re-offered
-automatically, §8 #6).
+Confirm selection behaves like Dismiss (status unchanged; not re-offered
+automatically, §8).
 
 **4.2f — Rest day, no bonus activity**
 
@@ -558,24 +713,26 @@ automatically, §8 #6).
 │  Nothing scheduled today.            │
 ```
 
-(A **future** Rest day shows no chip, like any future day.)
+(A **future** Rest day shows no chip, like any future day. A Rest day that is
+**today** shows **Rest**, never Planned — there is nothing to plan.)
 
 **4.2g — Rest day WITH an unlinked bonus activity (FR17)**
 
 ```
 │  Rest                                │
-│  Rest  ☾                             │  still Rest — a bonus activity doesn't change it
+│  Rest  ☾                             │  still Rest — no penalty, no credit (FR17)
 │  Nothing scheduled today.            │
 │  ┌───────────────────────────────┐   │
-│  │ ＋ Extra activity              │   │  outline chip, no fill
+│  │ ＋ Extra activity              │   │  outline chip, no fill — the "bonus entry"
 │  │ Run · 3.2 mi · 28:40           │   │  read-only — nothing to confirm/dismiss
-│  │ Wed, Mar 12 · 5:30 PM          │   │
+│  │ Wed, Mar 12 · 5:30 PM          │   │  counts toward the week's total (§5.7)
 │  └───────────────────────────────┘   │
 ```
 
 **4.2h — Strength / cross-training day (FR11, FR14, FR21) — goes through `ActivityMatchCard` like every other day**
 
-Elapsed, activity suggested, **not yet confirmed** — status is Missed:
+Elapsed, activity suggested, **not yet confirmed** — status is Missed (on
+today it would read **○ Planned**):
 
 ```
 │  Strength                            │  h2
@@ -594,14 +751,19 @@ Elapsed, activity suggested, **not yet confirmed** — status is Missed:
 
 After **Confirm**, FR21 scores it:
 
-- non-running activity (weight training, ride, yoga…) → **Achieved ✓** + `Logged` row + `Undo`;
-- a running-only activity confirmed on a strength day → **Partial ◐** + `Logged` row + `Undo`
-  (same layout as 4.2d-2 with a one-line reason: "Logged a run, not a strength session.").
-- If nothing synced (or Dismissed) → **Missed**, same copy as 4.2b.
+- non-running activity (weight training, ride, yoga, walk, hike…) →
+  **Achieved ✓** + `Logged` row + `Undo`;
+- a confirmed **running** activity on a strength day → **Partial ◐** + `Logged`
+  row + `Undo`, with a one-line reason: "Logged a run, not a strength
+  session." **This is the only path to Partial in v1.** Styling is the
+  original Partial chip (amber, `circle-dot`).
+- If nothing synced (or Dismissed) → **Planned** on today, **Missed**
+  once elapsed, same copy as 4.2b/4.2b-2.
 
 FR21 is a *scoring* rule that applies after Confirm; a synced activity never
 sets Achieved/Partial by itself. Multi-match (FR18) and undo behave exactly
-as on running days.
+as on running days. There is **no swap indicator** on strength days (a
+non-run there is the expected outcome).
 
 **4.2i — Freeform-described day (FR22) — mapping and explicit deferral**
 
@@ -609,23 +771,55 @@ Mapping from ADR 0005's `dayType` to the scoring rule the UI renders:
 
 | Template `dayType` | Has numeric target? | Rule | Possible confirmed results |
 |---|---|---|---|
-| `run` | Yes — `distanceMiles` is **required** on run days (ADR 0005 rule 1) | FR20 | Achieved / Partial / Missed |
-| `strength`, `cross_training` | No | FR21 | Achieved / Partial / Missed |
-| `rest` | — | FR19 | Rest |
-| *(freeform, description-only, no numeric target, not one of the above)* | No | FR22 | Achieved / Missed (**no Partial**) |
+| `run` (includes race day) | Yes — `distanceMiles` is **required** on run days (ADR 0005 rule 1) | FR20 | Achieved (any confirmed run) / Missed, with the **activity swap** indicator if a non-run was confirmed. Never Partial in v1. |
+| `strength`, `cross_training` | No | FR21 | Achieved / Partial (run only) / Missed |
+| `rest` | — | FR19 | Rest (bonus entries don't change it) |
+| *(freeform, description-only, no numeric target, not one of the above)* | No | FR22 (**deferred**) | Achieved / Missed (**no Partial**); Planned today |
 
-**Deferral, stated explicitly:** under ADR 0005 every v1 template day is one
-of the four `dayType`s, and `run` always carries a numeric target — so **no
-v1 template day is FR22-only**. Strength/cross-training days also have a
-description and no numeric target, but FR21 is the more specific rule and
-gives them a Partial tier, so this spec scores them as FR21. There is
-therefore **no separate FR22 wireframe in this pass**. If a future template
-adds a description-only day kind, it renders as **4.2h with the Partial
-outcome suppressed** (running-only match → treated as a normal confirmed
-activity → Achieved; nothing confirmed → Missed). swe: switch on `dayType`,
-not on "is there a numeric target"; do not infer FR22 from a missing
-`distanceMiles`. Flagged for TPM in §8 #3 (FR21/FR22 overlap for
-strength/cross-training).
+**Deferral, stated explicitly:** PR #58 marks FR22 *deferred — no v1 template
+has a description-only day; not built until one does.* Under ADR 0005 every v1
+template day is one of the four `dayType`s, so there is **no FR22 wireframe
+and nothing to build** for it in this pass. (The old FR21/FR22 overlap
+question is resolved — strength/cross-training is FR21, FR22 is reserved for
+a future day kind.) If a future template adds a description-only day kind, it
+renders as **4.2h with the Partial outcome suppressed** (running-only match →
+treated as a normal confirmed activity → Achieved; nothing confirmed →
+Planned today / Missed elapsed). swe: switch on `dayType`, not on "is there a
+numeric target"; do not infer FR22 from a missing `distanceMiles`.
+
+**4.2j — Late-synced suggestion on an old elapsed day (FR19, no time limit)**
+
+Scenario: it is a month later; a Strava activity for Mar 7 arrives (a delayed
+sync, or a backfill). The day was already Missed.
+
+```
+Row (in the week list, once its week is expanded):
+│ Fri 7  Easy run     4 mi   ✕Missed  │
+│        ◇ Suggestion                ›│  quiet outline tag; chip unchanged
+
+Sheet:
+│  Planned      4 mi · easy            │
+│  E 8:15 · T 7:05 · I 6:40 · M 7:30  │
+│                                      │
+│  Missed  ✕                           │  unchanged — a suggestion never changes status
+│  ┌───────────────────────────────┐   │
+│  │ Is this it?                   │   │  the same ActivityMatchCard
+│  │ Run · 4.1 mi · 34:12           │   │
+│  │ Fri, Mar 7 · 6:42 AM           │   │
+│  │ Synced later — confirming will │   │  one neutral line, shown only for a suggestion whose
+│  │ update this day.               │   │  activity synced after its day ended
+│  │  [ Confirm ]   [ Dismiss ]     │   │
+│  └───────────────────────────────┘   │
+```
+
+- **Confirm** → status recomputes by the ordinary rules (here → Achieved);
+  the row, the week's completed total, and the collapsed week header all
+  update; the "Suggestion" tag goes away. No time limit applies.
+- **Dismiss** → tag goes away, status stays Missed; activity not deleted.
+- **Undo** after Confirm → back to Missed (elapsed day).
+- The calendar does **not** interrupt the runner about it (no toast, no
+  banner); the row tag is the only discovery surface in v1. A dismiss-review
+  surface is not designed (§8).
 
 ### 4.3 Empty / first-run
 
@@ -695,7 +889,8 @@ No spinner. Skeleton mirrors the real layout. SR: `aria-busy="true"` on
 │  ┌───────┬───────┬───────┬───────┬─────────┬───────┬─────────────┬─────────┐  │
 │  │Mon 10 │Tue 11 │Wed 12 │Thu 13 │▏Fri 14  │Sat 15 │Sun 16 [LONG]│  wk 9   │  │
 │  │Easy   │Interv │Rest   │Tempo  │▏Today   │Rest   │Long run     │  32 mi  │  │
-│  │5mi●Ach│6mi◐Prt│ ☾Rest │7mi●Ach│▏4mi✕Msd │       │14 mi        │ 18 done │  │  today: status never blank
+│  │5mi●Ach│6mi✕Msd│ ☾Rest │7mi✕Msd│▏4mi○Plan│       │14 mi        │ 18 done │  │  today: Planned (dashed), never Missed
+│  │       │⇄Swap  │       │◇Sugg. │▏        │       │             │         │  │  swap tag / suggestion tag on their own line
 │  └───────┴───────┴───────┴───────┴─────────┴───────┴─────────────┴─────────┘  │
 │  Week 10 · Mar 17–Mar 23                                      34 mi planned   │
 │  ...                                                                          │
@@ -715,9 +910,11 @@ No spinner. Skeleton mirrors the real layout. SR: `aria-busy="true"` on
 ```
 
 Per-day mileage and the weekly `28 / 28 mi` fraction use the Numeral role
-(tabular IBM Plex Mono). Status abbreviations (`●Ach`/`◐Prt`/`✕Msd`/`☾Rest`)
-are compact renderings of the same status chip — same icon, color and label
-semantics, abbreviated for width, never color-only.
+(tabular IBM Plex Mono). Status abbreviations (`●Ach`/`◐Prt`/`✕Msd`/`☾Rest`/
+`○Plan`) are compact renderings of the same status chip — same icon, color
+and label semantics, abbreviated for width, never color-only. The `⇄Swap` and
+`◇Sugg.` tags are the same tags as on mobile, abbreviated; their full text is
+the accessible name and appears in the side panel.
 
 ---
 
@@ -727,7 +924,8 @@ semantics, abbreviated for width, never color-only.
 
 - **Vertical rhythm.** Week blocks separated by a hairline rule
   (`border/subtle`, Tempo). Day rows separated by lighter hairlines. Row
-  height ~52–56px on mobile.
+  height ~52–56px on mobile; a row with a Swap/Suggestion tag line grows to
+  ~72px.
 - **Number alignment.** Only genuine comparison columns use the Numeral role,
   right-aligned. The countdown is Display-role Figtree, not mono.
 - **Hierarchy.** Countdown largest (Display). Week numbers/volumes next
@@ -735,11 +933,12 @@ semantics, abbreviated for width, never color-only.
   `text/secondary`, never below 4.5:1 (§6).
 - **Day-detail vertical order (running day):** title → `description`
   (verbatim, Body) → `Planned` row → compact pace strip (Body-sm, Numeral
-  role for the times) → status chip → activity section → extra-activity
-  cards.
+  role for the times) → `Logged` row (when confirmed) → status chip (+ swap
+  tag) → activity section → extra-activity cards.
 - **Status chip.** Small, muted, icon + label + color — never a row wash.
 - **One accent, spent on today.** `accent/solid` only on the **today**
-  indicator; status colors are their own palette.
+  indicator; status colors are their own palette. Planned uses the neutral
+  palette (not the accent) so it never competes with the today marker.
 - **Race block.** 2px border, slightly inset, reads as a destination. Race
   week's day rows are ordinary rows; the Sunday row just carries the `Race
   day` tag and flag icon.
@@ -759,7 +958,8 @@ Stack is decided (ADR 0002: React + Vite, Tailwind, shadcn/ui, Lucide).
 | Plan progress bar | `Progress` | `role=progressbar`, plus visible "Week 9 of 18". |
 | Week block (collapsible) | `Accordion`, `type="multiple"` | Container is library; the day-row/grid layout is custom. |
 | Day row / day cell | **custom** | Core object; `<button>` per day. |
-| `StatusBadge` (Achieved/Partial/Missed/Rest) | `Badge` (custom color/icon) | Shared module used by day row, desktop cell (compact), and day-detail sheet. Definition lands with #53; toolkit row in §10. |
+| `StatusBadge` (Planned/Achieved/Partial/Missed/Rest) | `Badge` (custom color/icon) | Shared module used by day row, desktop cell (compact), and day-detail sheet. Definition lands with #53 (four values); **Planned** is added by this spec (§5.7); toolkit row in §10. |
+| Activity-swap tag / "Suggestion" tag | `Badge` (outline variant) + Lucide icon | Neutral outline, never a status color. Same primitive as the "Extra activity" chip. |
 | Compact pace reference strip | plain markup over `PaceZoneTable` helpers (`lib/pace-zone-display.ts`) | Reuse, don't rebuild; defined in `plan-setup-flow.md` §7.4 (#53). |
 | "Long" tag, "Today" label, "Race day" tag | **custom** (span) | Text badges; never colour-only. |
 | Day detail — mobile sheet | `Drawer` (Vaul) or `Dialog` styled as sheet | Focus trap, Esc, focus return. |
@@ -798,11 +998,14 @@ Stack is decided (ADR 0002: React + Vite, Tailwind, shadcn/ui, Lucide).
 | Long-run tag | `Long` |
 | Today label (on the row) | `Today` |
 | Race-day row tag | `Race day` |
-| Status chip labels | `Achieved` · `Partial` · `Missed` · `Rest` (verbatim) |
-| Partial reason, short | `Ran 3.2 of 6 mi.` |
-| Partial reason, wrong type | `Logged activity was a ride, not a run.` (type name from the activity) |
+| Status chip labels | `Planned` · `Achieved` · `Partial` · `Missed` · `Rest` (verbatim) |
+| Planned-today note (no activity) | `No activity logged yet today.` |
+| Activity-swap tag | `Activity swap` (sheet) · `Swap` (mobile row, desktop cell) |
+| Activity-swap explanation | `You did a {walk\|hike\|ride…} instead of the planned run. It counts toward your weekly total.` (activity type from Strava sport type, lower-cased) |
 | Partial reason, run on strength day | `Logged a run, not a strength session.` |
 | Unlinked/bonus chip | `Extra activity` |
+| Suggestion row tag | `Suggestion` (mobile row) · `Sugg.` (desktop cell, accessible name always `Suggestion waiting`) |
+| Late-synced suggestion line | `Synced later — confirming will update this day.` |
 | Distant-weeks control | `• • •` (tap: `Show weeks 11–16`) |
 | Race block title | `Race day` |
 | Race block detail line | `Sun, May 11 · Marathon 26.2 mi` |
@@ -811,7 +1014,7 @@ Stack is decided (ADR 0002: React + Vite, Tailwind, shadcn/ui, Lucide).
 | Day detail — planned row | `Planned` → e.g. `4 mi · easy` |
 | Day detail — pace reference | `E 8:15 · T 7:05 · I 6:40 · M 7:30` (formatting from `lib/pace-zone-display.ts`) |
 | Day detail — logged row | `Logged` → e.g. `4.1 mi · 34:12 · Run` |
-| Day detail — no activity | `No activity logged for this day.` |
+| Day detail — no activity (elapsed) | `No activity logged for this day.` |
 | Suggested-match card heading | `Is this it?` |
 | Suggested-match Confirm | `Confirm` |
 | Suggested-match Dismiss | `Dismiss` |
@@ -820,8 +1023,9 @@ Stack is decided (ADR 0002: React + Vite, Tailwind, shadcn/ui, Lucide).
 | Multi-match "none" option | `None of these` |
 | Multi-match confirm button | `Confirm selection` |
 | Live-region: match confirmed | `Friday's easy run matched to a 4.1 mile run. Marked {Achieved\|Partial}.` (status word = the computed result) |
-| Live-region: match dismissed | `Match dismissed. Friday is marked Missed.` |
-| Live-region: match undone | `Match undone. Friday is marked Missed.` |
+| Live-region: swap confirmed | `Friday's easy run matched to a 2.1 mile walk. Marked Missed, activity swap.` |
+| Live-region: match dismissed | `Match dismissed. Friday stays {Planned\|Missed}.` (Planned if the day is today) |
+| Live-region: match undone | `Match undone. Friday is {Planned\|Missed}.` (Planned if the day is today) |
 | Empty title | `No plan yet` |
 | Empty body | `Add your race date and we'll lay out the training weeks leading up to it.` |
 | Empty CTA | `Set up plan` |
@@ -830,11 +1034,12 @@ Stack is decided (ADR 0002: React + Vite, Tailwind, shadcn/ui, Lucide).
 | Error retry | `Try again` |
 | Loading (SR only) | `Loading your plan` |
 
-Tone: plain, second person, no exclamation marks. **Coach jargon** (TSS/IF/
-CTL) is out; the template's own pace-zone shorthand is the workout text and is
-shown as written. The old "Nice. Long run Sunday." nudge is dropped — a
-confirmed match is a matter-of-fact event, so live-region copy states the
-fact plainly.
+Tone: plain, second person, no exclamation marks, no blame ("only a walk" is
+banned; the swap line states the fact and says it counts). **Coach jargon**
+(TSS/IF/CTL) is out; the template's own pace-zone shorthand is the workout
+text and is shown as written. The old "Nice. Long run Sunday." nudge is
+dropped — a confirmed match is a matter-of-fact event, so live-region copy
+states the fact plainly.
 
 ### 5.4 Responsive behaviour
 
@@ -865,6 +1070,66 @@ all-Achieved check) must be renderable from the summary alone. The exact
 endpoint shape is an engineering call; the design constraint is only that
 opening the calendar never requires the whole plan's activity data.
 
+Per-day fields the UI needs from the API for the new statuses: `status`
+(five-value enum from FR19), a boolean/enum for **activity swap** (or enough
+data to derive it: day type + confirmed activity's run/non-run class), and a
+**pending-suggestion count** per day (drives the "Suggestion" tag). The
+current day's Planned → Missed flip is decided server-side at the runner's
+local midnight; the client just renders `status` and must not compute Missed
+from the clock.
+
+### 5.7 Implementation notes — status identity, classification, totals
+
+**Planned chip (new fifth `StatusBadge` value).** Must be distinct from
+Missed and Rest **without relying on color** (NFR5):
+
+| Status | Icon (Lucide) | Label | Fill/outline | Hue |
+|---|---|---|---|---|
+| Planned | `circle-dashed` | `Planned` | **dashed outline, no fill** | neutral (`text/primary`-adjacent; not the accent) |
+| Missed | `x-circle` | `Missed` | filled/solid | red (`destructive/text`) |
+| Rest | `moon` | `Rest` | filled | grey (neutral muted) |
+
+Three separators, any one of which suffices: **icon shape** (dashed circle vs.
+x vs. moon), **text label**, and **border style** (dashed vs. solid). Exact
+hex and contrast (target ≥ 4.5:1 text, ≥ 3:1 for the dashed outline against
+its background, both modes) are to be added to `ui-toolkit.md`'s completion-
+status table when #53 is in (§10); until then, use the neutral token that
+already passes 4.5:1 for `text/secondary`. Planned exists **only on the
+current day**; a row is never Planned on an elapsed day.
+
+**Run classification (swe).** "Running" vs "non-running" comes from the
+**Strava sport type** on the activity — not from distance, pace, or the
+activity's name. **All run variants are running** (`Run`, `TrailRun`,
+`VirtualRun`, and any other run-family sport type Strava returns);
+**`Walk` and `Hike` are non-running**, as are Ride, Swim, WeightTraining,
+Yoga, etc. Implement as one shared classifier over the sport-type string
+(ideally in `packages/` so iOS/Android reuse it) with a default for unknown
+future types decided by the tech lead — do not scatter `=== 'Run'` checks. It
+feeds: running-day scoring (run → Achieved, non-run → Missed + swap),
+strength-day scoring (non-run → Achieved, run → Partial), and the swap
+indicator. The template's `dayType` (not the activity) decides which rule
+applies.
+
+**Weekly totals — informational only.** No FR defines a weekly-totals
+feature. The calendar week header **already shows a mileage total**
+(`18 / 32 mi`, §4.1/§4.6), so no new element is designed. Per FR17/FR20,
+**activity-swap activities and bonus (extra / Rest-day) activities feed that
+completed-miles figure**; they don't change any day's status. Suggestions that
+are not confirmed do not feed it. The number is shown for information and
+is never used to grade a day or a week. What the total should include beyond
+that (e.g. non-distance activities) is a scoping question (§8).
+
+**Day-status rules at a glance (for tests).**
+
+| Day type | Nothing confirmed, today | Nothing confirmed, elapsed | Confirmed run | Confirmed non-run | Future |
+|---|---|---|---|---|---|
+| `run` (incl. race day) | Planned | Missed | Achieved (any distance) | Missed + activity swap | no status |
+| `strength` / `cross_training` | Planned | Missed | Partial | Achieved | no status |
+| `rest` | Rest | Rest | Rest + bonus entry | Rest + bonus entry | no status |
+
+A pending or dismissed suggestion never changes any cell above. Undo returns
+a confirmed day to Planned (today) or Missed (elapsed).
+
 ---
 
 ## 6. Accessibility
@@ -890,6 +1155,9 @@ deliberate tightening).
 12. Week 17 and **Week 18 (race week)** headers, each expandable to 7 days
 13. Race-day block — `<button>` / `<a>`
 
+The Swap and Suggestion tags are part of the day's single `<button>`, not
+separate tab stops.
+
 **Enhancement (not required for v1):** roving `tabindex` + arrow keys between
 day cells within a week (Notion Calendar). Tab must still reach every day.
 
@@ -907,6 +1175,9 @@ day cells within a week (Notion Calendar). Tab must still reach every day.
   read as "Pace reference: E 8:15 per mile, T 7:05 per mile …"; give the
   container `aria-label="Pace reference"` and expand the zone letters for
   screen readers (`E` → "easy"), since the letters alone are ambiguous.
+- **Prescription row vs. status chip both say "Planned".** The prescription
+  row is labelled for AT as "Prescribed: 4 miles, easy"; the chip is
+  announced as "Status: Planned". Visible text stays `Planned` for both.
 - **`ActivityMatchCard`'s Confirm/Dismiss** are plain `<button>`s. On
   activation, focus moves to the resulting state's first focusable element
   (the Undo button after Confirm; the sheet body after Dismiss) and the live
@@ -915,12 +1186,15 @@ day cells within a week (Notion Calendar). Tab must still reach every day.
   selection" is `disabled`/`aria-disabled` until a choice is made, with a
   visible + SR-announced reason ("Choose one option first.").
 - **Undo** is a plain `<button>`; live region announces the reversion
-  (`Match undone. Friday is marked Missed.`), focus moves to the now-visible
-  `ActivityMatchCard`.
+  (`Match undone. Friday is Missed.` / `… is Planned.` on today), focus moves
+  to the now-visible `ActivityMatchCard`.
 - Unlinked/bonus cards: `<section>` with a heading ("Extra activity") and
   plain text, no interactive controls.
-- Status-chip changes (Missed → Achieved etc.) are announced **only** through
-  the live region, not by re-announcing the chip.
+- Status-chip changes (Planned/Missed → Achieved etc.) are announced **only**
+  through the live region, not by re-announcing the chip. The midnight flip
+  Planned → Missed is **not** announced (it happens without user action and
+  would be noise); the chip simply reads the new value next time the day is
+  read.
 
 ### Semantics / roles / labels
 
@@ -931,11 +1205,15 @@ day cells within a week (Notion Calendar). Tab must still reach every day.
 - Week list: `<ol>` of weeks; day list inside a week: `<ol>` of days.
 - Each day control's accessible name is self-sufficient and **always includes
   a status word for an elapsed/current day**: `"Friday, March 14. Today.
-  Easy run, 4 miles. Missed."` / `"Tuesday, March 11. Intervals, 6 miles.
-  Partial."` / `"Wednesday, March 12. Rest. Extra activity logged."` For a
-  future day, no status word: `"Sunday, March 16. Long run, 14 miles."`
-- Status icon, "Long" tag, "Today" pill are supplementary (`aria-hidden`).
+  Easy run, 4 miles. Planned."` / `"Tuesday, March 11. Intervals, 6 miles.
+  Missed. Activity swap: walk, 2.1 miles."` / `"Thursday, March 13. Tempo,
+  7 miles. Missed. Suggestion waiting."` / `"Wednesday, March 12. Rest. Extra
+  activity logged."` For a future day, no status word: `"Sunday, March 16.
+  Long run, 14 miles."`
+- Status icon, "Long" tag, "Today" pill, tag glyphs are supplementary
+  (`aria-hidden`); the tag **text** is what is announced.
 - Race-week Sunday row: `"Sunday, May 11. Race day. Marathon, 26.2 miles."`
+  (plus the status word once it is today or elapsed.)
   Race block: `"Race day. Sunday, May 11. Marathon, 26.2 miles. 9 weeks to
   go."`
 - `ActivityMatchCard`: `role="group"` with `aria-label` summarizing the
@@ -949,10 +1227,14 @@ day cells within a week (Notion Calendar). Tab must still reach every day.
   both modes — verified in `ui-toolkit.md` once #53 lands).
 - Muted metadata and the pace strip (`text/secondary`): ≥ 4.5:1 both modes.
 - Status chip text/icon: ≥ 4.5:1 in every case, both modes — per-status
-  numbers are in `ui-toolkit.md`'s completion-status table (#53).
+  numbers are in `ui-toolkit.md`'s completion-status table (#53); **Planned's
+  numbers are to be added (§10)**, including ≥ 3:1 for its dashed border.
+- Swap and Suggestion tags: outline border ≥ 3:1, text ≥ 4.5:1.
 - Display countdown: ≥ 3:1 minimum.
 - "Today" must not be **colour only**: accent border + "Today" text + weight.
-- Status must not be **colour only**: icon + text label always.
+- Status must not be **colour only**: icon + text label always. Planned vs.
+  Missed vs. Rest specifically differ by icon shape, label, **and** border
+  style (§5.7).
 - Focus ring: visible, ≥ 3:1, never removed.
 
 ### Touch targets
@@ -983,6 +1265,8 @@ day cells within a week (Notion Calendar). Tab must still reach every day.
 | **Week block** | — | New | The product's core object; built on an accordion, internal layout custom. |
 | **Race-day / milestone block** | — | New | Pinned dated milestone with countdown; additional to race week, not a substitute. |
 | **`StatusBadge`** | completion-status decision (#53) | New | First render of the cross-cutting status system; one shared module for calendar, sheet, and (with a different value set) the Strava settings card. |
+| **Planned chip (dashed outline)** | `StatusBadge` | New value | FR19 added a fifth status for "today, not yet confirmed"; existing four (filled) values didn't cover a "still possible" state, so it takes the outline treatment (TrainingPeaks planned-outline, Things open circle). |
+| **Activity-swap / Suggestion tags** | outline `Badge` (same as "Extra activity") | New use, same primitive | Secondary tags beside a status, deliberately not status-colored. |
 | **`ActivityMatchCard`** (suggest → confirm/dismiss → undo) | — | New | First "system inferred something, confirm or reject it" pattern; the replacement for manual mark-complete. Used on every non-rest day type. |
 | Single-select with "none of these" | `RadioGroup` (plan-setup) | New use, same primitive | FR18. |
 | Unlinked/bonus-activity read-only card | — | New | FR17; no existing vocabulary. |
@@ -999,39 +1283,59 @@ product brief); week start (**Monday**, ADR 0005); phase labels (template
 `phase`: base / build / peak / taper, ADR 0005 — the UI displays the field,
 boundaries are authored in the template).
 
-**TPM questions raised by this revision — spec follows the FR as written in
-each case:**
+**Resolved by PR #58 (were open in pass 1; spec now follows the FRs):**
 
-1. **FR19 "Missed" on the current day.** The spec shows **Missed** on today
-   (and on any elapsed day with an unconfirmed suggestion) because FR19 allows
-   only four values and FR14 forbids applying an unconfirmed match. A runner
-   opening the app at 07:00 sees "Missed" before they have run, or "Missed"
-   next to a pending suggestion. If that is too harsh, the fix is an FR
-   change (e.g. a fifth **Pending/Today** value, or "Missed" only after the
-   day ends) — not a silent blank state. Awaiting a TPM decision.
-2. **FR20 "short of it".** What threshold makes an activity "short" (any
-   shortfall? <90% of `distanceMiles`?), and is "wrong type" judged by
-   Strava sport type? The UI renders the computed result and reason; the rule
-   needs an owner.
-3. **FR21 vs FR22 overlap.** `strength` / `cross_training` days are both
-   "freeform-described, no numeric target" (FR22, no Partial) and
-   "strength/cross-training" (FR21, has Partial). §4.2i scores them as FR21.
-   Confirm, or state that FR22 is reserved for a future day kind.
-4. **After race day.** Plan archive/recap, and whether race-day's own status
-   (a `run` day, so FR20 applies once elapsed) is shown. Race-day detail (C)
-   currently has no chip or match UI.
-5. **Notifications/reminders** — out of scope, would deep-link into this
+- **"Missed" on the current day** — resolved: today reads **Planned** until an
+  activity is confirmed, then Missed at the runner's local midnight (FR19).
+  The pass-1 "today shows Missed" treatment is gone.
+- **FR20 "short of it" threshold** — resolved: there is no threshold. Any
+  confirmed run of any Strava run type is Achieved; Partial is not computed
+  for running days in v1 (it stays in the enum for later). "Wrong type" is
+  judged by Strava sport type (§5.7).
+- **FR21 vs FR22 overlap** — resolved: strength/cross-training is FR21; FR22
+  is deferred and reserved for a future description-only day kind (§4.2i).
+
+**Backlog issues that now own previously open items:**
+
+1. **After race day (issue #56, "Define what a runner does after race day
+   (post-race baseline/maintenance plan)").** Plan archive/recap and what
+   comes next. Race day itself is scored as a normal running day (FR20) and
+   Race day detail (C) now shows the status chip and match card; only the
+   *aftermath* is open.
+2. **Swap detection (issue #57, "Detect day swaps after the fact").** e.g.
+   Thursday's workout done on Wednesday. This spec's "activity swap" covers
+   only a non-run confirmed on a run day; cross-day swaps are not designed.
+
+**Still open:**
+
+3. **Notifications/reminders** — out of scope, would deep-link into this
    screen (the day-sheet deep link supports it).
-6. **Dismissed-match review** — FR14 requires undo for a *confirmed* match
+4. **Dismissed-match review** — FR14 requires undo for a *confirmed* match
    only. This spec doesn't invent a "review dismissed matches" surface;
-   revisit if runners dismiss by mistake.
-7. **Backfill status UX** — the lightweight banner (§3) is placeholder-grade;
+   revisit if runners dismiss by mistake. Related: once dismissed, is the
+   same activity re-offered? Late syncs re-evaluate "affected days" (FR19), so
+   engineering needs a rule (assumed here: a dismissed activity is not
+   re-offered, but a *new* activity on that day is).
+5. **Backfill status UX** — the lightweight banner (§3) is placeholder-grade;
    `web-v1-requirements.md` flags "poll vs. push" as still open.
-8. **Activity timezone vs. local calendar day** — which day an activity near
+6. **Activity timezone vs. local calendar day** — which day an activity near
    midnight attaches to is still open from the sync exploration
    (`docs/planning/exploration-activity-sync.md`); it decides which day's
-   status a late-evening run affects.
-9. **Offline/PWA** — is offline plan viewing a v1 requirement? Not addressed.
+   status a late-evening run affects. **New angle from PR #58:** Planned →
+   Missed flips at "the runner's local midnight", so the product needs a
+   source for the runner's timezone (browser-reported vs. stored on the
+   account) — and it must not require location data (CLAUDE.md privacy:
+   an IANA zone name is the minimum needed).
+7. **Offline/PWA** — is offline plan viewing a v1 requirement? Not addressed.
+8. **Weekly totals need scoping.** The week header already shows a mileage
+   total, and swap + bonus activities feed it (§5.7), but no FR defines a
+   weekly-totals feature: what counts toward "completed" (distance of every
+   confirmed activity type? duration for strength?), whether there is ever a
+   per-week adherence number, and whether unconfirmed suggestions should be
+   excluded (assumed here: yes). Treated as informational until scoped.
+9. **Discovering late suggestions in collapsed weeks.** v1 shows a per-day
+   "Suggestion" tag only; a week-header count is deliberately omitted (§4.1).
+   Revisit if runners miss late syncs (§9).
 
 **Resolved earlier, still resolved:** completed data comes from Strava
 auto-sync + confirm (FR13/14); no manual mark-complete; one active plan
@@ -1046,9 +1350,15 @@ Before committing further build:
 
 - **Row-per-week vs. month grid.** Show both to 2–3 marathon runners.
 - **Confirm/Dismiss friction vs. the old "mark complete."** Validate that
-  suggested matches get confirmed quickly with real Strava data — and, given
-  §8 #1, how people react to seeing **Missed** beside a pending suggestion
-  or on today.
+  suggested matches get confirmed quickly with real Strava data — and whether
+  the "Suggestion" row tag on old Missed days is noticed and acted on.
+- **Planned vs. Missed vs. Rest at a glance** — is the dashed-outline Planned
+  chip distinguishable from Rest and Missed at real mobile size, including in
+  greyscale?
+- **Activity-swap copy** — does "You did a walk instead of the planned run. It
+  counts toward your weekly total." read as neutral, or does "Missed" next to
+  a logged walk feel unfair? (FR20 mandates Missed; the copy and tag are the
+  only softening lever.)
 - **"Is this it?" copy and `ActivityMatchCard` layout** — enough information
   to confirm without opening Strava?
 - **Pace-zone shorthand in the day-detail sheet** — does `3–4x1K @ TP` plus
@@ -1057,7 +1367,7 @@ Before committing further build:
 - **Collapsing past weeks by default** — do runners want an at-a-glance
   adherence read?
 - **Status chip legibility at compact desktop size** (`●Ach`/`◐Prt`/`✕Msd`/
-  `☾Rest`) at real screen size.
+  `☾Rest`/`○Plan`) at real screen size.
 
 After shipping:
 
@@ -1067,6 +1377,8 @@ After shipping:
 - How often "None of these" is picked (FR18) — a data-scientist signal on
   matching quality.
 - How often Confirm is followed by Undo.
+- How often a late-synced suggestion is confirmed vs. dismissed (whether the
+  row cue works).
 
 ---
 
@@ -1081,7 +1393,9 @@ format.
 
 | Row | Value |
 |---|---|
-| `StatusBadge` | shadcn `Badge`, custom color + icon; **completion** values Achieved / Partial / Missed / Rest and a **connection** value set (Not connected / Connected / Reconnect needed) using the same four hues; one shared module. Compact variant for the desktop grid cell. |
+| `StatusBadge` | shadcn `Badge`, custom color + icon; **completion** values **Planned** / Achieved / Partial / Missed / Rest and a **connection** value set (Not connected / Connected / Reconnect needed) using the same four hues; one shared module. Compact variant for the desktop grid cell. |
+| **Planned** completion-status value | `circle-dashed` icon, label `Planned`, dashed-outline/no-fill chip in a neutral hue; verified hex + contrast (≥ 4.5:1 text, ≥ 3:1 border, both modes) to be recorded in the completion-status table. Only used for the current day. Connection value sets do **not** use it. |
+| Activity-swap tag, Suggestion tag | outline `Badge` + Lucide glyph (`arrow-left-right`, `link-2`); neutral, never a status color. |
 | `AlertDialog` | shadcn `AlertDialog` — first adoption (Strava disconnect). Cancel default-focused, destructive confirm. |
 | `Alert` warning (amber) variant | Needed for the reconnect-needed banner (4.1c) if not already present. |
 | `ActivityMatchCard` | Custom (`Card` + 2 `Button`) — confirm-an-inference pattern; used on running and strength/cross-training days. |
@@ -1091,7 +1405,8 @@ format.
 | `Accordion`, `Progress`, `Drawer` (Vaul), `Skeleton`, `RadioGroup` | Adopt if not already listed by #53 (`RadioGroup`, `Skeleton` are already used by plan-setup). |
 
 **Lucide icons** (one set, per toolkit): `check-circle-2`, `circle-dot`,
-`x-circle`, `moon`, `plus-circle`, `undo-2`, `link-2-off`, `alert-triangle`,
-`external-link`, `flag`, `chevron-right`/`chevron-down`, `info`. Verify names
-against the installed Lucide version (some have been renamed, e.g.
-`check-circle-2` → `circle-check`).
+`x-circle`, `moon`, `circle-dashed`, `arrow-left-right`, `link-2`,
+`plus-circle`, `undo-2`, `link-2-off`, `alert-triangle`, `external-link`,
+`flag`, `chevron-right`/`chevron-down`, `info`. Verify names against the
+installed Lucide version (some have been renamed, e.g. `check-circle-2` →
+`circle-check`).
