@@ -85,12 +85,18 @@
     --card-foreground: oklch(0.2 0.01 60);
     --popover: oklch(1 0 0);
     --popover-foreground: oklch(0.2 0.01 60);
-    /* Accent: amber-700-equivalent (Tailwind amber-600's own foreground
-     * contrast against near-white text falls short of 4.5:1 — see the PR
-     * description/report for the actual contrast math — amber-700 clears it
-     * with margin to spare while staying in the same amber family the design
-     * doc names as a starting point). */
-    --primary: oklch(0.555 0.163 48.998);
+    /* Accent: `accent/solid` per docs/design/ui-toolkit.md's Tempo system —
+     * Tailwind orange-700 (#C2410C), ~5.18:1 against white button-label text
+     * and against the light-mode page/card surface as standalone text.
+     * Was previously amber-700 (Tailwind amber-600's own foreground contrast
+     * against near-white text falls short of 4.5:1, so amber-700 was picked
+     * as the fix at the time) — corrected to orange-700 because Tempo's
+     * later completion-status revision reserves amber-700 specifically for
+     * the "Partial" status chip, and reusing the identical hex for the
+     * primary accent would make every button/link visually collide with
+     * that status once it ships (`ui-toolkit.md`'s completion-status
+     * section states this explicitly). */
+    --primary: oklch(0.553 0.174 38.402);
     --primary-foreground: oklch(0.985 0 0);
     --secondary: oklch(0.967 0.001 286.375);
     --secondary-foreground: oklch(0.21 0.006 285.885);
@@ -100,11 +106,14 @@
     --accent-foreground: oklch(0.21 0.006 285.885);
     --destructive: oklch(0.577 0.245 27.325);
     /* Non-destructive info/warning `Alert` variant (§7.2's goal-derived
-     * pace-estimate banner) — same amber family as `--primary` rather than a
-     * third hue, per the ui-toolkit doc's own "skip a dedicated third hue"
-     * call; the destructive-red vs. amber hue difference (plus the `info`
-     * vs. `alert-triangle` icon) is what keeps it from reading as an error. */
-    --warning: oklch(0.555 0.163 48.998);
+     * pace-estimate banner) — same `accent/solid` orange as `--primary`
+     * rather than a third hue, per the ui-toolkit doc's own "skip a
+     * dedicated third hue" call; the destructive-red vs. accent-orange hue
+     * difference (plus the `info` vs. `alert-triangle` icon) is what keeps
+     * it from reading as an error. Kept in sync with `--primary`'s
+     * orange-700 correction above — not amber-700, which Tempo now
+     * reserves for the "Partial" completion-status chip. */
+    --warning: oklch(0.553 0.174 38.402);
     --border: oklch(0.92 0.004 286.32);
     --input: oklch(0.92 0.004 286.32);
     --ring: oklch(0.705 0.015 286.067);
