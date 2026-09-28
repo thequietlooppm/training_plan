@@ -1,5 +1,8 @@
 import type { PaceZones } from "@training-plan/pace-zones";
+import { Info } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -11,10 +14,14 @@ import {
 } from "@/components/ui/table";
 import {
   BLOCKED_EQUIVALENCY_ZONE_COPY,
+  ESTIMATED_BADGE_LABEL,
+  ESTIMATED_BADGE_TOOLTIP,
+  GOAL_DERIVED_WARNING_COPY,
   UNSET_GOAL_ZONE_COPY,
   ZONE_ORDER,
   formatPace,
   goalZoneLabel,
+  hasGoalDerivedEquivalencyZone,
   type ZoneId,
 } from "@/lib/pace-zone-display";
 
@@ -88,11 +95,28 @@ export function PaceZoneTable({ zones }: { zones: PaceZones }) {
     setLiveMessage(`Pace zones updated.${announceParity.current ? "​" : ""}`);
   }, [zones]);
 
+  const goalDerived = hasGoalDerivedEquivalencyZone(zones);
+
   return (
     <>
       <div role="status" aria-live="polite" className="sr-only">
         {liveMessage}
       </div>
+      {goalDerived ? (
+        <Alert variant="warning" role="status" className="mb-4">
+          <Info aria-hidden="true" />
+          <AlertDescription>
+            {GOAL_DERIVED_WARNING_COPY.before}
+            <JumpLink
+              targetId={RECENT_RESULT_JUMP_TARGET_ID}
+              ariaLabel="Add a recent result — jump to Recent race result section"
+            >
+              {GOAL_DERIVED_WARNING_COPY.jumpLinkText}
+            </JumpLink>
+            {GOAL_DERIVED_WARNING_COPY.after}
+          </AlertDescription>
+        </Alert>
+      ) : null}
       <Table>
         <TableCaption className="sr-only">
           Your personal pace zones
@@ -104,23 +128,54 @@ export function PaceZoneTable({ zones }: { zones: PaceZones }) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {ZONE_ORDER.map((zone) => (
-            <TableRow key={zone.id}>
-              <TableCell className="align-top whitespace-normal">
-                <div className="font-medium text-foreground">
-                  {zone.id === "goal" ? goalZoneLabel(zones.goal) : zone.label}
-                </div>
-                <p className="text-sm text-muted-foreground">{zone.purpose}</p>
-              </TableCell>
-              <TableCell className="text-right align-top tabular-nums">
-                {renderPaceCell(zone.id, zones)}
-              </TableCell>
-            </TableRow>
-          ))}
+          {ZONE_ORDER.map((zone) => {
+            const isGoalDerivedRow = isGoalDerivedEquivalencyRow(zone.id, zones);
+            return (
+              <TableRow key={zone.id}>
+                <TableCell className="align-top whitespace-normal">
+                  <div className="flex flex-wrap items-center gap-2 font-medium text-foreground">
+                    {zone.id === "goal" ? goalZoneLabel(zones.goal) : zone.label}
+                    {isGoalDerivedRow ? <EstimatedBadge /> : null}
+                  </div>
+                  <p className="text-sm text-muted-foreground">{zone.purpose}</p>
+                </TableCell>
+                <TableCell className="text-right align-top font-mono tabular-nums">
+                  {renderPaceCell(zone.id, zones)}
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </>
   );
+}
+
+/**
+ * "Estimated" badge on a goal-derived equivalency row (§7.2). Non-
+ * interactive (plain `span`, not a link/button) — the fuller explanation
+ * reaches screen-reader users via the `sr-only` span and mouse users via
+ * the native `title` attribute, per the spec's explicit call against a
+ * focusable `Tooltip` (no new Radix dependency, no new per-row tab stop).
+ */
+function EstimatedBadge() {
+  return (
+    <Badge title={ESTIMATED_BADGE_TOOLTIP} className="align-middle">
+      <span>{ESTIMATED_BADGE_LABEL}</span>
+      <span className="sr-only"> {ESTIMATED_BADGE_TOOLTIP}</span>
+    </Badge>
+  );
+}
+
+/** True for an equivalency-zone row whose pace was derived from the goal
+ * time as a fallback (§7.2, issue #52) — never true for the `goal` row
+ * itself, which has no `source` concept (§7.2/§7.3). */
+function isGoalDerivedEquivalencyRow(zoneId: ZoneId, zones: PaceZones): boolean {
+  if (zoneId === "goal") {
+    return false;
+  }
+  const zone = zones[zoneId];
+  return zone.state === "computed" && zone.source === "goalTime";
 }
 
 function renderPaceCell(zoneId: ZoneId, zones: PaceZones) {

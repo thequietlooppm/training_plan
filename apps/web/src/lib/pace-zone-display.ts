@@ -1,4 +1,4 @@
-import type { GoalZone } from "@training-plan/pace-zones";
+import type { GoalZone, PaceZones } from "@training-plan/pace-zones";
 
 /**
  * Shared, format-agnostic display helpers for the 7 pace zones (#14) —
@@ -112,3 +112,52 @@ export const UNSET_GOAL_ZONE_COPY = {
   jumpLinkText: "above",
   after: " to see this.",
 } as const;
+
+/** The six equivalency-zone ids, `ZONE_ORDER` minus `goal` — `goal` has no
+ * `source` concept (§7.2/§7.3), so callers checking for a goal-derived
+ * fallback need this list, not the full `ZONE_ORDER`. */
+export const EQUIVALENCY_ZONE_IDS = ZONE_ORDER.map((zone) => zone.id).filter(
+  (id): id is Exclude<ZoneId, "goal"> => id !== "goal",
+);
+
+/**
+ * True when any equivalency zone's `source` is `"goalTime"` (issue #52) —
+ * i.e. a goal time was provided with no recent result, and the six
+ * equivalency zones were derived from it as a fallback rather than staying
+ * `blocked`. Drives the section-level warning banner (§7.2) — computed once
+ * per render, not per row, since the banner is section-level, not per-row.
+ */
+export function hasGoalDerivedEquivalencyZone(zones: PaceZones): boolean {
+  return EQUIVALENCY_ZONE_IDS.some((id) => {
+    const zone = zones[id];
+    return zone.state === "computed" && zone.source === "goalTime";
+  });
+}
+
+/**
+ * Goal-derived-fallback warning banner copy (§6.3/§7.2, issue #52,
+ * data-scientist-authored — verbatim, do not rewrite). Rendered once, above
+ * all seven rows, whenever `hasGoalDerivedEquivalencyZone` is true. "above"
+ * is a real jump-link to the Recent-result section, same target as
+ * `BLOCKED_EQUIVALENCY_ZONE_COPY`'s.
+ */
+export const GOAL_DERIVED_WARNING_COPY = {
+  before:
+    "These paces are estimated from your goal time, not a race you've run. " +
+    "If that goal is ambitious, expect all of them — especially Interval " +
+    "and 5K — to run faster than your current fitness supports. Add a " +
+    "recent result ",
+  jumpLinkText: "above",
+  after: " for paces based on what you've actually run.",
+} as const;
+
+/** "Estimated" badge label + tooltip/accessible-name copy (§6.3/§7.2, issue
+ * #52, verbatim) — rendered on each of the six equivalency-zone rows whose
+ * `source` is `"goalTime"`. Not a jump-link (unlike the banner above): the
+ * badge is non-interactive by design (§7.2's "Badge tooltip:
+ * recommendation" — a native `title` + `sr-only` span, no new dependency,
+ * no new tab stop), so this is plain text, not a `{before, jumpLinkText,
+ * after}` triple. */
+export const ESTIMATED_BADGE_LABEL = "Estimated";
+export const ESTIMATED_BADGE_TOOLTIP =
+  "Estimated from your goal time — not a demonstrated result. Add a recent result above for more accurate paces.";
