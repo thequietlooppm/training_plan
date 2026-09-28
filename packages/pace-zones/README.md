@@ -75,9 +75,18 @@ input never becomes a zone state.
 ```ts
 type EquivalencyZoneSource = "recentResult" | "goalTime";
 
+// Why a `blocked` equivalency zone wasn't computed — kept as a discriminant
+// in the type itself, not left for the caller to infer:
+// - "noInput": neither a recent result nor a goal time was provided at all.
+// - "goalVdotBelowTable": a goal time *was* provided, but its derived VDOT
+//   fell below the supported table range, so it wasn't usable for the
+//   six-zone fallback (see "Goal-derived fallback" below). `goal` itself
+//   still computes in this case.
+type EquivalencyZoneBlockedReason = "noInput" | "goalVdotBelowTable";
+
 type EquivalencyZone =
   | { state: "computed"; paceSecPerMile: number; source: EquivalencyZoneSource }
-  | { state: "blocked" }; // neither a recent result nor a goal time provided yet
+  | { state: "blocked"; reason: EquivalencyZoneBlockedReason };
 
 type GoalZone =
   | { state: "computed"; label: "marathon" | "half"; paceSecPerMile: number }
@@ -99,11 +108,19 @@ The two zone families are deliberately different types, not one shared
 
 - An **equivalency zone** (`recovery`/`easy`/`threshold`/`tenK`/`fiveK`/
   `interval`) can only ever be `computed` or `blocked`. It is `computed`
-  whenever `recentResult` **or** `goalTime` was provided, and `blocked` —
-  meaning "neither was provided yet", never anything else — only when both
-  are absent. A `computed` zone always carries a `source` field
-  (`"recentResult"` | `"goalTime"`) recording which input actually drove
-  the derivation:
+  whenever `recentResult` **or** a *usable* `goalTime` was provided, and
+  `blocked` otherwise — with a `reason` discriminant recording which of two
+  situations applies:
+  - `reason: "noInput"` — neither `recentResult` nor `goalTime` was provided
+    at all.
+  - `reason: "goalVdotBelowTable"` — a `goalTime` *was* provided, but its
+    derived VDOT fell below the supported table range (see "Goal-derived
+    fallback (#52)" below), so it couldn't drive the six-zone fallback. The
+    `goal` zone still computes normally in this case — see that section for
+    why the whole call does not reject.
+
+  A `computed` zone always carries a `source` field (`"recentResult"` |
+  `"goalTime"`) recording which input actually drove the derivation:
   - `source: "recentResult"` — derived from a demonstrated race result,
     exactly as before #52.
   - `source: "goalTime"` — derived (#52) from a VDOT computed off the goal
@@ -139,6 +156,18 @@ there is no per-zone exclusion by distance-similarity to the goal, because
 VDOT is a single unified aerobic-capacity number in Daniels' model — there
 is no principled basis for trusting it for, say, Threshold but not Interval.
 
+**If the goal-derived VDOT is below the supported table range**
+(`VDOT_TABLE_MIN`), the six equivalency zones stay `blocked` (`reason:
+"goalVdotBelowTable"`) rather than computing a pace from a VDOT already
+known to be unreliable — but `calculate()` still returns `{ ok: true }`, and
+`goal` still computes normally from the goal time via its unconditional
+direct-division path, since it has nothing to do with VDOT. This is
+deliberately asymmetric with the `recentResult` path (a below-range
+`recentResult`-derived VDOT still rejects the whole call via `{ ok: false }`):
+`recentResult` has no other output to fall back to if its VDOT is unusable,
+so failing the whole call is still correct there, while `goalTime` always has
+`goal` to compute regardless.
+
 **Stated limitation (accepted v1 gap, not solved by this package):** the
 goal-time fallback cannot detect an *optimistic-but-plausible* (not absurd —
 implausible times are already rejected by `schema.ts`'s bounds) goal time,
@@ -165,7 +194,7 @@ never VDOT-derived.
 
 Providing neither `recentResult` nor `goalTime` is also valid (there's no
 invalid data to reject, just none supplied) — every equivalency zone is
-`blocked` and `goal` is `unset`.
+`{ state: "blocked", reason: "noInput" }` and `goal` is `unset`.
 
 ## Units
 
@@ -204,18 +233,21 @@ zone's displayed pace because they each rounded independently.
   faster-than-table runner's real fitness. Below the table's bottom
   boundary (VDOT 30, i.e. below `VDOT_TABLE_MIN`), clamping would do the
   opposite — hand out a pace *faster* than the runner's demonstrated
-  fitness supports — so `calculate()` rejects a below-`VDOT_TABLE_MIN` VDOT
-  outright, via `{ ok: false }`, before interpolation ever runs on it. This
-  guardrail applies to **both** paths that can produce a VDOT (#52): a
-  below-range `recentResult`-derived VDOT is rejected with `path:
-  "recentResult"`, and a below-range `goalTime`-derived VDOT (only reached
-  when no `recentResult` was provided) is rejected the same way with `path:
-  "goalTime"` and a message reworded to point at the goal time rather than
-  a race result — without this, a slow-but-plausible goal time would
-  otherwise reach `interpolate()` with an out-of-range VDOT and get clamped
-  up to the table floor, handing out a faster-than-earned pace, the exact
-  failure mode this guardrail exists to prevent on either input. Recovery
-  is derived differently — see below.
+  fitness supports — so `calculate()` never lets interpolation run on a
+  below-`VDOT_TABLE_MIN` VDOT. What happens instead differs by which path
+  produced it (#52, amended by data-scientist review): a below-range
+  `recentResult`-derived VDOT rejects the *whole call* outright via
+  `{ ok: false }`, with `path: "recentResult"` — `recentResult` has no other
+  output to fall back to if its VDOT is unusable. A below-range
+  `goalTime`-derived VDOT (only reached when no `recentResult` was provided)
+  does **not** reject the whole call: the six equivalency zones instead come
+  back `{ state: "blocked", reason: "goalVdotBelowTable" }`, while
+  `calculate()` still returns `{ ok: true }` and the separate `goal` zone
+  still computes normally, since it never touches VDOT. Without this
+  guardrail (on either path), a slow-but-plausible time would otherwise reach
+  `interpolate()` with an out-of-range VDOT and get clamped up to the table
+  floor, handing out a faster-than-earned pace — the exact failure mode this
+  guardrail exists to prevent. Recovery is derived differently — see below.
 - **Goal time → goal pace**: a direct division
   (`goalTimeSeconds / (goalDistanceMeters / 1609.344)`) — no VDOT involved.
   This is why a goal zone is never "equivalency-derived": it doesn't share
