@@ -54,6 +54,15 @@ function jumpTo(targetId: string) {
   target.focus();
 }
 
+/**
+ * `display: inline` + block-axis `padding` (not `inline-flex`/`min-h-*`,
+ * which are atomic inline boxes that grow the surrounding line box and
+ * force this link onto its own line — §8 requires ≥44px tap height without
+ * breaking inline text flow). A plain `inline` element's padding extends
+ * its hit-testable/paint area without affecting line-box height, which is
+ * exactly what a same-line ≥44px-tall text link needs: `py-3` (12px top +
+ * bottom) added to `text-sm`'s 20px line-height clears the 44px floor.
+ */
 function JumpLink({
   targetId,
   ariaLabel,
@@ -68,7 +77,7 @@ function JumpLink({
       type="button"
       onClick={() => jumpTo(targetId)}
       aria-label={ariaLabel}
-      className="inline-flex min-h-11 items-center underline underline-offset-2 hover:text-foreground"
+      className="inline py-3 underline underline-offset-2 hover:text-foreground"
     >
       {children}
     </button>
@@ -106,14 +115,29 @@ export function PaceZoneTable({ zones }: { zones: PaceZones }) {
         <Alert variant="warning" role="status" className="mb-4">
           <Info aria-hidden="true" />
           <AlertDescription>
-            {GOAL_DERIVED_WARNING_COPY.before}
-            <JumpLink
-              targetId={RECENT_RESULT_JUMP_TARGET_ID}
-              ariaLabel="Add a recent result — jump to Recent race result section"
-            >
-              {GOAL_DERIVED_WARNING_COPY.jumpLinkText}
-            </JumpLink>
-            {GOAL_DERIVED_WARNING_COPY.after}
+            {/*
+              A single `<p>`, not bare text nodes — `AlertDescription` is
+              itself `display: grid` (so it can stack multiple block
+              children with `gap-1`), which blockifies *any* direct child,
+              including this text/JumpLink/text run: three siblings would
+              each become their own grid item/row, which is what forced the
+              jump-link onto its own line with stray vertical gaps around
+              it. Wrapping them in one `<p>` (the pattern this primitive's
+              own `[&_p]:leading-relaxed` selector already expects) makes
+              the paragraph the sole grid item, so the JumpLink is back to
+              being an ordinary inline-flow descendant instead of a grid
+              item, and lays out on the same line as its surrounding text.
+            */}
+            <p>
+              {GOAL_DERIVED_WARNING_COPY.before}
+              <JumpLink
+                targetId={RECENT_RESULT_JUMP_TARGET_ID}
+                ariaLabel="Add a recent result — jump to Recent race result section"
+              >
+                {GOAL_DERIVED_WARNING_COPY.jumpLinkText}
+              </JumpLink>
+              {GOAL_DERIVED_WARNING_COPY.after}
+            </p>
           </AlertDescription>
         </Alert>
       ) : null}
@@ -139,7 +163,7 @@ export function PaceZoneTable({ zones }: { zones: PaceZones }) {
                   </div>
                   <p className="text-sm text-muted-foreground">{zone.purpose}</p>
                 </TableCell>
-                <TableCell className="text-right align-top font-mono tabular-nums">
+                <TableCell className="text-right align-top font-mono tabular-nums whitespace-normal">
                   {renderPaceCell(zone.id, zones)}
                 </TableCell>
               </TableRow>
