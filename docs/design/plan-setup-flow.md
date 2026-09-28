@@ -19,6 +19,23 @@ time, pace zones)
 > have shell/`gh` access in this session to pull the live issue bodies
 > directly. If either issue's actual AC text diverges from FR1–FR8 as
 > written, flag it back to me; nothing here is set against different intent.
+>
+> **Revision (2026-09-28):** incorporates three changes from Patrick's review
+> of the HTML mockup built against this spec — (1) replaces the mockup's
+> terminal-reading visual direction (green accent, all-mono inputs, near-
+> black chrome — none of which was actually specified below, which is the
+> bug) with a concrete warm, consumer-app palette and a typography split that
+> confines monospace/tabular figures to the §7 pace numbers only (§2,
+> §6.1–6.3, and `docs/design/ui-toolkit.md`'s new Color palette + rewritten
+> Font sections); (2) hard-requires at least one of recent-result/goal-time
+> on submit, resolving §11's old open question #1 (§4, §5.9, §6.3, §11); (3)
+> reflects the goal-time-derived equivalency-zone fallback + its warning
+> banner/badge, per new issue #52 (§5.8, §7.2–7.4, §6.2, §9). I did not have
+> `gh` access this session either — the exact warning copy quoted below is
+> the copy relayed to me verbatim in the task brief as "already finalized by
+> data-scientist" on #52; I did not rewrite it. Untouched by this revision:
+> §1, §3 (still one page, no wizard), the H/M/S time-entry format, the native
+> race-date input, and the template-picker RadioGroup-as-cards call.
 
 ---
 
@@ -80,12 +97,71 @@ so a runner who's never heard "VDOT" still understands what Threshold pace is
 - One page, no wizard, no page transition between "entering data" and
   "seeing results" — see §3 for the explicit call against a wizard.
 - Recent result and goal time are peers: neither section is emphasized over
-  the other; both are optional; "and/or" is real, not a soft nudge toward one.
+  the other; both are optional; "and/or" is real, not a soft nudge toward one
+  — but at least one of the two is *required* overall, enforced at submit
+  (§4/§5.9), not a suggestion.
 - The pace table teaches the zone, not just states the number — every row
   gets a one-line "what it's for" caption.
 - Nothing here is saved. No "saved" copy, no unsaved-changes warning.
 - Blocked/unset table rows explain *why* and *what unlocks them* — never a
   bare "N/A" or "—".
+- Numbers earn special typographic treatment only where they're compared in
+  a column (the §7 results table's pace figures); everywhere else, including
+  every input field, is the plain body face — see below.
+
+### Color & typography — steering away from "terminal"
+
+The first HTML mockup built from this spec read as a CLI tool: a green
+accent, heavy monospace set on every input field, and a near-black sticky
+bar. None of that was actually specified above — that's the bug. This
+section left color and type unstated, and a builder filling that gap
+defaulted to developer-tool conventions. This is a consumer running
+calculator, not a terminal; it should sit closer to Strava or Hevy in tone.
+
+| App / tool | What it does well | Borrow | Skip |
+|---|---|---|---|
+| **Strava (web + app)** | One confident warm accent color used sparingly (CTAs, active/selected states) against an otherwise neutral, mostly-white surface; body type is a plain humanist sans, never mono, even in dense stat blocks. | The restraint — one accent color, reserved for the submit button and selected/active states only, never a background wash; a neutral surface that's neither stark white nor near-black. | Strava's marketing pages lean on big photography and gradient overlays for hero sections — irrelevant here; this screen has no imagery and no gradients anywhere. |
+| **Hevy (workout logging app)** | A dense, numbers-heavy input form (sets/reps/weight) that still reads as approachable, not technical — every input field uses the plain body typeface; numerals get column alignment (tabular figures) only inside the logged-sets *output* table, never on the entry fields themselves. | The exact split this doc needs to state explicitly: **input fields use the body typeface; only the output/results table gets tabular-aligned digits.** | Hevy's rest-timer countdown treatment — not relevant, nothing here counts down. |
+| **Garmin Connect / Strava — lap & split tables** | Split-time tables (mm:ss per lap) align digits column-to-column using tabular/monospaced figures, because misaligned digits in a column of comparable times are genuinely harder to scan — a real, non-decorative reason to reach for mono, confined to that one data table. | The *reason* to use tabular digits at all: a table of comparable numbers being read down a column, not an input field. Direct precedent for confining mono/tabular treatment to §7's pace-number column only. | The rest of Garmin Connect's UI chrome (dense, three-menus-deep, widget-heavy dashboard) — already flagged to skip above. |
+| **Whoop (app)** | Uses a single warm accent (coral/red) against light and dark neutral surfaces, and spends that accent on exactly one job per screen — the primary metric or CTA — leaving everything else greyscale. | The "one accent, one job" discipline — here, that job is the submit button, selected/active states, and the "Estimated" badge/warning treatment (§7.2), not decoration elsewhere. | Whoop's dark-mode-first presentation and heavy data density (recovery score, strain, multiple rings) — this screen has none of that complexity and shouldn't borrow the visual weight that comes with it. |
+
+**What this explicitly rules out:** green as the accent color (reads as a
+terminal/CLI "success" hue, and this screen has no pass/fail semantic that
+needs it); a near-black background or chrome anywhere — there is no "demo
+bar" or dark shell on this screen, every surface is a light-neutral `Card`,
+matching `HomePage.tsx`; and monospace on any *input* — the H/M/S time
+fields, the race-date input, the distance `Select` — all of it is body
+typeface, normal weight, same as every other field in the app. Monospace/
+tabular figures are reserved for **the pace numbers in the §7 results table
+only** (and any future compact/inline reuse, §7.4) — a legitimate alignment
+convention borrowed from lap/split tables, not a stylistic accent applied
+everywhere. See §6.2/§6.3 for where this lands on the actual component/copy
+tables.
+
+Also steering clear of the *other* failure mode — AI-generated-demo clichés
+— per the brief: no warm-cream-and-terracotta-with-serif (wrong register:
+that's "editorial blog," not "calculator"); no near-black-plus-neon-accent
+(that's the terminal look already being removed); no purple/blue gradient
+anywhere (flat, neutral `Card` surfaces only, per §6.1); and no reflexive
+Inter/Space Grotesk pick — see the concrete font choice below.
+
+**Decided in `docs/design/ui-toolkit.md`** (new "Color palette" section,
+rewritten "Font" section) rather than only here, since both apply beyond
+this one screen — the training-calendar spec inherits them, it doesn't
+re-litigate them. As it lands on this screen specifically:
+
+- **Surface:** neutral off-white `Card`s on a very light neutral page
+  background. No dark chrome anywhere on this screen.
+- **Accent:** one warm color (amber/coral — exact token in `ui-toolkit.md`),
+  spent only on the submit button, selected/active states (template-card
+  selection, the goal-time distance toggle's active segment), and the
+  "Estimated" badge/warning treatment (§7.2) — never as a background wash.
+- **Body/UI typeface:** the app's chosen humanist sans (`ui-toolkit.md`'s
+  Font section) on every heading, label, helper string, and **every input
+  field**, including the H/M/S time inputs and the race-date input.
+- **Numeral alignment:** tabular-figure digits **only** on the §7 pace-zone
+  table's pace column (and its future compact reuse, §7.4) — never on an
+  input field, per the Hevy/Garmin-splits reasoning above.
 
 ---
 
@@ -148,20 +224,21 @@ resubmit.
                     ┌─────────────┴─────────────┐
                     │                             │
           client-side validation fails   client-side validation passes
-          (race date in the past, or          → calculate(input) runs
-           an incomplete result/goal            (synchronous, local)
-           section)                                    │
-                    │                     ┌─────────────┴─────────────┐
-                    ▼                     │                             │
-        inline field error(s),      ok: false                     ok: true
-        focus moves to first        (implausible time /           → §14 table
-        invalid field. No           below-table VDOT)              renders/
-        calculate() call made.            │                        updates below
-                    │              inline error near the           the form,
-                    │              offending section, focus         aria-live
-                    │              moves there. Previous            "Pace zones
-                    │              results (if any) are             updated."
-                    │              left exactly as they were.
+          (race date in the past, an          → calculate(input) runs
+           incomplete result/goal              (synchronous, local)
+           section, or BOTH result and              │
+           goal sections left            ┌─────────────┴─────────────┐
+           completely empty — §5.9)       │                             │
+                    │                     │                             │
+                    ▼                ok: false                     ok: true
+        inline field error(s) or     (implausible time /           → §14 table
+        a summary Alert (§5.9),      below-table VDOT)              renders/
+        focus moves to the first           │                        updates below
+        invalid field, or to the     inline error near the           the form,
+        summary Alert when the       offending section, focus         aria-live
+        error isn't attributable     moves there. Previous            "Pace zones
+        to one field (§5.9, §8).     results (if any) are             updated."
+        No calculate() call made.    left exactly as they were.
                     │                      │                             │
                     └──────────────────────┴─────────────────────────────┘
                                   edit any field → resubmit (same page, repeat)
@@ -175,20 +252,22 @@ resubmit.
    date, and fills **either or both** of the recent-result / goal-time
    sections.
 3. Trigger: taps **"Calculate my pace zones"**.
-4. Client-side checks run first (race date not in the past; each touched
-   result/goal section is either fully filled or fully empty — see §5.2).
-   Any failure stops here: inline error(s), focus to the first invalid
-   field, `calculate()` is never called.
+4. Client-side checks run first: race date not in the past; each touched
+   result/goal section is either fully filled or fully empty (§5.2/§5.3);
+   and **at least one of the two sections is fully filled** (§5.9 — resolves
+   §11's former open question). Any failure stops here: inline error(s) or a
+   summary `Alert` (whichever §5.9/§8 calls for), focus moved accordingly,
+   `calculate()` is never called.
 5. If client-side checks pass, `calculate()` runs with whatever of
-   `recentResult`/`goalTime` was fully filled (either, both, or neither is a
-   valid call per the calculator's own contract).
+   `recentResult`/`goalTime` was fully filled (either or both — "neither" can
+   no longer reach this step, per #4 above).
 6. `ok: true` → the §14 pace-zone table appears (first submit) or updates
    in place (subsequent submits) directly below the form, same page, no
    scroll-jump unless it's off-screen (smooth-scroll into view, respecting
    `prefers-reduced-motion`). A polite live region announces "Pace zones
    updated."
 7. `ok: false` → an inline error renders near the section that produced it
-   (§5.4 maps `errors[].path` to a location); any previously-shown table from
+   (§6.4 maps `errors[].path` to a location); any previously-shown table from
    an earlier successful submit is left untouched — a bad edit never erases
    a good prior result.
 8. Runner can edit anything and resubmit indefinitely. No save, no exit
@@ -204,7 +283,7 @@ resubmit.
 ## 5. Wireframes
 
 ASCII only (see the note at the top of this doc for why). All states drawn;
-mobile-width shown, desktop noted where it differs (§6.4).
+mobile-width shown, desktop noted where it differs (§6.5).
 
 ### 5.1 Initial state — one template, nothing entered yet
 
@@ -320,6 +399,10 @@ mobile-width shown, desktop noted where it differs (§6.4).
 │ └───────────────┴───────────────┘   │
 ```
 
+(All six equivalency zones here have `source: "recentResult"` — recentResult
+takes priority over the goalTime fallback whenever both are provided, per
+#52. No warning banner, no "Estimated" badges — see §7.2.)
+
 ### 5.7 Results — recent result only (Goal row unset)
 
 ```
@@ -330,34 +413,79 @@ mobile-width shown, desktop noted where it differs (§6.4).
 │ └───────────────┴───────────────┘   │
 ```
 
-### 5.8 Results — goal time only (six equivalency rows blocked)
+(Same as 5.6: all six equivalency zones have `source: "recentResult"`; no
+warning banner, no badges. Only the Goal row is `unset` here — see §7.2.)
 
-```
-│ ┌───────────────┬───────────────┐   │
-│ │ Recovery       │ Add a recent  │   │
-│ │ Easiest effort…│ result above  │   │
-│ │                │ to see this.  │   │  ← "recent result above" is a
-│ ├───────────────┼───────────────┤   │    real jump-link, see §6.2
-│ │ … (Easy/Threshold/10K/5K/     │   │
-│ │    Interval, same treatment)  │   │
-│ ├───────────────┼───────────────┤   │
-│ │ Goal — Half    │     8:00 /mi  │   │
-│ │ Your target race pace.        │   │
-│ └───────────────┴───────────────┘   │
-```
-
-### 5.9 Results — neither entered, submitted anyway (valid but empty)
+### 5.8 Results — goal time only (six equivalency zones goal-derived, with warning)
 
 ```
 │ Your pace zones                      │
-│ ℹ Add a recent race result or a      │  non-blocking hint, not an error
-│   goal time above to see real        │  (role="status", not destructive)
-│   numbers.                           │
+│ ┌───────────────────────────────┐   │
+│ │ ⓘ These paces are estimated   │   │  Alert, info/warning variant
+│ │   from your goal time, not a  │   │  (not destructive) — section-
+│ │   race you've run. If that    │   │  level, once, above all seven
+│ │   goal is ambitious, expect   │   │  rows (equivalently: above the
+│ │   all of them — especially    │   │  six equivalency rows, since
+│ │   Interval and 5K — to run    │   │  Goal is the 7th/last row —
+│ │   faster than your current    │   │  §7.1's fixed order)
+│ │   fitness supports. Add a     │   │
+│ │   recent result above for     │   │  "above" is a real jump-link,
+│ │   paces based on what you've  │   │  same target/behavior as
+│ │   actually run.                │   │  §7.2's goal-unset jump-link
+│ └───────────────────────────────┘   │
 │ ┌───────────────┬───────────────┐   │
-│ │ … all 7 rows show their own     │   │
-│ │   blocked/unset copy …          │   │
-│ └───────────────┴───────────────┘   │
+│ │ Recovery [Estimated]│  9:10/mi│   │  real number + Badge, source:
+│ │ Easiest effort…│              │   │  "goalTime" — NOT blocked
+│ ├───────────────┼───────────────┤   │
+│ │ Easy     [Estimated]│  8:15/mi│   │
+│ ├───────────────┼───────────────┤   │
+│ │ Threshold[Estimated]│  7:05/mi│   │
+│ ├───────────────┼───────────────┤   │
+│ │ 10K      [Estimated]│  6:48/mi│   │
+│ ├───────────────┼───────────────┤   │
+│ │ 5K       [Estimated]│  6:30/mi│   │
+│ ├───────────────┼───────────────┤   │
+│ │ Interval [Estimated]│  6:10/mi│   │
+│ ├───────────────┼───────────────┤   │
+│ │ Goal — Half    │     8:00 /mi │   │  direct division of the
+│ │ Your target race pace.        │   │  entered goal — no badge,
+│ └───────────────┴───────────────┘   │  goal is never a "fallback"
 ```
+
+This replaces the old (pre-#52) "six equivalency rows blocked" wireframe —
+that state can no longer occur: a goal time alone now computes real numbers
+for all six equivalency zones (`source: "goalTime"`), flagged with the
+warning banner + per-row "Estimated" badge rather than withheld. See §7.2
+for the full state breakdown and the exact (data-scientist-authored) copy.
+
+### 5.9 Submit blocked — neither recent result nor goal time entered
+
+```
+│ ┌───────────────────────────────┐   │
+│ │ ⚠ Enter a recent race result  │   │  Alert, destructive variant,
+│ │   or a goal time to calculate │   │  tabindex="-1" role="alert" —
+│ │   your pace zones.            │   │  same summary-Alert mechanism
+│ └───────────────────────────────┘   │  as §6.4's multi-error case
+├─────────────────────────────────────┤
+│ Recent race result   (optional)      │  ← focus moves here
+│ Distance  [ Select a distance  ▾ ]   │
+│ Time      [   ] : [   ] : [   ]     │
+├─────────────────────────────────────┤
+│ Goal time   (optional)               │
+│ Distance  ( Half )  ( Marathon )     │
+│ Time      [   ] : [   ] : [   ]     │
+└─────────────────────────────────────┘
+```
+
+No results table renders — `calculate()` is never called, same as §5.2/
+§5.3. Both sections' legends still read "(optional)" and don't change: each
+is still individually optional (either alone is enough, per FR4/FR5); the
+constraint this Alert enforces is that they can't *both* be empty at once.
+This replaces the old "neither entered, submitted anyway (valid but empty)"
+success-path wireframe — Patrick's review resolved §11's open question:
+submitting with both empty is now **rejected**, not a soft, non-blocking
+hint. See §4 for where this check sits relative to the other client-side
+checks, and §8 for the focus-management rule this reuses.
 
 ### 5.10 Future state — two templates (once #10 ships)
 
@@ -397,17 +525,25 @@ loading/error convention — see §6.2.)
 - Each section (Plan / Race date / Recent race result / Goal time / Results)
   is its own `Card`, stacked with consistent vertical gap — same rhythm
   `HomePage.tsx` already establishes (`CardContent` padding, `gap-3`/`gap-6`
-  scale). No sidebar, no multi-column form on any breakpoint (see §6.4) —
+  scale). No sidebar, no multi-column form on any breakpoint (see §6.5) —
   the "one page" call in §3 extends to layout, not just navigation.
 - "(optional)" is set in the section legend itself, in muted text, right next
   to the section title — not a separate line, not a tooltip. It's the first
   thing read alongside the heading, matching how the section's *actual*
   optionality should read.
-- Results table: numeric pace column right-aligned, tabular figures — same
-  "numbers are the hero" convention as the calendar spec, applied to a
-  results table instead of a countdown.
+- Results table: numeric pace column right-aligned, **tabular figures** — the
+  one place on this screen where numerals get a distinct numeral typeface
+  from the rest of the UI (see the Color & typography subsection of §2, and
+  `ui-toolkit.md`'s Font section). Same "numbers are the hero" convention as
+  the calendar spec, applied to a results table instead of a countdown.
+- Every `Input` — race date, the three H/M/S time fields, anything else — is
+  set in the app's ordinary body typeface, **not** the numeral typeface used
+  in the results table. This is the one thing the first mockup got backwards
+  (mono on every input); see §2 for the full reasoning.
 - Blocked/unset pace cells are muted but never below 4.5:1 (§7) — they read
-  as "not yet," not as disabled/greyed-out-to-illegibility.
+  as "not yet," not as disabled/greyed-out-to-illegibility. Goal-derived
+  ("Estimated") pace cells are **not** muted — they're a real, fully-legible
+  number, just badged (§7.2).
 
 ### 6.2 Component mapping
 
@@ -420,18 +556,19 @@ as settled.
 | Whole form | `Form` (react-hook-form + zod resolver) | **New adoption** — first form with real multi-field, cross-field validation in the repo. See "Form: recommendation" below for the trade-off. |
 | Section container | `Card` / `CardHeader` / `CardContent` | Reused from `HomePage.tsx`. |
 | Template radio-card list | `RadioGroup` + `RadioGroupItem`, each item styled as a card (custom label wrapper) | **New primitive (`RadioGroup`), custom card styling.** Container/keyboard behavior is the library; the "looks like a card, shows title + distance + weeks" layout inside each item is bespoke — same split the calendar spec used for its accordion week-block. |
-| Race date | `Input type="date"` | Native date picker, not a Calendar/date-picker component — see "Race date: recommendation" below. |
+| Race date | `Input type="date"` | Native date picker, not a Calendar/date-picker component — see "Race date: recommendation" below. Body typeface — not the results table's numeral face (§2). |
 | Distance select (recent result, 6 options) | `Select` | Standard. |
 | Distance toggle (goal time, 2 options) | `RadioGroup` styled as a 2-segment toggle (reuses the same primitive as the template picker, different CSS) | Two options read better as a segmented toggle than a dropdown; no new primitive needed. |
-| Time entry (H / M / S) | 3× `Input type="number" inputMode="numeric"` inside a `fieldset` with a visually-hidden or visible `legend` | **New custom composite**, `TimeInputGroup` — see "Time entry: recommendation" below. Not a shadcn primitive; assembled from `Input` + `Label`. |
-| Field / section error text | `Form`'s `FormMessage` (field-level) or `Alert` (destructive, section-level for a `calculate()`-returned error with no single field to attach to) | New adoption: `Alert`. See §6.4 for the path→location mapping. |
-| Non-blocking "add a result or goal" hint (5.9) | `Alert` (default/info variant, not destructive) | Same primitive, different variant — distinguishes "you should" from "you must." |
-| Submit button | `Button` (default variant, full width on mobile) | Reused from `HomePage.tsx`. |
+| Time entry (H / M / S) | 3× `Input type="number" inputMode="numeric"` inside a `fieldset` with a visually-hidden or visible `legend` | **New custom composite**, `TimeInputGroup` — see "Time entry: recommendation" below. Not a shadcn primitive; assembled from `Input` + `Label`. Body typeface on all three fields — this is exactly the input the first mockup incorrectly set in mono; see §2. |
+| Field / section error text | `Form`'s `FormMessage` (field-level) or `Alert` (destructive, section-level for a `calculate()`-returned error with no single field to attach to, **or for the pre-`calculate()` "at least one section required" check, §5.9**) | New adoption: `Alert`. See §6.4 for the path→location mapping. |
+| Goal-derived pace warning banner (§7.2) | `Alert` (info/warning variant, **not** destructive) | New use of the already-adopted primitive — renders once, above the results table, whenever any equivalency zone's `source` is `"goalTime"`. Not an error: this is a real, usable number, just flagged as an estimate. |
+| "Estimated" badge on goal-derived equivalency rows (§7.2) | `Badge` (already adopted for template metadata) | New usage of the same primitive — plain visible text "Estimated"; a native `title` attribute plus a visually-hidden (`sr-only`) span carry the fuller explanation. No new tab stop — see "Badge tooltip: recommendation" in §7.2. |
+| Submit button | `Button` (default variant, full width on mobile) | Reused from `HomePage.tsx`. Accent color (§2) applies here. |
 | Results table (#14) | `Table` / `TableHeader` / `TableBody` / `TableRow` / `TableCell` | **New adoption.** See §7 for the full component spec. |
-| Template distance/weeks metadata on each card | `Badge` | **New adoption** — small "Marathon · 18 weeks" tag, reused later for any other short metadata tag in the app. |
+| Template distance/weeks metadata on each card | `Badge` | **New adoption** — small "Marathon · 18 weeks" tag, reused later for any other short metadata tag in the app (and now also reused for "Estimated", above). |
 | Template list loading / error | `Skeleton`, plain error block + `Button` | Reused verbatim from `HomePage.tsx`'s existing pattern — do not invent a new loading/error convention here. |
 | Live-region result confirmation | inline `aria-live="polite"` region (no toast) | Matches the calendar spec's "inline is enough for v1" call. |
-| Icons | Lucide: `alert-triangle` (error, reused from `HomePage.tsx`), `info` (non-blocking hint), `circle`/`circle-check` (radio states, usually supplied by the primitive itself) | One set, consistent with `ui-toolkit.md`. |
+| Icons | Lucide: `alert-triangle` (error, reused from `HomePage.tsx`), `info` (non-blocking/warning `Alert`s, including the goal-derived warning banner), `circle`/`circle-check` (radio states, usually supplied by the primitive itself) | One set, consistent with `ui-toolkit.md`. |
 
 **Form: recommendation.** shadcn's `Form` wraps `react-hook-form` +
 `zod` (neither is in `apps/web/package.json` yet — this adds two
@@ -497,11 +634,14 @@ markup, more parsing/validation code and a real ambiguity risk; not chosen.
 | Goal-time distance options | `Half` · `Marathon` |
 | Incomplete goal-time error | same pattern as recent-result, "goal time" substituted |
 | Submit button | `Calculate my pace zones` |
+| Neither-section-filled error (§5.9) | `Enter a recent race result or a goal time to calculate your pace zones.` |
 | Results heading | `Your pace zones` |
-| Neither-entered hint | `Add a recent race result or a goal time above to see real numbers.` |
+| Goal-derived warning banner (§7.2) | `These paces are estimated from your goal time, not a race you've run. If that goal is ambitious, expect all of them — especially Interval and 5K — to run faster than your current fitness supports. Add a recent result above for paces based on what you've actually run.` (verbatim, data-scientist copy, issue #52 — do not rewrite) |
+| "Estimated" badge label (§7.2) | `Estimated` (verbatim, issue #52) |
+| "Estimated" badge tooltip / `aria-label`-equivalent text (§7.2) | `Estimated from your goal time — not a demonstrated result. Add a recent result above for more accurate paces.` (verbatim, issue #52) |
 | Live-region confirmation | `Pace zones updated.` |
 | Zone row purposes | see §7.3 |
-| Blocked-zone copy | `Add a recent result above to see this.` (jump-link on "above") |
+| Blocked-zone copy (equivalency zone, `state: "blocked"` — see §7.2 for why this no longer renders from any valid submission) | `Add a recent result above to see this.` (jump-link on "above") |
 | Unset-goal copy | `Add a goal time above to see this.` (jump-link on "above") |
 | Template list loading (SR) | `Loading plan templates` |
 | Template list error | `Couldn't load plan templates` / retry `Try again` |
@@ -509,7 +649,8 @@ markup, more parsing/validation code and a real ambiguity risk; not chosen.
 `calculate()`'s own `errors[].message` strings (implausible time, below-table
 VDOT) are shown **verbatim** — they're already written as user-facing copy
 (see `packages/pace-zones/src/calculator.ts` / `schema.ts`); this screen does
-not rewrite them.
+not rewrite them. The two #52 strings above get the same treatment: shown
+verbatim, not paraphrased.
 
 Tone: plain, second person, matches the calendar spec's house voice — no
 exclamation marks, no coaching jargon beyond the zone names themselves.
@@ -527,7 +668,7 @@ the form):
 | `recentResult.distance` | Field-level message under the Recent-result **Distance** select (defensive only — the `Select` already constrains to valid enum values, so this shouldn't fire in practice). |
 | `recentResult` (no further segment — e.g. the below-table-VDOT case) | Section-level `Alert` directly under the Recent-result section, above its fields — it's not about one field, it's about the derived VDOT from the combination. |
 | `goalTime.timeSeconds` / `goalTime.distance` / `goalTime` | Same three rules, Goal-time section. |
-| Anything else / multiple simultaneous errors | A single summary `Alert` (`role="alert"`) above the form, listing each message with a jump-link to its field — standard multi-error accessible-forms pattern; kept out of scope elsewhere since one error is the common case. |
+| Anything else / multiple simultaneous errors | A single summary `Alert` (`role="alert"`) above the form, listing each message with a jump-link to its field — standard multi-error accessible-forms pattern; kept out of scope elsewhere since one error is the common case. This same mechanism also covers the single "at least one of recent result / goal time is required" check (§5.9) — that error isn't attributable to one field either, even though it's the only error present. |
 
 ### 6.5 Responsive behavior
 
@@ -535,7 +676,7 @@ the form):
 |---|---|
 | **Mobile < 640px** | Single column, full-width Cards, full-width submit button, full-width Table (horizontal scroll not expected at 7 short rows). |
 | **Tablet 640–1024px** | Same stacked single column, `max-w-2xl` centered, more breathing room — no multi-column form. |
-| **Desktop ≥ 1024px** | Same stacked single column, centered, `max-w-2xl` — **not** widened into a two-column (form-left, results-right) layout. Deliberate: this is a short one-time form, not a workspace; a side-by-side split is a plausible future enhancement but adds responsive complexity this pass doesn't need (see §9). |
+| **Desktop ≥ 1024px** | Same stacked single column, centered, `max-w-2xl` — **not** widened into a two-column (form-left, results-right) layout. Deliberate: this is a short one-time form, not a workspace; a side-by-side split is a plausible future enhancement but adds responsive complexity this pass doesn't need (see §11). |
 
 No layout depends on hover; template cards, toggles, and selects all work on
 tap/click identically across breakpoints.
@@ -552,18 +693,80 @@ calculator.ts` — reusing it rather than inventing a second ordering (e.g.
 fastest-to-slowest) means there's one source of truth for "what order do the
 7 zones go in," not two that can drift.
 
-### 7.2 Blocked / unset states — real copy, not "N/A"
+### 7.2 Equivalency-zone states — normal, goal-derived (with warning), and the now-unreachable "blocked" case
 
-- **Equivalency zone, `state: "blocked"`** (no recent result yet): pace cell
-  reads **"Add a recent result above to see this."** — "above" is a real
-  jump-link/button that scrolls to and focuses the Recent-result section's
-  distance select. Zone name and purpose caption stay at full contrast;
-  only the pace cell's content changes.
-- **Goal zone, `state: "unset"`** (no goal time yet): pace cell reads **"Add
-  a goal time above to see this."** — same jump-link treatment.
-- Never render a bare `—`, `N/A`, or blank cell for these two states — the
-  copy always names the specific action that unlocks the row, per the task
-  brief's instruction that this is real microcopy, not a placeholder.
+Per issue #52, `packages/pace-zones`'s `EquivalencyZone` type gains a
+`source: "recentResult" | "goalTime"` field alongside `state`/
+`paceSecPerMile` (the amendment lands separately, in parallel). Whenever
+`state: "computed"`, `source` says whether that number came from an actual
+recent result or was derived as a fallback from the goal time. This changes
+the states this table actually renders:
+
+- **`source: "recentResult"`** (a recent result was provided — regardless of
+  whether a goal time was *also* provided, since recentResult takes priority
+  over the goalTime fallback per #52): render the pace normally. No badge,
+  no banner. This is §5.6's and §5.7's case.
+- **`source: "goalTime"`** (a goal time was provided, no recent result):
+  render the pace **normally** — a real, usable number, not blocked — plus:
+  - A section-level warning `Alert` (info/warning variant, **not**
+    destructive), rendered once, positioned above all seven rows
+    (equivalently: above the six equivalency rows, since Goal is the fixed
+    7th/last row per §7.1). Exact copy, verbatim from data-scientist (#52):
+    > These paces are estimated from your goal time, not a race you've run.
+    > If that goal is ambitious, expect all of them — especially Interval
+    > and 5K — to run faster than your current fitness supports. Add a
+    > recent result above for paces based on what you've actually run.
+
+    "above" is a real jump-link (same target/behavior as the goal-unset
+    jump-link below) — one banner, one CTA, per data-scientist's explicit
+    placement call (no per-row jump-link needed).
+  - A small `Badge` reading **"Estimated"** on each of the six equivalency
+    rows — not on the Goal row, whose number is a direct division of the
+    entered goal time, never a fallback derivation of anything. Tooltip/
+    accessible-name text, verbatim from #52:
+    > Estimated from your goal time — not a demonstrated result. Add a
+    > recent result above for more accurate paces.
+
+    See "Badge tooltip: recommendation" below for how this reaches
+    screen-reader and mouse users without adding new tab stops.
+  - This is §5.8's case, rewritten this revision — see that wireframe.
+- **`state: "blocked"`** (neither a recent result nor a goal time provided
+  at all): the copy below ("Add a recent result above to see this.") still
+  exists in the type/UI contract, defensively, but **cannot actually render
+  from any submission on this screen** as of this revision — §4's flow now
+  rejects a submit with both sections empty before `calculate()` is ever
+  called (§5.9), so `blocked` has no reachable path here. Documented plainly
+  so it isn't mistaken for live copy: this is dead code from *this screen's*
+  UI perspective, not a state worth designing fresh treatment for. If
+  `PaceZoneTable`/`pace-zone-display.ts` (§7.4) is ever reused by a future
+  caller that doesn't share this screen's required-input gate, whoever specs
+  that reuse should re-check whether `blocked` needs live copy there.
+- **Goal zone `unset`** (no goal time at all — recent result only):
+  unchanged. Pace cell reads **"Add a goal time above to see this."**
+  ("above" is a real jump-link/button that scrolls to and focuses the
+  Goal-time section's distance toggle.) §5.7's case. The Goal zone has no
+  `source` concept — it's never a fallback derivation of anything else, so
+  `unset`/`computed` is its only vocabulary, same as before #52.
+
+Never render a bare `—`, `N/A`, or blank cell for the (now effectively
+theoretical) blocked state or the goal-unset state — the copy always names
+the specific action that unlocks the row.
+
+**Badge tooltip: recommendation.** The "Estimated" badge needs its fuller
+explanation available to screen-reader users, and ideally to sighted mouse
+users on hover. Chosen: a plain, **non-interactive** `Badge` (visible text
+"Estimated") holding a visually-hidden (`sr-only`) span with the full
+sentence immediately after it, plus a native `title` attribute mirroring the
+same text for a free mouse-hover tooltip — zero new dependencies, and it
+keeps the results `Table` exactly as non-interactive as §8 already describes
+it (no new tab stops per row). **Alternative considered:** wrap the badge in
+shadcn's `Tooltip` (Radix-based, not yet adopted anywhere in this repo) for a
+richer, keyboard-focusable hover/focus tooltip — more polished, but adds a
+new primitive dependency and six new tab stops to a table §8 currently
+describes as interactive only via its jump-link(s); not worth it for
+information the section-level banner already states in full. Revisit if
+user testing (§12) shows the banner alone isn't landing and people need the
+per-row reminder to be more discoverable/interactive.
 
 ### 7.3 Zone metadata (label, one-line purpose)
 
@@ -577,6 +780,13 @@ fastest-to-slowest) means there's one source of truth for "what order do the
 | `interval` | Interval | Fastest repeatable pace, with recovery between reps. |
 | `goal` | Goal — Marathon / Goal — Half / Goal (when unset) | Your target race pace. |
 
+This table is purely zone-level metadata (id, label, purpose) — it does not
+change per submission, so it has no `source` column. `source` is a
+per-computation, per-submission value (§7.2), not zone metadata; whatever
+renders a zone row (this table today, any compact/inline variant per §7.4)
+needs to read it from the computed `PaceZones` result and decide whether to
+show the "Estimated" badge, independently of this static table.
+
 ### 7.4 Full-page vs. future compact/inline reuse
 
 The task brief's AC for #14 is explicit that this component needs to work
@@ -589,13 +799,19 @@ component's actual layout until the calendar day-detail spec is written.**
 
 - `lib/pace-zone-display.ts` (new, shared module): the `ZONE_ORDER` array
   (id, label, purpose caption), `formatPace(paceSecPerMile): string` (→
-  `"7:45 /mi"`), and the blocked/unset copy strings from §7.2. Both this
-  screen's table *and* the future compact/inline view import from here — so
-  the pace format, the zone order, and the "why is this blocked" wording
-  can never drift between the two surfaces.
+  `"7:45 /mi"`), and the blocked/unset copy strings from §7.2 — **plus, per
+  #52, the "Estimated" badge label and tooltip/accessible-name copy from
+  §6.3, and the warning-banner copy itself.** Both this screen's table *and*
+  the future compact/inline view import from here — so the pace format, the
+  zone order, the blocked/unset wording, *and* the goal-derived-fallback
+  warning treatment can never drift between the two surfaces. Data-scientist
+  (#52) explicitly flagged that the `source`/warning-badge concept needs to
+  travel with a zone row wherever it's rendered, not just on this page —
+  this module is where that travels from.
 - `<PaceZoneTable zones={PaceZones} />` (new component, built now): renders
-  the full `Table` from §7.1–7.3, using the shared module above. This is
-  what #12/#14 ship.
+  the full `Table` from §7.1–7.3, using the shared module above, including
+  the warning `Alert` and per-row `Badge` from §7.2. This is what #12/#14
+  ship.
 - The **compact/inline variant is not built in this pass.** I'm deliberately
   not adding an unused `variant="compact"` prop to `PaceZoneTable` today —
   CLAUDE.md's build-when-needed principle applies to UI surface area the
@@ -607,7 +823,10 @@ component's actual layout until the calendar day-detail spec is written.**
   enough DOM/markup shapes that forcing them into one component's
   conditional render is more contortion than reuse — but that's a call for
   whoever specs that screen, informed by its actual space constraints, not
-  pre-decided here.
+  pre-decided here. Whichever shape it takes, it needs its own call on how
+  (or whether) to surface the "Estimated" badge/warning in a compact chip
+  strip — a badge reads fine in a table row, less obviously in a dense inline
+  chip; flagging this now so it isn't lost, not resolving it here.
 
 ---
 
@@ -629,16 +848,27 @@ Target: WCAG 2.2 AA, matching the calendar spec's bar.
 8. Submit button.
 9. (After a successful submit) the results `Table` is reachable by scroll,
    not inserted into the tab order beyond its own content having no
-   interactive cells — except the two jump-links in §7.2, which **are** real
-   tab stops, positioned in DOM order inside their respective blocked/unset
-   cells.
+   interactive cells — except: the goal-unset jump-link (§7.2, when a
+   recent result was given but no goal time), and — when any equivalency
+   zone's `source` is `"goalTime"` — the jump-link inside the goal-derived
+   warning banner directly above the table (§7.2). Both use the same
+   jump-link component and land on the Recent-result section. The
+   blocked-equivalency-zone jump-link described in earlier drafts of this
+   doc no longer has a reachable state to attach to (§7.2). The "Estimated"
+   badges themselves are **not** tab stops (§7.2's "Badge tooltip:
+   recommendation").
 
 On submit, if validation fails, focus moves to **the first invalid field**
-(not the summary) when there's exactly one error; to a summary `Alert` with
-`tabindex="-1"` and `role="alert"` (per §6.4) when there are multiple. On a
-successful submit, focus is **not** moved — the live region (below)
-announces the update without yanking the runner out of the form they might
-still want to edit.
+when there's exactly one error attributable to a single field; to a summary
+`Alert` with `tabindex="-1"` and `role="alert"` (per §6.4) when there are
+multiple errors, **or when a single error spans more than one section and
+isn't attributable to any one field** — this is the case for the "enter a
+recent race result or a goal time" check (§5.9): there's exactly one error,
+but no single invalid field to send focus to instead, so it goes to the
+summary `Alert`, focused on Recent-result's Distance field per §5.9's
+wireframe note. On a successful submit, focus is **not** moved — the live
+region (below) announces the update without yanking the runner out of the
+form they might still want to edit.
 
 ### Semantics / roles / labels
 
@@ -660,10 +890,14 @@ still want to edit.
   above it, but a real `<caption>` too so table semantics are self-
   contained); each row a `<tr>` with zone name + purpose in one `<th
   scope="row">` cell (or a `<td>` with the purpose as a `<p>` underneath) and
-  pace in a `<td>`.
-- Blocked/unset jump-links: `aria-label` makes the destination explicit
-  beyond "above" for screen-reader users, e.g. `aria-label="Add a recent
-  result — jump to Recent race result section"`.
+  pace in a `<td>`. When a row's `source` is `"goalTime"`, its zone-name cell
+  additionally contains the `Badge` described in §7.2 (visible "Estimated"
+  text + `sr-only` full explanation + `title` attribute).
+- Jump-links (goal-unset row, and the goal-derived warning banner):
+  `aria-label` makes the destination explicit beyond "above" for
+  screen-reader users, e.g. `aria-label="Add a recent result — jump to
+  Recent race result section"` / `aria-label="Add a goal time — jump to Goal
+  time section"`.
 
 ### Contrast
 
@@ -671,10 +905,18 @@ still want to edit.
 - Blocked/unset pace-cell copy: ≥ 4.5:1 — it's muted in weight/tone (e.g.
   italic, slightly lighter than body) but must not drop below normal-text
   contrast; this is explicitly the same rule the calendar spec set for
-  "Rest"/muted metadata, applied here.
+  "Rest"/muted metadata, applied here. (In practice this now only governs
+  the goal-unset cell — §7.2.)
+- Goal-derived ("Estimated") pace-cell copy: full body contrast, same as any
+  other computed pace — it's a real number, not a muted/placeholder state;
+  only the accompanying `Badge` gets the accent-family warning treatment
+  (§2).
 - Error text (destructive-variant `Alert`/`FormMessage`): ≥ 4.5:1, and never
   color-only — always paired with the `alert-triangle` icon and the word
   "error"-equivalent framing in the message text itself.
+- Warning/info-variant `Alert` (goal-derived banner): ≥ 4.5:1, paired with
+  the `info` icon, never color-only, and visually distinct from the
+  destructive-variant `Alert` so it doesn't read as an error (§2/§6.2).
 - Focus ring: visible, ≥ 3:1, never suppressed.
 
 ### Touch targets
@@ -682,8 +924,8 @@ still want to edit.
 - All `Input`s, `Select` triggers, radio cards, and the submit button: ≥
   44×44 CSS px. The three time-entry number inputs are narrow (a few
   characters wide) but kept ≥ 44px **tall**.
-- Jump-links inside table cells: padded to ≥ 44px tall even though they read
-  as inline text links.
+- Jump-links (goal-unset row, warning-banner CTA): padded to ≥ 44px tall
+  even though they read as inline text links.
 
 ### Motion
 
@@ -704,7 +946,7 @@ useful":
 | Template selection | FR1 — which plan to personalize. | No — an enum choice, not identifying. |
 | Race date | FR7 — validated now (reject past dates), consumed by #13 later to place the plan on real dates. | No — it's the *race's* date, not any personal date (not a birthdate); not stored yet at all (no persistence in this pass). |
 | Recent result: distance + time | FR2 — derives the six equivalency zones. | No — a performance number, not identifying; not tied to any account (there is none). |
-| Goal time: distance + time | FR3 — derives the goal zone. | No — same reasoning. |
+| Goal time: distance + time | FR3 — derives the goal zone directly, and, per issue #52, now also serves as the fallback input for the six equivalency zones when no recent result is provided (tagged `source: "goalTime"` in the UI, §7.2). This is not a new field or a new ask of the user — the same value the runner already enters for the goal zone is reused for a second derivation; nothing new is collected. | No — same reasoning as recent result. |
 
 Nothing else is asked. No name, email, device ID, or account of any kind —
 consistent with the product being single-user/no-login right now. When #13
@@ -723,6 +965,7 @@ is that feature's decision, not introduced here.
 | `PaceZoneTable` / `pace-zone-display.ts` | — | New | The product's other core object besides the (future) calendar week-block — the direct realization of #14's AC. |
 | Blocked/unset-with-a-reason microcopy + jump-link | — | New | Sets the house convention for "why can't I see this yet" across the app — worth reusing verbatim if a similar gated state shows up elsewhere (e.g. a locked feature before Strava is connected, FR12). |
 | `errors[].path` → field/section/summary mapping (§6.4) | — | New | First screen consuming a package that returns structured validation errors rather than throwing; this mapping is the reusable playbook for any future screen calling a similarly-shaped local calculator. |
+| Goal-derived-fallback warning (section `Alert` + per-row "Estimated" `Badge`, §7.2) | — | New | First surface where a computed value is flagged as an estimate/fallback rather than a directly-measured input — the "one banner + a badge per affected row" split (data-scientist's call, #52) is the house convention to reuse if a similar "we inferred this, here's the caveat" state shows up elsewhere. |
 
 ---
 
@@ -730,17 +973,16 @@ is that feature's decision, not introduced here.
 
 Nothing here rises to "the field shouldn't exist" — race date's collect-
 without-a-consumer status is already sanctioned by FR7, not something I'm
-inventing. Two things worth a quick confirm before/soon after shipping,
-though:
+inventing.
 
-1. **"Submit with neither result nor goal entered" (§5.9).** The calculator
-   contract says this is valid, so I designed it as a real, allowed path
-   (soft non-blocking hint, not a hard error) rather than disabling the
-   submit button. If the actual product intent is "you must enter at least
-   one," that's a one-line change (disable submit + a different hint) — flag
-   back if that's the intent, since I defaulted to what the calculator's own
-   contract permits.
-2. **Two-column desktop layout (form left, results right)** was considered
+*(Resolved since the first draft: "submit with neither result nor goal
+entered" — Patrick's review of the mockup decided this must be rejected, not
+allowed. See §4/§5.9/§8 for the enforced validation and its focus-management
+rule. No longer an open question.)*
+
+One thing still worth a quick confirm before/soon after shipping:
+
+1. **Two-column desktop layout (form left, results right)** was considered
    and rejected for this pass (§6.5) in favor of staying single-column at
    every breakpoint, to keep this screen simple. If it feels sparse on a
    wide monitor once built, that's a cheap follow-up, not a redesign.
@@ -752,10 +994,20 @@ though:
 - **Time-entry format (§6.2's H/M/S call).** Confirm three number inputs
   read as fast/obvious rather than fussier than a single text field, with 2–3
   runners actually entering a real recent time.
-- **Blocked/unset copy + jump-link (§7.2).** Confirm the "add a recent
-  result above" framing reads as helpful guidance, not as a scold for having
-  only filled in one section — the whole point of FR4/FR5 is that partial
-  input is normal, not a mistake.
-- **Neither-entered soft hint (§5.9 / §11.1)** — watch whether anyone
-  actually submits with both sections empty, and if so, whether the hint is
-  enough or they wanted the button disabled instead.
+- **Goal-unset jump-link + goal-derived warning (§7.2).** Confirm the
+  "add a goal time above" framing still reads as helpful guidance, not a
+  scold for having only filled in one section — the whole point of FR4/FR5
+  is that partial input is normal, not a mistake. Separately, confirm the
+  new goal-derived warning banner + "Estimated" badges (§7.2) are actually
+  noticed, not skimmed past, since they're the one place this screen tells
+  someone their numbers might be optimistic — if people miss it, the
+  section-level banner + per-row badge combo (vs. a per-row jump-link, which
+  data-scientist explicitly considered and passed on) may need revisiting.
+- **Required-input validation copy (§5.9).** Confirm "Enter a recent race
+  result or a goal time to calculate your pace zones." reads as a normal
+  form requirement, not punitive, now that it's a hard block instead of the
+  soft, non-blocking hint originally designed here — and watch whether
+  anyone is surprised by the block itself, since the calculator package's
+  own contract still technically permits "neither" (§7.2's now-dead
+  `blocked` state) even though this screen's UI no longer allows a runner to
+  reach it.
