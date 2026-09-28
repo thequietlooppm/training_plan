@@ -36,6 +36,30 @@ time, pace zones)
 > data-scientist" on #52; I did not rewrite it. Untouched by this revision:
 > §1, §3 (still one page, no wizard), the H/M/S time-entry format, the native
 > race-date input, and the template-picker RadioGroup-as-cards call.
+>
+> **Revision (2026-09-28, later same day) — aligned to Tempo, the named
+> product-wide design system.** This screen's color/type correction (above)
+> was the *seed* of what `ui-toolkit.md` now generalizes into **Tempo**, a
+> single system every screen pulls from (also applied fresh to
+> `docs/design/training-calendar.md` and the new `docs/design/
+> strava-connect-settings.md` in the same pass). Nothing in this doc's actual
+> design direction changes — it was never screen-local in practice, just
+> framed that way in prose. Two things worth noting so this doc doesn't read
+> stale next to the new source of truth:
+> - **The accent hex is corrected in `ui-toolkit.md`, not here.** This doc
+>   never hardcoded a hex (it always deferred to "exact token in
+>   `ui-toolkit.md`," §2/§6.1) — good, because the placeholder that lived
+>   there (`#D9730D`) turned out to fail 4.5:1 text contrast on verification.
+>   The corrected token is `accent/solid: #C2410C`. Nothing to fix in this
+>   file; the indirection did its job.
+> - **Type roles now have names** — where this doc says "the app's chosen
+>   humanist sans" or "the numeral/mono face," those map onto Tempo's named
+>   type scale: page title = **H1**, "Your pace zones" = **H2**, section
+>   legends/field labels = **Label**, the §7 pace-column digits = **Numeral
+>   (table)**. Same typefaces (Figtree / IBM Plex Mono), same rule (numeral
+>   face confined to a genuine comparison column, never an input), just named
+>   now instead of described inline each time. No layout or copy change
+>   follows from this — it's a vocabulary alignment, not a redesign.
 
 ---
 
@@ -106,8 +130,9 @@ so a runner who's never heard "VDOT" still understands what Threshold pace is
 - Blocked/unset table rows explain *why* and *what unlocks them* — never a
   bare "N/A" or "—".
 - Numbers earn special typographic treatment only where they're compared in
-  a column (the §7 results table's pace figures); everywhere else, including
-  every input field, is the plain body face — see below.
+  a column (the §7 results table's pace figures — Tempo's Numeral (table)
+  role); everywhere else, including every input field, is the plain body
+  face — see below.
 
 ### Color & typography — steering away from "terminal"
 
@@ -127,41 +152,47 @@ calculator, not a terminal; it should sit closer to Strava or Hevy in tone.
 
 **What this explicitly rules out:** green as the accent color (reads as a
 terminal/CLI "success" hue, and this screen has no pass/fail semantic that
-needs it); a near-black background or chrome anywhere — there is no "demo
-bar" or dark shell on this screen, every surface is a light-neutral `Card`,
-matching `HomePage.tsx`; and monospace on any *input* — the H/M/S time
-fields, the race-date input, the distance `Select` — all of it is body
-typeface, normal weight, same as every other field in the app. Monospace/
-tabular figures are reserved for **the pace numbers in the §7 results table
-only** (and any future compact/inline reuse, §7.4) — a legitimate alignment
-convention borrowed from lap/split tables, not a stylistic accent applied
-everywhere. See §6.2/§6.3 for where this lands on the actual component/copy
-tables.
+needs it — that semantic exists elsewhere now, on the calendar's completion
+status, and it's handled there deliberately, not inherited here); a
+near-black background or chrome anywhere — there is no "demo bar" or dark
+shell on this screen in light mode (dark mode itself is now specced in
+`ui-toolkit.md`, but it's a considered warm-neutral near-black, not a flat
+terminal `#000`, and applies uniformly, not as screen-specific chrome); and
+monospace on any *input* — the H/M/S time fields, the race-date input, the
+distance `Select` — all of it is body typeface, normal weight, same as every
+other field in the app. Monospace/tabular figures are reserved for **the
+pace numbers in the §7 results table only** (and any future compact/inline
+reuse, §7.4) — a legitimate alignment convention borrowed from lap/split
+tables, not a stylistic accent applied everywhere. See §6.2/§6.3 for where
+this lands on the actual component/copy tables.
 
-Also steering clear of the *other* failure mode — AI-generated-demo clichés
-— per the brief: no warm-cream-and-terracotta-with-serif (wrong register:
-that's "editorial blog," not "calculator"); no near-black-plus-neon-accent
-(that's the terminal look already being removed); no purple/blue gradient
-anywhere (flat, neutral `Card` surfaces only, per §6.1); and no reflexive
-Inter/Space Grotesk pick — see the concrete font choice below.
+Also steering clear of the *other* failure mode — AI-generated-demo
+clichés — per the brief: no warm-cream-and-terracotta-with-serif (wrong
+register: that's "editorial blog," not "calculator"); no near-black-plus-
+neon-accent (that's the terminal look already being removed); no purple/blue
+gradient anywhere (flat, neutral `Card` surfaces only, per §6.1); and no
+reflexive Inter/Space Grotesk pick — see the concrete font choice below.
 
-**Decided in `docs/design/ui-toolkit.md`** (new "Color palette" section,
-rewritten "Font" section) rather than only here, since both apply beyond
-this one screen — the training-calendar spec inherits them, it doesn't
+**Decided in `docs/design/ui-toolkit.md`** (the **Tempo** color system and
+type scale) rather than only here, since both apply beyond this one screen —
+the training-calendar and Strava-settings specs inherit them, they don't
 re-litigate them. As it lands on this screen specifically:
 
-- **Surface:** neutral off-white `Card`s on a very light neutral page
-  background. No dark chrome anywhere on this screen.
-- **Accent:** one warm color (amber/coral — exact token in `ui-toolkit.md`),
+- **Surface:** neutral off-white `Card`s (`surface/card`, Tempo) on a very
+  light neutral page background (`surface/page`). No dark chrome anywhere on
+  this screen in light mode.
+- **Accent:** one warm color — `accent/solid`, `#C2410C` (Tempo; corrected
+  from this doc's earlier placeholder, see the top-of-file revision note) —
   spent only on the submit button, selected/active states (template-card
   selection, the goal-time distance toggle's active segment), and the
   "Estimated" badge/warning treatment (§7.2) — never as a background wash.
-- **Body/UI typeface:** the app's chosen humanist sans (`ui-toolkit.md`'s
-  Font section) on every heading, label, helper string, and **every input
-  field**, including the H/M/S time inputs and the race-date input.
-- **Numeral alignment:** tabular-figure digits **only** on the §7 pace-zone
-  table's pace column (and its future compact reuse, §7.4) — never on an
-  input field, per the Hevy/Garmin-splits reasoning above.
+- **Body/UI typeface:** Figtree (Tempo's Body/Label/H1/H2 roles) on every
+  heading, label, helper string, and **every input field**, including the
+  H/M/S time inputs and the race-date input.
+- **Numeral alignment:** IBM Plex Mono, tabular figures, **only** on the §7
+  pace-zone table's pace column (Tempo's Numeral (table) role) and its
+  future compact reuse (§7.4) — never on an input field, per the
+  Hevy/Garmin-splits reasoning above.
 
 ---
 
@@ -527,19 +558,20 @@ loading/error convention — see §6.2.)
   `HomePage.tsx` already establishes (`CardContent` padding, `gap-3`/`gap-6`
   scale). No sidebar, no multi-column form on any breakpoint (see §6.5) —
   the "one page" call in §3 extends to layout, not just navigation.
-- "(optional)" is set in the section legend itself, in muted text, right next
-  to the section title — not a separate line, not a tooltip. It's the first
-  thing read alongside the heading, matching how the section's *actual*
-  optionality should read.
-- Results table: numeric pace column right-aligned, **tabular figures** — the
-  one place on this screen where numerals get a distinct numeral typeface
-  from the rest of the UI (see the Color & typography subsection of §2, and
-  `ui-toolkit.md`'s Font section). Same "numbers are the hero" convention as
-  the calendar spec, applied to a results table instead of a countdown.
+- "(optional)" is set in the section legend itself (Tempo's Label role),
+  muted, right next to the section title — not a separate line, not a
+  tooltip. It's the first thing read alongside the heading, matching how the
+  section's *actual* optionality should read.
+- Results table: numeric pace column right-aligned, **tabular figures**
+  (Tempo's Numeral (table) role) — the one place on this screen where
+  numerals get a distinct numeral typeface from the rest of the UI (see the
+  Color & typography subsection of §2, and `ui-toolkit.md`'s Type scale
+  section). Same "numbers earn it only in a comparison column" convention
+  the calendar spec now states explicitly too.
 - Every `Input` — race date, the three H/M/S time fields, anything else — is
-  set in the app's ordinary body typeface, **not** the numeral typeface used
-  in the results table. This is the one thing the first mockup got backwards
-  (mono on every input); see §2 for the full reasoning.
+  set in Tempo's Body role, **not** the Numeral role used in the results
+  table. This is the one thing the first mockup got backwards (mono on every
+  input); see §2 for the full reasoning.
 - Blocked/unset pace cells are muted but never below 4.5:1 (§7) — they read
   as "not yet," not as disabled/greyed-out-to-illegibility. Goal-derived
   ("Estimated") pace cells are **not** muted — they're a real, fully-legible
@@ -563,7 +595,7 @@ as settled.
 | Field / section error text | `Form`'s `FormMessage` (field-level) or `Alert` (destructive, section-level for a `calculate()`-returned error with no single field to attach to, **or for the pre-`calculate()` "at least one section required" check, §5.9**) | New adoption: `Alert`. See §6.4 for the path→location mapping. |
 | Goal-derived pace warning banner (§7.2) | `Alert` (info/warning variant, **not** destructive) | New use of the already-adopted primitive — renders once, above the results table, whenever any equivalency zone's `source` is `"goalTime"`. Not an error: this is a real, usable number, just flagged as an estimate. |
 | "Estimated" badge on goal-derived equivalency rows (§7.2) | `Badge` (already adopted for template metadata) | New usage of the same primitive — plain visible text "Estimated"; a native `title` attribute plus a visually-hidden (`sr-only`) span carry the fuller explanation. No new tab stop — see "Badge tooltip: recommendation" in §7.2. |
-| Submit button | `Button` (default variant, full width on mobile) | Reused from `HomePage.tsx`. Accent color (§2) applies here. |
+| Submit button | `Button` (default variant, full width on mobile) | Reused from `HomePage.tsx`. Accent color (§2, Tempo `accent/solid`) applies here. |
 | Results table (#14) | `Table` / `TableHeader` / `TableBody` / `TableRow` / `TableCell` | **New adoption.** See §7 for the full component spec. |
 | Template distance/weeks metadata on each card | `Badge` | **New adoption** — small "Marathon · 18 weeks" tag, reused later for any other short metadata tag in the app (and now also reused for "Estimated", above). |
 | Template list loading / error | `Skeleton`, plain error block + `Button` | Reused verbatim from `HomePage.tsx`'s existing pattern — do not invent a new loading/error convention here. |
@@ -791,11 +823,10 @@ show the "Estimated" badge, independently of this static table.
 
 The task brief's AC for #14 is explicit that this component needs to work
 both here (a full page section) and later inline next to a workout's
-freeform text (calendar day-detail, not being built now). My call on how to
-split that:
+freeform text (calendar day-detail). My call on how to split that:
 
 **Extract the shared, format-agnostic pieces now; defer the compact
-component's actual layout until the calendar day-detail spec is written.**
+component's actual layout until it's actually built.**
 
 - `lib/pace-zone-display.ts` (new, shared module): the `ZONE_ORDER` array
   (id, label, purpose caption), `formatPace(paceSecPerMile): string` (→
@@ -815,18 +846,22 @@ component's actual layout until the calendar day-detail spec is written.**
 - The **compact/inline variant is not built in this pass.** I'm deliberately
   not adding an unused `variant="compact"` prop to `PaceZoneTable` today —
   CLAUDE.md's build-when-needed principle applies to UI surface area the
-  same way it applies to schema fields. When the calendar day-detail screen
-  is actually specced, the choice is between (a) adding `variant="compact"`
-  to this same component, or (b) a sibling `<PaceZoneInline>` that imports
-  the same `pace-zone-display.ts` helpers. I'd lean toward (b) — a full
-  `<Table>` and an inline "E 8:15 · T 7:05 · M 7:30" chip strip are different
-  enough DOM/markup shapes that forcing them into one component's
-  conditional render is more contortion than reuse — but that's a call for
-  whoever specs that screen, informed by its actual space constraints, not
-  pre-decided here. Whichever shape it takes, it needs its own call on how
-  (or whether) to surface the "Estimated" badge/warning in a compact chip
-  strip — a badge reads fine in a table row, less obviously in a dense inline
-  chip; flagging this now so it isn't lost, not resolving it here.
+  same way it applies to schema fields. Now that `training-calendar.md`'s
+  day-detail sheet is fully specced (this same design pass), the future
+  caller is concrete: a compact pace-zone reference sitting inside the
+  day-detail sheet next to a workout's freeform prescription text. When
+  that's actually built, the choice is between (a) adding
+  `variant="compact"` to this same component, or (b) a sibling
+  `<PaceZoneInline>` that imports the same `pace-zone-display.ts` helpers.
+  I'd lean toward (b) — a full `<Table>` and an inline "E 8:15 · T 7:05 · M
+  7:30" chip strip are different enough DOM/markup shapes that forcing them
+  into one component's conditional render is more contortion than reuse —
+  but that's a call for whoever builds that reuse, informed by the
+  day-detail sheet's actual space constraints, not pre-decided here.
+  Whichever shape it takes, it needs its own call on how (or whether) to
+  surface the "Estimated" badge/warning in a compact chip strip — a badge
+  reads fine in a table row, less obviously in a dense inline chip;
+  flagging this now so it isn't lost, not resolving it here.
 
 ---
 
@@ -963,7 +998,7 @@ is that feature's decision, not introduced here.
 | `RadioGroup`-as-card-list (template picker) | — | New | No existing pattern for "pick one of a short list of named things" in this repo yet; built on the library `RadioGroup`, card styling is bespoke — same split as the calendar spec's week-block. |
 | `TimeInputGroup` (3× number input, H/M/S) | — | New | No existing time-entry pattern in this repo; see §6.2 for the format decision. |
 | `PaceZoneTable` / `pace-zone-display.ts` | — | New | The product's other core object besides the (future) calendar week-block — the direct realization of #14's AC. |
-| Blocked/unset-with-a-reason microcopy + jump-link | — | New | Sets the house convention for "why can't I see this yet" across the app — worth reusing verbatim if a similar gated state shows up elsewhere (e.g. a locked feature before Strava is connected, FR12). |
+| Blocked/unset-with-a-reason microcopy + jump-link | — | New | Sets the house convention for "why can't I see this yet" across the app — worth reusing verbatim if a similar gated state shows up elsewhere (e.g. a locked feature before Strava is connected, FR12/`strava-connect-settings.md`). |
 | `errors[].path` → field/section/summary mapping (§6.4) | — | New | First screen consuming a package that returns structured validation errors rather than throwing; this mapping is the reusable playbook for any future screen calling a similarly-shaped local calculator. |
 | Goal-derived-fallback warning (section `Alert` + per-row "Estimated" `Badge`, §7.2) | — | New | First surface where a computed value is flagged as an estimate/fallback rather than a directly-measured input — the "one banner + a badge per affected row" split (data-scientist's call, #52) is the house convention to reuse if a similar "we inferred this, here's the caveat" state shows up elsewhere. |
 
