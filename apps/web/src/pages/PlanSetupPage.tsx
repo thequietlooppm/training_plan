@@ -42,6 +42,35 @@ function sectionElementId(section: "recentResult" | "goalTime"): string {
 }
 
 /**
+ * `hoursField`/`minutesField`/`secondsField` (`plan-setup-validation.ts`) are
+ * three independently-validated zod fields sharing one `TimeInputGroup` —
+ * an invalid Minutes or Seconds value (e.g. `60`) produces an error on
+ * `errors.<prefix>Minutes`/`errors.<prefix>Seconds`, not just
+ * `errors.<prefix>Hours`. `TimeInputGroup` only renders a single
+ * `errorMessage`, so this picks whichever of the three actually fired
+ * first (Hours, then Minutes, then Seconds) rather than assuming it's
+ * always Hours — surfacing at least one real error beats silently
+ * dropping a Minutes/Seconds-only failure.
+ */
+function firstTimeFieldError(
+  errors: FieldErrors<PlanSetupFormValues>,
+  prefix: "recentResult" | "goalTime",
+): string | undefined {
+  if (prefix === "recentResult") {
+    return (
+      errors.recentResultHours?.message ??
+      errors.recentResultMinutes?.message ??
+      errors.recentResultSeconds?.message
+    );
+  }
+  return (
+    errors.goalTimeHours?.message ??
+    errors.goalTimeMinutes?.message ??
+    errors.goalTimeSeconds?.message
+  );
+}
+
+/**
  * The plan-setup flow (#12): template → race date → recent result → goal
  * time → submit, one page, no wizard (design spec §3). Owns the RHF form,
  * calls `calculate()` (#11) on submit, and renders the #14 pace-zone table
@@ -240,7 +269,23 @@ export function PlanSetupPage() {
       ) : null}
 
       <Form {...form}>
+        {/*
+          `noValidate` (§3 fix): the Hours/Minutes/Seconds `Input type="number"`
+          fields carry native `min`/`max` attributes (0-23 / 0-59) for the
+          numeric keypad + spinner affordance (§6.2) — without `noValidate`,
+          an out-of-range value (e.g. Minutes = 60) fails the browser's own
+          HTML5 constraint validation on submit, which silently blocks the
+          native `submit` event entirely before it ever reaches
+          `form.handleSubmit`/RHF/zod. That left the runner with either a
+          non-standard native browser tooltip (inconsistent with this app's
+          own error styling) or, on the browsers/setups where that tooltip
+          doesn't fire reliably, no feedback at all — `errors.*` never
+          populates because `onValid`/`onInvalid` never run. `noValidate`
+          defers entirely to this form's own zod schema + RHF error display,
+          which is the only validation UI the design spec calls for.
+        */}
         <form
+          noValidate
           onSubmit={form.handleSubmit(onValid, onInvalid)}
           className="mt-6 grid gap-6"
         >
@@ -305,7 +350,7 @@ export function PlanSetupPage() {
                 control={form.control}
                 register={form.register}
                 distanceErrorMessage={errors.recentResultDistance?.message}
-                timeErrorMessage={errors.recentResultHours?.message}
+                timeErrorMessage={firstTimeFieldError(errors, "recentResult")}
               />
             </CardContent>
           </Card>
@@ -329,7 +374,7 @@ export function PlanSetupPage() {
                 control={form.control}
                 register={form.register}
                 distanceErrorMessage={errors.goalTimeDistance?.message}
-                timeErrorMessage={errors.goalTimeHours?.message}
+                timeErrorMessage={firstTimeFieldError(errors, "goalTime")}
               />
             </CardContent>
           </Card>

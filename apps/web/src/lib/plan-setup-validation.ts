@@ -228,6 +228,25 @@ export type MappedCalculateError =
  * the table in design spec §6.4. This is new glue code with no repo
  * precedent — a naming mismatch here would silently drop an error, hence
  * its own direct test (see `plan-setup-validation.test.ts`).
+ *
+ * `case "goalTime"` (bare, section-level) — verified against
+ * `@training-plan/pace-zones`'s current `calculate()` (post-#52) — is not
+ * reachable from any input `buildCalculatorInput()` below can produce
+ * today: the one call site that used to return `path: "goalTime"` (a
+ * goal-derived VDOT below `VDOT_TABLE_MIN`) was changed by #52 to return
+ * `{ ok: true }` with blocked+reason zones instead of rejecting the call;
+ * the *other* schema-level rejection that still fires for an implausible
+ * goal time (`goalTimeInputSchema`'s own `superRefine`) reports
+ * `path: "goalTime.timeSeconds"` (a *different* path shape, already handled
+ * by the case above it), never the bare section path. Kept anyway, not
+ * removed: `ValidationError.path` is a general string contract on
+ * `calculate()`, not one this module controls, and a bare `"goalTime"`
+ * mapping to the section alert is strictly better than letting it fall
+ * through to `"unknown"` if a future `calculate()` change reintroduces a
+ * section-level goalTime rejection. Mirrors the still-reachable bare
+ * `"recentResult"` case (`calculate()` still rejects the whole call with
+ * `path: "recentResult"` for a recentResult-derived VDOT below the floor,
+ * since that branch has no other output to fall back to).
  */
 export function mapCalculateError(error: ValidationError): MappedCalculateError {
   switch (error.path) {
