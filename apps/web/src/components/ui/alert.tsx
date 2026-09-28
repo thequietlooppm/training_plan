@@ -10,6 +10,14 @@ const alertVariants = cva(
         default: "bg-card text-card-foreground",
         destructive:
           "bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 [&>svg]:text-current",
+        // Non-destructive info/warning variant (design spec §2/§6.2/§7.2) —
+        // the goal-derived pace-estimate banner. Same `bg-card` pattern as
+        // `destructive` (a real error keeps a light surface too, per §2:
+        // "no dark chrome anywhere"), colored with the accent family
+        // (`--warning`, same hue as `--primary`) instead of red, so it
+        // reads as "worth knowing," not "you made an error."
+        warning:
+          "bg-card text-warning *:data-[slot=alert-description]:text-warning/90 [&>svg]:text-current",
       },
     },
     defaultVariants: {
