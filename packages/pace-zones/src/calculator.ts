@@ -52,9 +52,25 @@ export interface ValidationError {
 export type EquivalencyZoneSource = "recentResult" | "goalTime";
 
 /**
+ * Why a `blocked` equivalency zone wasn't computed (#52 amendment,
+ * data-scientist's mandatory addition). Two distinct situations, kept
+ * distinguishable in the type itself rather than left for the caller to
+ * infer from context:
+ * - `"noInput"` — neither `recentResult` nor `goalTime` was provided at all.
+ *   The original (pre-#52) case, just now explicitly tagged.
+ * - `"goalVdotBelowTable"` — a `goalTime` *was* provided, but its
+ *   goal-derived VDOT fell below `VDOT_TABLE_MIN`, so it wasn't usable for
+ *   the six-zone fallback (#52). The `goal` zone still computes normally in
+ *   this case — see `calculate()`.
+ */
+export type EquivalencyZoneBlockedReason = "noInput" | "goalVdotBelowTable";
+
+/**
  * An equivalency zone (recovery/easy/threshold/tenK/fiveK/interval) can only
  * ever be `computed` (a recent result or, as a fallback, a goal time was
- * provided) or `blocked` (neither was) — never `unset`, which is the goal
+ * provided and usable) or `blocked` (neither was provided, or a goal time
+ * was provided but its derived VDOT was below the supported table range —
+ * see `EquivalencyZoneBlockedReason`) — never `unset`, which is the goal
  * zone's vocabulary. Splitting this from `GoalZone` below, rather than
  * sharing one generic 3-state union, makes "equivalency zone is unset" and
  * "goal zone is blocked" unrepresentable in the type system, since neither
@@ -64,7 +80,7 @@ export type EquivalencyZoneSource = "recentResult" | "goalTime";
  */
 export type EquivalencyZone =
   | { state: "computed"; paceSecPerMile: number; source: EquivalencyZoneSource }
-  | { state: "blocked" };
+  | { state: "blocked"; reason: EquivalencyZoneBlockedReason };
 
 /**
  * The goal zone can only ever be `computed` (a goal time was provided) or
@@ -234,18 +250,26 @@ const EQUIVALENCY_ZONE_IDS = Object.keys(
 
 /**
  * Takes an already-derived `{ vdot, source }` (or `undefined` if neither
- * `recentResult` nor `goalTime` was provided) rather than a raw input shape
- * — `calculate()` derives VDOT itself (via `vdotFromRecentResult`, applied
- * to whichever of the two inputs is actually driving it, per the
+ * `recentResult` nor `goalTime` was provided/usable) rather than a raw input
+ * shape — `calculate()` derives VDOT itself (via `vdotFromRecentResult`,
+ * applied to whichever of the two inputs is actually driving it, per the
  * `recentResult`-beats-`goalTime` precedence documented there) so it can
- * validate it against `VDOT_TABLE_MIN` and return `{ ok: false }` *before*
- * this function, or `interpolate()`, ever runs on an out-of-range value.
- * This function no longer knows how VDOT is derived from either input at
- * all — it only knows how to turn an already-valid `{ vdot, source }` into
- * six zone paces, tagging each with the `source` it was handed (#52).
+ * validate it against `VDOT_TABLE_MIN` first. A `recentResult`-derived VDOT
+ * below that floor rejects the *whole call* (`{ ok: false }`) before this
+ * function, or `interpolate()`, ever runs on it — but a `goalTime`-derived
+ * VDOT below that floor does *not* reject the whole call (#52 amendment):
+ * `calculate()` instead passes `vdotResult: undefined` here along with
+ * `blockedReason: "goalVdotBelowTable"`, since the `goal` zone can still
+ * compute from the goal time directly regardless. This function no longer
+ * knows how VDOT is derived from either input at all — it only knows how to
+ * turn an already-valid `{ vdot, source }` into six zone paces (tagging each
+ * with the `source` it was handed, #52), or, when there isn't one, produce
+ * six `blocked` zones tagged with whichever `blockedReason` the caller
+ * determined applies.
  */
 function computeEquivalencyZones(
   vdotResult: { vdot: number; source: EquivalencyZoneSource } | undefined,
+  blockedReason: EquivalencyZoneBlockedReason = "noInput",
 ): Pick<PaceZones, EquivalencyZoneId> {
   if (vdotResult === undefined) {
     // Each zone gets its own object literal, not a single object literal
@@ -253,7 +277,7 @@ function computeEquivalencyZones(
     // that happen to share a state today, not aliases of each other.
     const zones = {} as Pick<PaceZones, EquivalencyZoneId>;
     for (const id of EQUIVALENCY_ZONE_IDS) {
-      zones[id] = { state: "blocked" };
+      zones[id] = { state: "blocked", reason: blockedReason };
     }
     return zones;
   }
@@ -301,16 +325,31 @@ function computeGoalZone(goalTime: GoalTimeInput | undefined): GoalZone {
  * inline errors without a try/catch around a pure function.
  *
  * Providing only `recentResult` computes the six equivalency zones (tagged
- * `source: "recentResult"`) and leaves `goal` `unset` (FR4). Providing only
- * `goalTime` computes `goal` directly *and*, as a fallback (#52), derives
- * the same six equivalency zones from a VDOT computed off the goal time
- * instead, tagged `source: "goalTime"` — no longer left `blocked` per the
- * original FR5, which #52 amends. Providing both computes all seven, with
- * `recentResult` taking precedence for the six equivalency zones' VDOT
- * (demonstrated fitness beats an aspirational target) — `goal` is
- * unaffected either way, since it is never VDOT-derived. Providing neither
- * is valid (not invalid data, just none supplied) and leaves the six
- * equivalency zones `blocked` and `goal` `unset`.
+ * `source: "recentResult"`) and leaves `goal` `unset` (FR4). A
+ * `recentResult`-derived VDOT below `VDOT_TABLE_MIN` rejects the whole call
+ * (`{ ok: false }`) — see the low-VDOT guardrail below.
+ *
+ * Providing only `goalTime` computes `goal` directly *and*, as a fallback
+ * (#52), derives the same six equivalency zones from a VDOT computed off the
+ * goal time instead, tagged `source: "goalTime"` — no longer left `blocked`
+ * per the original FR5, which #52 amends. If that goal-derived VDOT is below
+ * `VDOT_TABLE_MIN`, the call does **not** reject as a whole (amended again by
+ * #52's data-scientist review, which found the original `{ ok: false }`
+ * behavior here to be a regression): the six equivalency zones stay
+ * `blocked` with `reason: "goalVdotBelowTable"` (never computed from a VDOT
+ * already known to be unreliable), but `goal` still computes normally, since
+ * it's a plain time/distance division with no VDOT involved and no reason to
+ * withhold it just because the six equivalency zones couldn't use this VDOT.
+ * This asymmetry with the `recentResult` branch is intentional, not an
+ * oversight: `recentResult` has no other output to fall back to if its VDOT
+ * is unusable, so rejecting the whole call is still correct there.
+ *
+ * Providing both computes all seven, with `recentResult` taking precedence
+ * for the six equivalency zones' VDOT (demonstrated fitness beats an
+ * aspirational target) — `goal` is unaffected either way, since it is never
+ * VDOT-derived. Providing neither is valid (not invalid data, just none
+ * supplied) and leaves the six equivalency zones `blocked` with `reason:
+ * "noInput"` and `goal` `unset`.
  */
 export function calculate(input: unknown): CalculateResult {
   const parsed = calculatorInputSchema.safeParse(input);
@@ -325,24 +364,31 @@ export function calculate(input: unknown): CalculateResult {
   const validated: CalculatorInput = parsed.data;
 
   // VDOT is derived here, once, rather than inside `computeEquivalencyZones`,
-  // so it can be validated against `VDOT_TABLE_MIN` and rejected via
-  // `{ ok: false }` *before* any zone math (interpolation or VO2(v)-inversion)
-  // ever runs on it. See `vdotTable.ts`'s header comment and
-  // `interpolate()`'s docstring for why a below-range VDOT must be rejected
-  // outright rather than clamped up to the table's floor: clamping up would
-  // hand the runner paces faster than their demonstrated fitness supports.
+  // so it can be validated against `VDOT_TABLE_MIN` before any zone math
+  // (interpolation or VO2(v)-inversion) ever runs on it. See
+  // `vdotTable.ts`'s header comment and `interpolate()`'s docstring for why a
+  // below-range VDOT must never be clamped up to the table's floor: clamping
+  // up would hand the runner paces faster than their demonstrated fitness
+  // supports.
   //
   // `recentResult`, when present, always wins (demonstrated fitness beats an
   // aspirational target) — `goalTime` only drives this derivation as a
   // fallback (#52) when no `recentResult` was provided, reusing the exact
   // same `vdotFromRecentResult` transform on the goal time's distance+time
   // (it's a generic distance+time -> VDOT function; nothing about it is
-  // actually specific to a *recent result* input). The
-  // `VDOT_TABLE_MIN` guardrail below applies identically to both paths: a
-  // slow-but-plausible goal time deriving a sub-30 VDOT is exactly as unsafe
-  // to clamp up as a slow recent result would be — see the `recentResult`
-  // branch's own reasoning, which applies unchanged.
+  // actually specific to a *recent result* input).
+  //
+  // The two branches below are NOT symmetric in what a below-`VDOT_TABLE_MIN`
+  // VDOT does (#52 amendment, data-scientist review): `recentResult` still
+  // rejects the whole call via `{ ok: false }`, since it has no other output
+  // to fall back to. `goalTime` instead records `equivalencyBlockedReason`
+  // and leaves `vdotResult` unset, so the six equivalency zones end up
+  // `blocked` (never computed from a VDOT already known to be unreliable)
+  // while `calculate()` still returns `{ ok: true }` and `goal` still
+  // computes below, since `goal` is a direct division that never touches
+  // VDOT at all.
   let vdotResult: { vdot: number; source: EquivalencyZoneSource } | undefined;
+  let equivalencyBlockedReason: EquivalencyZoneBlockedReason = "noInput";
   if (validated.recentResult) {
     const distanceMeters = DISTANCE_METERS[validated.recentResult.distance];
     const vdot = vdotFromRecentResult(distanceMeters, validated.recentResult.timeSeconds);
@@ -373,22 +419,25 @@ export function calculate(input: unknown): CalculateResult {
     // up to the table floor, handing out a faster-than-earned pace — the
     // same failure mode the recentResult path already guards against, now
     // reachable from the other input.
+    //
+    // Unlike the recentResult branch above, this does NOT reject the whole
+    // call (#52 amendment, correcting a regression an earlier version of
+    // this fix introduced): the six equivalency zones simply can't use this
+    // VDOT, so they fall through to `blocked` below with
+    // `reason: "goalVdotBelowTable"` — but `goal` is a plain time/distance
+    // division with nothing to do with VDOT, and always could compute here
+    // regardless. `vdotResult` is deliberately left `undefined` (never set
+    // to a known-out-of-range VDOT) so `computeEquivalencyZones` can't
+    // accidentally run zone math on it.
     if (vdot < VDOT_TABLE_MIN - 1e-6) {
-      return {
-        ok: false,
-        errors: [
-          {
-            path: "goalTime",
-            message: `This goal time derives a VDOT of ${vdot.toFixed(1)}, below the supported table range (VDOT ${VDOT_TABLE_MIN}+). Enter a recent race result instead, or a more attainable goal time.`,
-          },
-        ],
-      };
+      equivalencyBlockedReason = "goalVdotBelowTable";
+    } else {
+      vdotResult = { vdot, source: "goalTime" };
     }
-    vdotResult = { vdot, source: "goalTime" };
   }
 
   const zones: PaceZones = {
-    ...computeEquivalencyZones(vdotResult),
+    ...computeEquivalencyZones(vdotResult, equivalencyBlockedReason),
     goal: computeGoalZone(validated.goalTime),
   };
 

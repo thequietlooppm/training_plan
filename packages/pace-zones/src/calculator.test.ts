@@ -32,6 +32,18 @@ function roundHalfUp(value: number): number {
 }
 
 /**
+ * Independent reference implementation of calculator.ts's private
+ * `paceSecPerMile` (the `goal` zone's direct time/distance division, no VDOT
+ * involved) — kept as its own copy here, like `paceFromVo2Percent` below,
+ * rather than imported, so tests asserting the `goal` zone's value don't
+ * just re-assert the implementation against itself.
+ */
+function paceFromDirectDivision(distanceMeters: number, timeSeconds: number): number {
+  const miles = distanceMeters / MILE_METERS;
+  return roundHalfUp(timeSeconds / miles);
+}
+
+/**
  * The same VO2(v) equation `calculator.ts` uses internally
  * (`vdotFromRecentResult`), exposed here only so this test file can
  * independently derive a reference Recovery pace at a given VDOT without
@@ -285,10 +297,12 @@ describe("both recentResult and goalTime provided", () => {
 });
 
 describe("neither recentResult nor goalTime provided", () => {
-  it("is valid input (no data to reject) and leaves everything blocked/unset", () => {
+  it("is valid input (no data to reject) and leaves everything blocked/unset, tagged reason: noInput", () => {
     const zones = calculateZones({});
     for (const key of ["recovery", "easy", "threshold", "tenK", "fiveK", "interval"] as const) {
-      expect(zones[key].state).toBe("blocked");
+      const zone = zones[key];
+      expect(zone.state).toBe("blocked");
+      expect(zone.state === "blocked" && zone.reason).toBe("noInput");
     }
     expect(zones.goal.state).toBe("unset");
   });
@@ -351,26 +365,37 @@ describe("low-VDOT rejection, not clamping (bug fix: a below-table VDOT must nev
   });
 });
 
-describe("goal-time-derived low-VDOT rejection, mirroring the recentResult-path guardrail above (#52, data-scientist's mandatory amendment)", () => {
+describe("goal-time-derived low-VDOT fallback (#52, corrected by data-scientist review: the six equivalency zones block, but the whole call no longer rejects)", () => {
   // A marathon goal time slow enough to derive a sub-VDOT_TABLE_MIN VDOT,
   // but still within the plausibility bounds schema.ts already enforces
   // (2:01:00 .. 8:00:00) — this is the "slow-but-plausible" case the
-  // guardrail exists for, not an already-rejected implausible time.
+  // guardrail exists for, not an already-rejected implausible time. Genuine
+  // first-race beginner goals (e.g. a 5:00:00 marathon) land here.
   const MARATHON_METERS = DISTANCE_METERS.marathon;
   const MARATHON_MIN_SECONDS = 2 * 60 * 60 + 60; // schema.ts's plausibility floor
   const MARATHON_MAX_SECONDS = 8 * 60 * 60; // schema.ts's plausibility ceiling
 
-  it("rejects a marathon goal of 6:00:00 (derives a sub-VDOT_TABLE_MIN VDOT) via ok:false, path: goalTime", () => {
+  it("a marathon goal of 5:00:00 (derives a sub-VDOT_TABLE_MIN VDOT) still returns ok:true, with all six equivalency zones blocked (reason: goalVdotBelowTable) and goal computed via direct division", () => {
+    const goalTimeSeconds = 5 * 60 * 60; // 5:00:00
     const result = calculate({
-      goalTime: { distance: "marathon", timeSeconds: 6 * 60 * 60 }, // 6:00:00
+      goalTime: { distance: "marathon", timeSeconds: goalTimeSeconds },
     });
 
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.errors.length).toBeGreaterThan(0);
-      expect(result.errors[0]!.path).toBe("goalTime");
-      expect(result.errors[0]!.message).toMatch(/VDOT/i);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    for (const key of ["recovery", "easy", "threshold", "tenK", "fiveK", "interval"] as const) {
+      const zone = result.zones[key];
+      expect(zone.state).toBe("blocked");
+      expect(zone.state === "blocked" && zone.reason).toBe("goalVdotBelowTable");
     }
+
+    expect(result.zones.goal.state).toBe("computed");
+    const goal = computedGoal(result.zones.goal);
+    expect(goal.label).toBe("marathon");
+    // 5:00:00 marathon = 26.2188 mi => direct division, ~686 sec/mi (11:26/mi)
+    const expectedPace = paceFromDirectDivision(MARATHON_METERS, goalTimeSeconds);
+    expect(goal.paceSecPerMile).toBe(expectedPace);
   });
 
   it("still returns ok:true, with all six equivalency zones computed, for a goal-derived VDOT essentially exactly at VDOT_TABLE_MIN (the boundary itself, not below it)", () => {
@@ -398,15 +423,21 @@ describe("goal-time-derived low-VDOT rejection, mirroring the recentResult-path 
       }
     }
 
-    // One second slower crosses just below VDOT_TABLE_MIN and must be
-    // rejected, not clamped — the exact failure mode this guardrail exists
-    // to prevent.
+    // One second slower crosses just below VDOT_TABLE_MIN. The whole call
+    // must NOT reject (#52 correction) — the six equivalency zones fall back
+    // to blocked (reason: goalVdotBelowTable) instead of being clamped to a
+    // faster-than-earned pace, while goal still computes.
     const justBelow = calculate({
       goalTime: { distance: "marathon", timeSeconds: boundaryTimeSeconds + 1 },
     });
-    expect(justBelow.ok).toBe(false);
-    if (!justBelow.ok) {
-      expect(justBelow.errors[0]!.path).toBe("goalTime");
+    expect(justBelow.ok).toBe(true);
+    if (justBelow.ok) {
+      for (const key of ["recovery", "easy", "threshold", "tenK", "fiveK", "interval"] as const) {
+        const zone = justBelow.zones[key];
+        expect(zone.state).toBe("blocked");
+        expect(zone.state === "blocked" && zone.reason).toBe("goalVdotBelowTable");
+      }
+      expect(justBelow.zones.goal.state).toBe("computed");
     }
   });
 });

@@ -47,9 +47,19 @@
  * - Below VDOT 30 (i.e. below `VDOT_TABLE_MIN`): clamping up to the bottom
  *   boundary row would do the opposite — hand a runner paces *faster* than
  *   their demonstrated fitness supports, which is unsafe, not conservative.
- *   `calculator.ts`'s `calculate()` therefore rejects a below-`VDOT_TABLE_MIN`
- *   derived VDOT with `{ ok: false }` *before* any interpolation runs, rather
- *   than clamping it.
+ *   `calculator.ts`'s `calculate()` therefore never lets interpolation run on
+ *   a below-`VDOT_TABLE_MIN` derived VDOT — but what happens instead differs
+ *   by which input produced it (#52 amendment, data-scientist review): a
+ *   below-range `recentResult`-derived VDOT rejects the *whole call*
+ *   (`{ ok: false }`), since `recentResult` has nothing else to fall back to.
+ *   A below-range `goalTime`-derived VDOT does *not* reject the whole call —
+ *   the six equivalency zones this file's tables drive simply come back
+ *   `blocked` (`reason: "goalVdotBelowTable"`) instead of `computed`, while
+ *   `calculate()` still returns `{ ok: true }` and the separate `goal` zone
+ *   (a plain time/distance division this file's tables have no part in)
+ *   still computes normally. See `calculator.ts`'s `calculate()` JSDoc for
+ *   the full reasoning on why the two input paths are handled asymmetrically
+ *   here.
  */
 
 export interface VdotPoint {
