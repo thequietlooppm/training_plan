@@ -6,6 +6,11 @@ import { PlanSetupPage } from "@/pages/PlanSetupPage";
 // jsdom has no ResizeObserver; Radix's RadioGroup (template picker,
 // goal-time distance toggle) uses one internally to size its indicator.
 // A minimal no-op stub is enough — layout measurement isn't under test.
+//
+// jsdom also has no pointer-capture/scrollIntoView APIs, which Radix's
+// Select (recent-result distance, #12 §6.2) needs to open/position its
+// listbox — no-op stubs are enough here too, since viewport positioning
+// isn't under test.
 beforeAll(() => {
   class ResizeObserverStub {
     observe() {}
@@ -13,6 +18,19 @@ beforeAll(() => {
     disconnect() {}
   }
   vi.stubGlobal("ResizeObserver", ResizeObserverStub);
+
+  if (!Element.prototype.hasPointerCapture) {
+    Element.prototype.hasPointerCapture = () => false;
+  }
+  if (!Element.prototype.setPointerCapture) {
+    Element.prototype.setPointerCapture = () => {};
+  }
+  if (!Element.prototype.releasePointerCapture) {
+    Element.prototype.releasePointerCapture = () => {};
+  }
+  if (!Element.prototype.scrollIntoView) {
+    Element.prototype.scrollIntoView = () => {};
+  }
 });
 
 vi.mock("@training-plan/pace-zones", async (importOriginal) => {
@@ -141,6 +159,112 @@ describe("PlanSetupPage — incomplete section (client-side, §5.3/§5.4)", () =
   });
 });
 
+describe("PlanSetupPage — invalid Minutes/Seconds surfaces its own error (not just Hours)", () => {
+  it("shows an inline error under the time group when Minutes is out of range, even though Hours is untouched", async () => {
+    render(<PlanSetupPage />);
+
+    setRaceDate(futureDateString());
+    fireEvent.click(screen.getByRole("radio", { name: "Half" }));
+    // Minutes must be 0-59 — 60 is out of range. Hours is left untouched
+    // ("" -> treated as 0 by hoursField, which is valid), so only Minutes'
+    // own zod refine fires.
+    fireEvent.change(document.getElementById("goal-time-minutes")!, {
+      target: { value: "60" },
+    });
+    submit();
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Minutes must be a whole number between 0 and 59."),
+      ).toBeDefined();
+    });
+  });
+
+  it("shows an inline error under the time group when Seconds is out of range, even though Hours is untouched", async () => {
+    render(<PlanSetupPage />);
+
+    setRaceDate(futureDateString());
+    fireEvent.click(screen.getByRole("radio", { name: "Marathon" }));
+    fireEvent.change(document.getElementById("goal-time-seconds")!, {
+      target: { value: "60" },
+    });
+    submit();
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Seconds must be a whole number between 0 and 59."),
+      ).toBeDefined();
+    });
+  });
+
+  it("also surfaces a Minutes-only error in the recent-result section, not just goal time", async () => {
+    render(<PlanSetupPage />);
+
+    setRaceDate(futureDateString());
+    fireEvent.click(screen.getByRole("combobox"));
+    fireEvent.click(screen.getByRole("option", { name: "5K" }));
+    fireEvent.change(document.getElementById("recent-result-minutes")!, {
+      target: { value: "60" },
+    });
+    submit();
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Minutes must be a whole number between 0 and 59."),
+      ).toBeDefined();
+    });
+  });
+});
+
+describe("PlanSetupPage — distance fields can be cleared once selected", () => {
+  it("recent-result distance: a 'Clear' button appears once a distance is selected, and clicking it resets the field to empty", () => {
+    render(<PlanSetupPage />);
+
+    const recentResultDistance = screen.getByRole("combobox");
+    expect(
+      screen.queryByRole("button", { name: "Clear distance" }),
+    ).toBeNull();
+
+    fireEvent.click(recentResultDistance);
+    fireEvent.click(screen.getByRole("option", { name: "5K" }));
+    expect(recentResultDistance.textContent).toBe("5K");
+
+    const clearButton = screen.getByRole("button", { name: "Clear distance" });
+    fireEvent.click(clearButton);
+
+    expect(recentResultDistance.textContent).toBe("Select a distance");
+    expect(
+      screen.queryByRole("button", { name: "Clear distance" }),
+    ).toBeNull();
+  });
+
+  it("goal-time distance: a 'Clear' button appears once a distance is picked, and clicking it deselects it", () => {
+    render(<PlanSetupPage />);
+
+    expect(
+      screen.queryByRole("button", { name: "Clear distance" }),
+    ).toBeNull();
+
+    fireEvent.click(screen.getByRole("radio", { name: "Half" }));
+    expect(screen.getByRole("radio", { name: "Half" }).getAttribute("aria-checked")).toBe(
+      "true",
+    );
+
+    const clearButton = screen.getByRole("button", { name: "Clear distance" });
+    fireEvent.click(clearButton);
+
+    expect(screen.getByRole("radio", { name: "Half" }).getAttribute("aria-checked")).toBe(
+      "false",
+    );
+    expect(
+      screen.getByRole("radio", { name: "Marathon" }).getAttribute("aria-checked"),
+    ).toBe("false");
+    expect(
+      screen.queryByRole("button", { name: "Clear distance" }),
+    ).toBeNull();
+  });
+});
+
 describe("PlanSetupPage — submitting with neither section filled (§4/§5.9 revision, hard-require)", () => {
   it("is rejected: calculate() is never called, and the exact §6.3 copy renders in the summary Alert", async () => {
     const { calculate } = await import("@training-plan/pace-zones");
@@ -206,6 +330,50 @@ describe("PlanSetupPage — happy path (goal time only)", () => {
       ),
     ).toBeDefined();
     expect(screen.getAllByText("Estimated")).toHaveLength(6);
+  });
+
+  it("a low/beginner goal time whose derived VDOT is below the table floor (#52 amendment) still succeeds: the goal row is a real computed pace, and the six equivalency rows show the goalVdotBelowTable copy, not the old total-failure error", async () => {
+    const { calculate } = await import("@training-plan/pace-zones");
+    render(<PlanSetupPage />);
+
+    setRaceDate(futureDateString());
+    // A 5:00:00 marathon derives a VDOT well below VDOT_TABLE_MIN (~30) —
+    // still a plausible marathon time (within PLAUSIBILITY_BOUNDS_SECONDS),
+    // so it reaches the VDOT-floor check, not the plausibility rejection.
+    fillGoalTime({ distance: "marathon", hours: "5", minutes: "0", seconds: "0" });
+    submit();
+
+    await waitFor(() => {
+      expect(screen.getByText("Goal — Marathon")).toBeDefined();
+    });
+
+    // calculate() succeeds (ok: true) — never surfaces as a field/section
+    // error the way the pre-#52 total-failure behavior did.
+    expect(calculate).toHaveReturnedWith(expect.objectContaining({ ok: true }));
+    expect(screen.queryByText(/below the supported table range/)).toBeNull();
+
+    // The goal row is a real computed pace, unaffected by the six blocked
+    // equivalency rows.
+    const goalRow = screen.getByText("Goal — Marathon").closest("tr")!;
+    expect(within(goalRow).getByText(/\/mi$/)).toBeDefined();
+
+    // No goal-derived warning banner or "Estimated" badges — these rows are
+    // blocked, not goal-derived-computed.
+    expect(
+      screen.queryByText(/estimated from your goal time, not a race you've run/i),
+    ).toBeNull();
+    expect(screen.queryByText("Estimated")).toBeNull();
+
+    // All six equivalency rows show the new goalVdotBelowTable copy, each
+    // with a working jump-link back to the recent-result section.
+    expect(
+      screen.getAllByText(/doesn't support estimating this pace/),
+    ).toHaveLength(6);
+    expect(
+      screen.getAllByRole("button", {
+        name: "Add a recent result — jump to Recent race result section",
+      }),
+    ).toHaveLength(6);
   });
 });
 
