@@ -154,6 +154,25 @@ export const planSetupFormSchema = z
         message: "Select a distance for your goal time.",
       });
     }
+
+    // Third pre-calculate() check, same pass as the two above (design spec
+    // §4/§5.9→§4 revision, §6.4, §8): at least one of recent-result/goal-time
+    // must be *fully* filled — "fully empty" here (neither distance nor any
+    // time entered) is the only case this targets; a partially-filled
+    // section already produced its own issue above and is never "empty" by
+    // this definition. Not attached to any single field — RHF's reserved
+    // `root` path (§8: "no single invalid field to send focus to instead")
+    // so it always routes through the summary-Alert mechanism, never the
+    // per-field `FormMessage`.
+    const recentResultCompletelyEmpty = !recentResultHasDistance && !recentResultHasAnyTime;
+    const goalTimeCompletelyEmpty = !goalTimeHasDistance && !goalTimeHasAnyTime;
+    if (recentResultCompletelyEmpty && goalTimeCompletelyEmpty) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["root"],
+        message: "Enter a recent race result or a goal time to calculate your pace zones.",
+      });
+    }
   });
 
 function hmsToSeconds(hours: string, minutes: string, seconds: string): number {

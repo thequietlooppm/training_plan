@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { COMMITTED_PLAN_TEMPLATES } from "@training-plan/plan-templates";
 import { calculate, type PaceZones, type ValidationError } from "@training-plan/pace-zones";
-import { AlertTriangle, Info } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
   Controller,
@@ -9,7 +9,7 @@ import {
   type Path,
   useForm,
 } from "react-hook-form";
-import { PaceZoneTable } from "@/components/PaceZoneTable";
+import { PaceZoneTable, RECENT_RESULT_JUMP_TARGET_ID } from "@/components/PaceZoneTable";
 import { GoalTimeFields } from "@/components/plan-setup/GoalTimeFields";
 import { RaceDateField } from "@/components/plan-setup/RaceDateField";
 import { RecentResultFields } from "@/components/plan-setup/RecentResultFields";
@@ -35,25 +35,6 @@ import {
 interface SummaryError {
   message: string;
   onJump?: () => void;
-}
-
-const EQUIVALENCY_ZONE_IDS: (keyof PaceZones)[] = [
-  "recovery",
-  "easy",
-  "threshold",
-  "tenK",
-  "fiveK",
-  "interval",
-];
-
-/** All 7 zones blocked/unset means neither a recent result nor a goal time
- * was provided — `calculate()`'s own contract (§5.9): a valid, allowed,
- * non-error submission. */
-function isEmptyZones(zones: PaceZones): boolean {
-  return (
-    EQUIVALENCY_ZONE_IDS.every((id) => zones[id].state === "blocked") &&
-    zones.goal.state === "unset"
-  );
 }
 
 function sectionElementId(section: "recentResult" | "goalTime"): string {
@@ -193,12 +174,18 @@ export function PlanSetupPage() {
 
   function onInvalid(fieldErrors: FieldErrors<PlanSetupFormValues>) {
     setSectionAlert(null);
-    const entries = Object.entries(fieldErrors) as [
+    // `root` (§4/§6.4/§8) is the "enter a recent race result or a goal time"
+    // check — not attributable to any single field, so it always routes
+    // through the summary Alert, even when it's the only error, with its
+    // jump-link landing on Recent-result's Distance field (§8's explicit
+    // note on this case, reusing §5.9's wireframe target).
+    const { root, ...fieldOnlyErrors } = fieldErrors;
+    const entries = Object.entries(fieldOnlyErrors) as [
       Path<PlanSetupFormValues>,
       { message?: string },
     ][];
 
-    if (entries.length <= 1) {
+    if (!root && entries.length <= 1) {
       setSummaryErrors(null);
       const [name] = entries[0] ?? [];
       if (name) {
@@ -207,12 +194,17 @@ export function PlanSetupPage() {
       return;
     }
 
-    setSummaryErrors(
-      entries.map(([name, fieldError]) => ({
-        message: fieldError.message ?? "",
-        onJump: () => form.setFocus(name),
-      })),
-    );
+    const summaryList: SummaryError[] = entries.map(([name, fieldError]) => ({
+      message: fieldError.message ?? "",
+      onJump: () => form.setFocus(name),
+    }));
+    if (root?.message) {
+      summaryList.push({
+        message: root.message,
+        onJump: () => document.getElementById(RECENT_RESULT_JUMP_TARGET_ID)?.focus(),
+      });
+    }
+    setSummaryErrors(summaryList);
   }
 
   return (
@@ -354,14 +346,6 @@ export function PlanSetupPage() {
             <CardTitle>Your pace zones</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4">
-            {isEmptyZones(zones) ? (
-              <Alert role="status">
-                <Info aria-hidden="true" />
-                <AlertDescription>
-                  Add a recent race result or a goal time above to see real numbers.
-                </AlertDescription>
-              </Alert>
-            ) : null}
             <PaceZoneTable zones={zones} />
           </CardContent>
         </Card>

@@ -56,8 +56,15 @@ describe("planSetupFormSchema — race date", () => {
     }
   });
 
-  it("accepts today and future race dates", () => {
-    expect(planSetupFormSchema.safeParse(baseValues).success).toBe(true);
+  it("accepts today and future race dates (with a filled section, since neither-filled is its own rejection)", () => {
+    expect(
+      planSetupFormSchema.safeParse({
+        ...baseValues,
+        recentResultDistance: "10k",
+        recentResultMinutes: "45",
+        recentResultSeconds: "0",
+      }).success,
+    ).toBe(true);
   });
 });
 
@@ -118,10 +125,6 @@ describe("planSetupFormSchema — incomplete section checks", () => {
     }
   });
 
-  it("allows both recent-result and goal-time fully empty (a valid, allowed submission)", () => {
-    expect(planSetupFormSchema.safeParse(baseValues).success).toBe(true);
-  });
-
   it("allows a fully-filled recent-result section", () => {
     const result = planSetupFormSchema.safeParse({
       ...baseValues,
@@ -130,6 +133,54 @@ describe("planSetupFormSchema — incomplete section checks", () => {
       recentResultSeconds: "0",
     });
     expect(result.success).toBe(true);
+  });
+});
+
+describe("planSetupFormSchema — at least one of recent result / goal time required (§4/§5.9 revision)", () => {
+  it("rejects a submission with both sections completely empty, attached to the reserved root path", () => {
+    const result = planSetupFormSchema.safeParse(baseValues);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const issue = result.error.issues.find((i) => i.path.join(".") === "root");
+      expect(issue?.message).toBe(
+        "Enter a recent race result or a goal time to calculate your pace zones.",
+      );
+    }
+  });
+
+  it("does not fire when only the recent-result section is filled", () => {
+    const result = planSetupFormSchema.safeParse({
+      ...baseValues,
+      recentResultDistance: "10k",
+      recentResultMinutes: "45",
+      recentResultSeconds: "0",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("does not fire when only the goal-time section is filled", () => {
+    const result = planSetupFormSchema.safeParse({
+      ...baseValues,
+      goalTimeDistance: "half",
+      goalTimeHours: "1",
+      goalTimeMinutes: "45",
+      goalTimeSeconds: "0",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("does not double-fire alongside an incomplete-section error (only the incomplete-section issue is present)", () => {
+    // Recent-result has a distance but no time — that's "incomplete," not
+    // "completely empty" — so this must not also carry the root issue.
+    const result = planSetupFormSchema.safeParse({
+      ...baseValues,
+      recentResultDistance: "10k",
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const rootIssue = result.error.issues.find((i) => i.path.join(".") === "root");
+      expect(rootIssue).toBeUndefined();
+    }
   });
 });
 
