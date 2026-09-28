@@ -111,5 +111,5 @@ Confirmed as written in `docs/planning/product-brief.md`:
 - `docs/design/training-calendar.md` needs a redo pass (still describes a binary complete/skip flow) — designer's task, not blocking issue creation, but the calendar/day-detail issues should not be built against its current stale content. It must also add Planned, any-run = Achieved, Missed + activity-swap indicator for a non-run on a run day, and Partial kept-but-inactive for runs (reachable only via a run on a strength day).
 - Strava token encryption/secrets-storage approach — deferred ADR, written when the Strava-sync epic starts implementation.
 - Backfill job-status UX (poll vs. "populates over the next few minutes" messaging) — designer decision, not yet made.
-- Post-race plan is unscoped — see the Backlog issue "Define what a runner does after race day".
-- Day-swap detection and manual calendar rearranging are unscoped — see the Backlog issue "Detect day swaps after the fact".
+- Post-race plan is unscoped — see the Backlog issue #56 "Define what a runner does after race day".
+- Day-swap detection and manual calendar rearranging are unscoped — see the Backlog issue #57 "Detect day swaps after the fact".
