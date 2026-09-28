@@ -2,6 +2,7 @@ import { RECENT_RESULT_DISTANCES, type RecentResultDistance } from "@training-pl
 import { Controller, type Control, type UseFormRegister } from "react-hook-form";
 import { RECENT_RESULT_JUMP_TARGET_ID } from "@/components/PaceZoneTable";
 import { TimeInputGroup } from "@/components/plan-setup/TimeInputGroup";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -41,32 +42,48 @@ export function RecentResultFields({
     <fieldset className="grid gap-4">
       <legend className="sr-only">Recent race result</legend>
       <div className="grid gap-2">
-        <label htmlFor={RECENT_RESULT_JUMP_TARGET_ID} className="text-sm font-medium">
-          Distance
-        </label>
         <Controller
           control={control}
           name="recentResultDistance"
           render={({ field }) => (
-            <Select value={field.value} onValueChange={field.onChange}>
-              <SelectTrigger
-                id={RECENT_RESULT_JUMP_TARGET_ID}
-                className="h-11 w-full"
-                aria-invalid={!!distanceErrorMessage}
-                aria-describedby={
-                  distanceErrorMessage ? "recent-result-distance-error" : undefined
-                }
-              >
-                <SelectValue placeholder="Select a distance" />
-              </SelectTrigger>
-              <SelectContent>
-                {RECENT_RESULT_DISTANCES.map((distance) => (
-                  <SelectItem key={distance} value={distance}>
-                    {DISTANCE_LABELS[distance]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <>
+              <div className="flex items-center justify-between">
+                <label htmlFor={RECENT_RESULT_JUMP_TARGET_ID} className="text-sm font-medium">
+                  Distance
+                </label>
+                {field.value ? (
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    className="h-auto p-0 text-muted-foreground"
+                    aria-label="Clear distance"
+                    onClick={() => field.onChange("")}
+                  >
+                    Clear
+                  </Button>
+                ) : null}
+              </div>
+              <Select value={field.value} onValueChange={field.onChange}>
+                <SelectTrigger
+                  id={RECENT_RESULT_JUMP_TARGET_ID}
+                  className="h-11 w-full"
+                  aria-invalid={!!distanceErrorMessage}
+                  aria-describedby={
+                    distanceErrorMessage ? "recent-result-distance-error" : undefined
+                  }
+                >
+                  <SelectValue placeholder="Select a distance" />
+                </SelectTrigger>
+                <SelectContent>
+                  {RECENT_RESULT_DISTANCES.map((distance) => (
+                    <SelectItem key={distance} value={distance}>
+                      {DISTANCE_LABELS[distance]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </>
           )}
         />
         {distanceErrorMessage ? (
