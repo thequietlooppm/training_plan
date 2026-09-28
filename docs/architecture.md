@@ -43,8 +43,8 @@ protection.md`) — a red pipeline blocks merge, not just deploy. CI does
 
 **pnpm workspace** — `apps/web`, `apps/api`, and `packages/*` (currently
 `packages/plan-templates/`, the plan-template schema and loader — see
-`docs/decisions/0005-plan-template-schema.md`) under a single pnpm-workspace
-root. The Docker build for `apps/api` is deliberately built from the **repo
+`docs/decisions/0005-plan-template-schema.md` — and `packages/pace-zones/`,
+the pace-zone calculator, issue #11) under a single pnpm-workspace root. The Docker build for `apps/api` is deliberately built from the **repo
 root**, not `apps/api/` alone, so the workspace lockfile and `packages/*`
 shared code stay reachable —
 building from `apps/api/` alone would work today and break silently the
