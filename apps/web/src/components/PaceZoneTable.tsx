@@ -17,6 +17,7 @@ import {
   ESTIMATED_BADGE_LABEL,
   ESTIMATED_BADGE_TOOLTIP,
   GOAL_DERIVED_WARNING_COPY,
+  GOAL_VDOT_BELOW_TABLE_ZONE_COPY,
   UNSET_GOAL_ZONE_COPY,
   ZONE_ORDER,
   formatPace,
@@ -224,16 +225,20 @@ function renderPaceCell(zoneId: ZoneId, zones: PaceZones) {
 
   const zone = zones[zoneId];
   if (zone.state === "blocked") {
+    const copy =
+      zone.reason === "goalVdotBelowTable"
+        ? GOAL_VDOT_BELOW_TABLE_ZONE_COPY
+        : BLOCKED_EQUIVALENCY_ZONE_COPY;
     return (
       <span className="text-sm italic text-muted-foreground">
-        {BLOCKED_EQUIVALENCY_ZONE_COPY.before}
+        {copy.before}
         <JumpLink
           targetId={RECENT_RESULT_JUMP_TARGET_ID}
           ariaLabel="Add a recent result — jump to Recent race result section"
         >
-          {BLOCKED_EQUIVALENCY_ZONE_COPY.jumpLinkText}
+          {copy.jumpLinkText}
         </JumpLink>
-        {BLOCKED_EQUIVALENCY_ZONE_COPY.after}
+        {copy.after}
       </span>
     );
   }

@@ -33,12 +33,12 @@ const GOAL_ONLY_DERIVED: PaceZones = {
 };
 
 const ALL_BLOCKED_AND_UNSET: PaceZones = {
-  recovery: { state: "blocked" },
-  easy: { state: "blocked" },
-  threshold: { state: "blocked" },
-  tenK: { state: "blocked" },
-  fiveK: { state: "blocked" },
-  interval: { state: "blocked" },
+  recovery: { state: "blocked", reason: "noInput" },
+  easy: { state: "blocked", reason: "noInput" },
+  threshold: { state: "blocked", reason: "noInput" },
+  tenK: { state: "blocked", reason: "noInput" },
+  fiveK: { state: "blocked", reason: "noInput" },
+  interval: { state: "blocked", reason: "noInput" },
   goal: { state: "unset" },
 };
 

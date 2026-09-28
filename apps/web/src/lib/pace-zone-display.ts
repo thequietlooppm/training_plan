@@ -107,6 +107,22 @@ export const BLOCKED_EQUIVALENCY_ZONE_COPY = {
   after: " to see this.",
 } as const;
 
+/**
+ * Blocked-equivalency-zone copy for the `reason: "goalVdotBelowTable"` case
+ * (#52 amendment) — a goal time *was* given, but its derived VDOT was too
+ * low to use for the six equivalency zones (the `goal` zone itself is still
+ * shown as a real computed pace elsewhere in the same table; this is not a
+ * total-failure state). Distinct from `BLOCKED_EQUIVALENCY_ZONE_COPY`
+ * (`reason: "noInput"`), which still applies when no goal time was given at
+ * all. Copy is tech-lead's call, informed by data-scientist review — keep
+ * verbatim.
+ */
+export const GOAL_VDOT_BELOW_TABLE_ZONE_COPY = {
+  before: "Your goal time doesn't support estimating this pace. Add a recent result ",
+  jumpLinkText: "above",
+  after: " to see it.",
+} as const;
+
 export const UNSET_GOAL_ZONE_COPY = {
   before: "Add a goal time ",
   jumpLinkText: "above",

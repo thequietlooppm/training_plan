@@ -22,13 +22,28 @@ function textMatcher(selector: string, expected: string) {
 }
 
 const ALL_BLOCKED_AND_UNSET: PaceZones = {
-  recovery: { state: "blocked" },
-  easy: { state: "blocked" },
-  threshold: { state: "blocked" },
-  tenK: { state: "blocked" },
-  fiveK: { state: "blocked" },
-  interval: { state: "blocked" },
+  recovery: { state: "blocked", reason: "noInput" },
+  easy: { state: "blocked", reason: "noInput" },
+  threshold: { state: "blocked", reason: "noInput" },
+  tenK: { state: "blocked", reason: "noInput" },
+  fiveK: { state: "blocked", reason: "noInput" },
+  interval: { state: "blocked", reason: "noInput" },
   goal: { state: "unset" },
+};
+
+/** Goal-time-only submission whose derived VDOT is below the table floor
+ * (issue #52 amendment): the six equivalency zones are `blocked` with
+ * `reason: "goalVdotBelowTable"` — distinct from the `"noInput"` case above
+ * — while the `goal` zone itself is still a real computed pace (this is not
+ * a total-failure state). */
+const GOAL_VDOT_BELOW_TABLE: PaceZones = {
+  recovery: { state: "blocked", reason: "goalVdotBelowTable" },
+  easy: { state: "blocked", reason: "goalVdotBelowTable" },
+  threshold: { state: "blocked", reason: "goalVdotBelowTable" },
+  tenK: { state: "blocked", reason: "goalVdotBelowTable" },
+  fiveK: { state: "blocked", reason: "goalVdotBelowTable" },
+  interval: { state: "blocked", reason: "goalVdotBelowTable" },
+  goal: { state: "computed", label: "marathon", paceSecPerMile: 900 },
 };
 
 const RECENT_RESULT_ONLY: PaceZones = {
@@ -206,5 +221,37 @@ describe("PaceZoneTable", () => {
         name: "Add a goal time — jump to Goal time section",
       }),
     ).toBeDefined();
+  });
+
+  describe("blocked equivalency zones (#52 amendment) — reason-specific copy", () => {
+    it("renders the 'noInput' copy, not the 'goalVdotBelowTable' copy, when reason is 'noInput'", () => {
+      render(<PaceZoneTable zones={ALL_BLOCKED_AND_UNSET} />);
+
+      expect(screen.getAllByText(/^Add a recent result /).length).toBeGreaterThan(0);
+      expect(
+        screen.queryByText(/doesn't support estimating this pace/),
+      ).toBeNull();
+    });
+
+    it("renders the 'goalVdotBelowTable' copy, not the 'noInput' copy, when reason is 'goalVdotBelowTable', and still shows a real computed goal pace", () => {
+      render(<PaceZoneTable zones={GOAL_VDOT_BELOW_TABLE} />);
+
+      expect(
+        screen.getAllByText(/doesn't support estimating this pace/).length,
+      ).toBe(6);
+      expect(screen.queryByText(/^Add a recent result to see this\.?$/)).toBeNull();
+
+      // The `goal` row is unaffected — still a real computed pace, not blocked.
+      expect(screen.getByText("Goal — Marathon")).toBeDefined();
+      expect(screen.getByText("15:00 /mi")).toBeDefined(); // 900s
+
+      // Each blocked row still has a working jump-link to the recent-result
+      // section, same target as the 'noInput' copy.
+      expect(
+        screen.getAllByRole("button", {
+          name: "Add a recent result — jump to Recent race result section",
+        }),
+      ).toHaveLength(6);
+    });
   });
 });
