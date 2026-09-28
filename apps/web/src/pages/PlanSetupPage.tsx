@@ -30,6 +30,7 @@ import {
   planSetupFormSchema,
   type MappedCalculateError,
   type PlanSetupFormValues,
+  PLAN_SETUP_DEFAULT_VALUES,
 } from "@/lib/plan-setup-validation";
 
 interface SummaryError {
@@ -94,14 +95,7 @@ export function PlanSetupPage() {
     defaultValues: {
       templateId: templates[0]?.templateId ?? "",
       raceDate: "",
-      recentResultDistance: "",
-      recentResultHours: "",
-      recentResultMinutes: "",
-      recentResultSeconds: "",
-      goalTimeDistance: "",
-      goalTimeHours: "",
-      goalTimeMinutes: "",
-      goalTimeSeconds: "",
+      ...PLAN_SETUP_DEFAULT_VALUES,
     },
   });
 

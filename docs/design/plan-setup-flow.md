@@ -145,7 +145,7 @@ calculator, not a terminal; it should sit closer to Strava or Hevy in tone.
 
 | App / tool | What it does well | Borrow | Skip |
 |---|---|---|---|
-| **Strava (web + app)** | One confident warm accent color used sparingly (CTAs, active/selected states) against an otherwise neutral, mostly-white surface; body type is a plain humanist sans, never mono, even in dense stat blocks. | The restraint — one accent color, reserved for the submit button and selected/active states only, never a background wash; a neutral surface that's neither stark white nor near-black. | Strava's marketing pages lean on big photography and gradient overlays for hero sections — irrelevant here; this screen has no imagery and no gradients anywhere. |
+| **Strava (web + app)** | One confident warm accent color used sparingly (CTAs, active/selected states) against an otherwise neutral, mostly-white surface; body type is a plain humanist sans, never mono, even in dense stat blocks. | The restraint — one accent color, reserved for the submit button and selected/active states only, never a full-strength background wash (Tempo permits a pale tint for the warning banner and "Estimated" badge); a neutral surface that's neither stark white nor near-black. | Strava's marketing pages lean on big photography and gradient overlays for hero sections — irrelevant here; this screen has no imagery and no gradients anywhere. |
 | **Hevy (workout logging app)** | A dense, numbers-heavy input form (sets/reps/weight) that still reads as approachable, not technical — every input field uses the plain body typeface; numerals get column alignment (tabular figures) only inside the logged-sets *output* table, never on the entry fields themselves. | The exact split this doc needs to state explicitly: **input fields use the body typeface; only the output/results table gets tabular-aligned digits.** | Hevy's rest-timer countdown treatment — not relevant, nothing here counts down. |
 | **Garmin Connect / Strava — lap & split tables** | Split-time tables (mm:ss per lap) align digits column-to-column using tabular/monospaced figures, because misaligned digits in a column of comparable times are genuinely harder to scan — a real, non-decorative reason to reach for mono, confined to that one data table. | The *reason* to use tabular digits at all: a table of comparable numbers being read down a column, not an input field. Direct precedent for confining mono/tabular treatment to §7's pace-number column only. | The rest of Garmin Connect's UI chrome (dense, three-menus-deep, widget-heavy dashboard) — already flagged to skip above. |
 | **Whoop (app)** | Uses a single warm accent (coral/red) against light and dark neutral surfaces, and spends that accent on exactly one job per screen — the primary metric or CTA — leaving everything else greyscale. | The "one accent, one job" discipline — here, that job is the submit button, selected/active states, and the "Estimated" badge/warning treatment (§7.2), not decoration elsewhere. | Whoop's dark-mode-first presentation and heavy data density (recovery score, strain, multiple rings) — this screen has none of that complexity and shouldn't borrow the visual weight that comes with it. |
@@ -185,7 +185,10 @@ re-litigate them. As it lands on this screen specifically:
   from this doc's earlier placeholder, see the top-of-file revision note) —
   spent only on the submit button, selected/active states (template-card
   selection, the goal-time distance toggle's active segment), and the
-  "Estimated" badge/warning treatment (§7.2) — never as a background wash.
+  "Estimated" badge/warning treatment (§7.2). It is never a *full-strength*
+  background wash: the warning banner sits on Tempo's pale orange
+  `accent/tint-bg` (`#FFF7ED`) and the "Estimated" badge on `accent/chip-bg`
+  (`#FFEDD5`), per `ui-toolkit.md`, with text kept ≥4.5:1 on each tint.
 - **Body/UI typeface:** Figtree (Tempo's Body/Label/H1/H2 roles) on every
   heading, label, helper string, and **every input field**, including the
   H/M/S time inputs and the race-date input.

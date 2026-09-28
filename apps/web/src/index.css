@@ -45,6 +45,9 @@
     --color-accent-foreground: var(--accent-foreground);
     --color-destructive: var(--destructive);
     --color-warning: var(--warning);
+    --color-warning-tint: var(--warning-tint);
+    --color-warning-chip: var(--warning-chip);
+    --color-warning-chip-foreground: var(--warning-chip-foreground);
     --color-border: var(--border);
     --color-input: var(--input);
     --color-ring: var(--ring);
@@ -67,7 +70,7 @@
     /*
      * Design spec §2 / `docs/design/ui-toolkit.md` "Color palette" section
      * (this revision — resolves the mockup's "reads as terminal" feedback):
-     * one warm amber/coral accent against neutral, light surfaces, warm dark
+     * one warm orange accent (Tempo orange-700) against neutral, light surfaces, warm dark
      * charcoal text (not pure black), no dark chrome, no green, no purple/
      * blue gradient. Only `--foreground`, `--background`, `--primary` (the
      * accent), and the new `--warning` token actually change from shadcn's
@@ -79,8 +82,8 @@
      * unreachable, not "dark chrome on this screen."
      */
     --radius: 0.625rem;
-    --background: oklch(0.98 0.003 60);
-    --foreground: oklch(0.2 0.01 60);
+    --background: oklch(0.985 0 0); /* Tempo surface/page #FAFAFA */
+    --foreground: oklch(0.268 0.007 34.298); /* Tempo text/primary #292524 */
     --card: oklch(1 0 0);
     --card-foreground: oklch(0.2 0.01 60);
     --popover: oklch(1 0 0);
@@ -114,6 +117,13 @@
      * orange-700 correction above — not amber-700, which Tempo now
      * reserves for the "Partial" completion-status chip. */
     --warning: oklch(0.553 0.174 38.402);
+    /* Tempo `accent/tint-bg` #FFF7ED (banner wash; --warning text on it is
+     * 4.88:1) and `accent/chip-bg` #FFEDD5 with `accent/hover` #9A3412 text
+     * (6.38:1) for the "Estimated" badge. Light-mode only — `.dark` is
+     * unreachable today. */
+    --warning-tint: #fff7ed;
+    --warning-chip: #ffedd5;
+    --warning-chip-foreground: #9a3412;
     --border: oklch(0.92 0.004 286.32);
     --input: oklch(0.92 0.004 286.32);
     --ring: oklch(0.705 0.015 286.067);

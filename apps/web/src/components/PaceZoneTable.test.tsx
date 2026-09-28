@@ -179,6 +179,22 @@ describe("PaceZoneTable", () => {
       expect(jumpLinks).toHaveLength(1);
     });
 
+    it("styles the banner description and 'Estimated' badge for >=4.5:1 contrast on the Tempo tints", () => {
+      const { container } = render(<PaceZoneTable zones={GOAL_ONLY} />);
+
+      const alert = container.querySelector("[data-slot='alert']")!;
+      // Tint background, and no alpha modifier on the text (a `/90` dropped
+      // #C2410C to 4.42:1; full strength on #FFF7ED is 4.88:1).
+      expect(alert.className).toContain("bg-warning-tint");
+      expect(alert.className).not.toMatch(/text-warning\/\d+/);
+
+      const [badge] = screen.getAllByText("Estimated");
+      const badgeEl = badge.closest("[data-slot='badge']")!;
+      // Tinted chip, not the solid `bg-primary` button-like fill.
+      expect(badgeEl.className).toContain("bg-warning-chip");
+      expect(badgeEl.className).not.toMatch(/(^|\s)bg-primary(\s|$)/);
+    });
+
     it("renders exactly six 'Estimated' badges, one per equivalency row, never on the goal row", () => {
       render(<PaceZoneTable zones={GOAL_ONLY} />);
 

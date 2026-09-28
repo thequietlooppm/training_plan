@@ -185,7 +185,13 @@ export function PaceZoneTable({ zones }: { zones: PaceZones }) {
  */
 function EstimatedBadge() {
   return (
-    <Badge title={ESTIMATED_BADGE_TOOLTIP} className="align-middle">
+    <Badge
+      title={ESTIMATED_BADGE_TOOLTIP}
+      // Tempo `accent/chip-bg` tint (#FFEDD5) with `accent/hover` text
+      // (#9A3412, 6.38:1) — a quiet, non-interactive chip, not a solid
+      // `bg-primary` fill that reads as a button.
+      className="border-warning/20 bg-warning-chip align-middle text-warning-chip-foreground"
+    >
       <span>{ESTIMATED_BADGE_LABEL}</span>
       <span className="sr-only"> {ESTIMATED_BADGE_TOOLTIP}</span>
     </Badge>

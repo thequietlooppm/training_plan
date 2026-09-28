@@ -16,8 +16,14 @@ const alertVariants = cva(
         // "no dark chrome anywhere"), colored with the accent family
         // (`--warning`, same hue as `--primary`) instead of red, so it
         // reads as "worth knowing," not "you made an error."
+        //
+        // Background is Tempo's `accent/tint-bg` (#FFF7ED, pale orange), and
+        // the description keeps full-strength `--warning` (#C2410C) — NO
+        // alpha modifier. Measured contrast of #C2410C on #FFF7ED is 4.88:1
+        // (5.18:1 on white); a `/90` modifier drops it below the 4.5:1
+        // required by plan-setup-flow.md §9 (4.42:1 on white).
         warning:
-          "bg-card text-warning *:data-[slot=alert-description]:text-warning/90 [&>svg]:text-current",
+          "border-warning/30 bg-warning-tint text-warning *:data-[slot=alert-description]:text-warning [&>svg]:text-current",
       },
     },
     defaultVariants: {
