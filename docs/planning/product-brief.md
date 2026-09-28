@@ -35,12 +35,18 @@ personalized to them.
   properly (with permission) is a real possibility post-v1, not ruled out
   forever, just not now.
 - **Pace-zone calculator.** Runner enters a recent race result (distance +
-  time) and/or a goal race time.
+  time) and/or a goal race time — at least one of the two is required to
+  proceed with plan setup (see FR3a in `docs/planning/web-v1-requirements.md`).
   - A recent result derives Recovery, Easy, Threshold, 10K, 5K, and
     Interval/Repetition paces via VDOT/Riegel-style equivalency.
   - A goal time derives Marathon or Half-Marathon goal pace directly (not
     equivalency-derived from current fitness, since a goal pace is often a
     deliberate stretch).
+  - If no recent result is entered, the six equivalency zones above are
+    instead derived from the goal time as a fallback, flagged as aspirational
+    / not based on demonstrated fitness. A real recent result always takes
+    priority over this fallback when one exists. See FR5, revised 2026-09-28
+    (`docs/planning/web-v1-requirements.md`).
 - **Personalization.** The template is scaled into daily prescriptions based
   on the runner's own peak-week volume, which is *derived* from the
   template's own workouts, never manually entered.
@@ -139,10 +145,15 @@ personalized to them.
   goal pace stays **unset**, not equivalency-derived — protects a declared
   stretch target from being silently overwritten, and long-range VDOT/Riegel
   extrapolation is weakest here anyway.
-- **Pace calculator, goal time only (no recent result).** The other six
-  zones (Recovery/Easy/Threshold/10K/5K/Interval) are **blocked**, not
-  derived from the goal — deriving Easy/Recovery from an aspirational goal
-  risks the highest-volume zone running too fast.
+- **Pace calculator, goal time only (no recent result).** *Superseded
+  2026-09-28 — see "Still open" note below and FR5 in
+  `docs/planning/web-v1-requirements.md`.* Originally: the other six zones
+  (Recovery/Easy/Threshold/10K/5K/Interval) were **blocked**, not derived
+  from the goal, on the theory that deriving Easy/Recovery from an
+  aspirational goal risks the highest-volume zone running too fast. Patrick
+  overrode this: the six zones are now derived from the goal time as a
+  fallback, visibly flagged as aspirational, rather than blocked outright. A
+  real recent result still wins whenever one exists.
 - **Strength/cross-training completion.** Any non-running activity logged =
   Achieved; a running-only activity = Partial; nothing = Missed. Prevents a
   runner substituting a run for every strength day from showing false 100%
@@ -166,3 +177,10 @@ personalized to them.
   joiner expects their calendar populated at setup — needs a design decision
   (poll a job-status field vs. "populates over the next few minutes"
   messaging).
+- **Goal-derived fallback warning copy/math (2026-09-28).** Patrick decided
+  goal-time-only should derive the six equivalency zones as a flagged
+  aspirational fallback instead of blocking them (see FR5 in
+  `docs/planning/web-v1-requirements.md`, tracked in #52). The exact warning
+  copy and whether any math adjustment beyond reusing the existing
+  VDOT/Riegel equivalency is needed is a data-scientist consult in flight in
+  parallel with #52.
