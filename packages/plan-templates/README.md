@@ -16,6 +16,33 @@ for the schema shape and versioning policy.
   never drift.
 - `src/templates.test.ts` — validates every committed template file against
   the schema and checks `templateId`+`templateVersion` uniqueness.
+- `src/load.ts` (`loadCommittedPlanTemplates()`) — Node-only loader (`fs`,
+  `import.meta.url`) that scans `src/templates/*.json` at runtime. For
+  `apps/api` and any future server-side consumer.
+- `src/committed.ts` (`COMMITTED_PLAN_TEMPLATES`) — browser-safe
+  (Vite-bundleable) alternative for `apps/web`, built from **static** JSON
+  imports rather than a directory scan (a runtime `fs` scan can't run in a
+  browser bundle). Each import is validated through `planTemplateSchema` at
+  module-load time, same as `load.ts`.
+
+## Adding a new committed template — two places, not one
+
+`loadCommittedPlanTemplates()` (`load.ts`) auto-discovers any new file
+dropped into `src/templates/`, but `COMMITTED_PLAN_TEMPLATES`
+(`committed.ts`) does **not** — it's a fixed list of static imports, which is
+what makes it safe to bundle for the browser. Adding a new template (e.g.
+#10's MCR 10-mile plan) requires touching **both**:
+
+1. `src/templates/<templateId>.v<N>.json` — the new template content.
+2. `src/committed.ts` — add the `with { type: "json" }` import for the new
+   file and its entry in the `COMMITTED_PLAN_TEMPLATES` array.
+
+Forgetting step 2 doesn't fail loudly anywhere by default — the new template
+is fully valid and picked up by `load.ts` and `templates.test.ts`, it just
+never appears in `apps/web`'s template picker. `committed.test.ts` guards
+against this by asserting `COMMITTED_PLAN_TEMPLATES.length` matches the
+number of files in `src/templates/` — if that test starts failing after
+adding a template, this is why.
 
 ## Versioning
 

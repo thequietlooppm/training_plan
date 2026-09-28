@@ -17,3 +17,4 @@ export {
   type WorkoutTag,
 } from "./schema.js";
 export { loadCommittedPlanTemplates } from "./load.js";
+export { COMMITTED_PLAN_TEMPLATES } from "./committed.js";
