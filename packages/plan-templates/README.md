@@ -18,12 +18,36 @@ for the schema shape and versioning policy.
   the schema and checks `templateId`+`templateVersion` uniqueness.
 - `src/load.ts` (`loadCommittedPlanTemplates()`) — Node-only loader (`fs`,
   `import.meta.url`) that scans `src/templates/*.json` at runtime. For
-  `apps/api` and any future server-side consumer.
+  `apps/api` and any future server-side consumer. Import it from the
+  `@training-plan/plan-templates/load` subpath — **never** from the bare
+  `@training-plan/plan-templates` specifier.
 - `src/committed.ts` (`COMMITTED_PLAN_TEMPLATES`) — browser-safe
   (Vite-bundleable) alternative for `apps/web`, built from **static** JSON
   imports rather than a directory scan (a runtime `fs` scan can't run in a
   browser bundle). Each import is validated through `planTemplateSchema` at
   module-load time, same as `load.ts`.
+
+## Why the Node-only loader is not in the default export
+
+`package.json`'s `exports` map has two entries:
+
+- `"."` (`dist/index.js`) — the default `@training-plan/plan-templates`
+  specifier. `apps/web` imports this. It must stay browser-safe: no
+  `node:fs`, `node:path`, or `node:url` anywhere in its import graph, because
+  Vite only *warns* (doesn't fail the build) when it externalizes a Node
+  builtin for the browser — the page ships and throws on mount at runtime
+  instead of failing CI. This already happened once (#53): `index.ts` briefly
+  re-exported `loadCommittedPlanTemplates` from `load.js`, which pulled
+  `node:fs` into `apps/web`'s bundle and crashed `/setup` before React could
+  mount, despite green typecheck/lint/test/build.
+- `"./load"` (`dist/load.js`) — the Node-only `loadCommittedPlanTemplates()`,
+  for `apps/api` and other server-side consumers. Import it as
+  `@training-plan/plan-templates/load`.
+
+**`src/index.ts` (the `"."` barrel) must never re-export anything from
+`load.ts`.** `src/browser-entry.test.ts` statically walks `index.ts`'s import
+graph and fails the test suite if a `node:` builtin (or `load.ts` itself)
+becomes reachable from it again.
 
 ## Adding a new committed template — two places, not one
 
