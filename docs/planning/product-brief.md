@@ -72,10 +72,15 @@ personalized to them.
   plan is preserved, not deleted, so its history stays visible.
 - **Completion status.** Every day — including freeform-described ones —
   gets a status via suggest-and-confirm sync: **Achieved / Partial / Missed
-  / Rest**. Partial means an activity happened but was the wrong type or
-  short of the prescription (e.g. hiked instead of ran). Freeform days score
-  the same way (a logged, confirmed activity = Achieved), just without a
-  numeric target to check against.
+  / Rest**. In v1, any confirmed run on a running day is
+  Achieved (no distance threshold). A non-running activity on a running day
+  stays Missed but is shown with an "activity swap" indicator and still counts
+  toward weekly totals. Partial stays in the model for later partial credit
+  and is reached in v1 only by a run on a strength day. The current day shows
+  **Planned** until an activity is confirmed. Late-syncing activities
+  re-evaluate any affected day, with no time limit, still via
+  suggest-and-confirm. Freeform-described days (no v1 template has one) would
+  score as a confirmed activity = Achieved, no Partial tier.
 
 ### Fast-follow (within the v1 release, required before beta — not MVP)
 
@@ -109,7 +114,7 @@ personalized to them.
 - The runner actually opens training_plan instead of the source
   spreadsheet/PDF to know where they stand on a given day.
 - By a few weeks into a training cycle, most scheduled days carry a real
-  status (Achieved / Partial / Missed) rather than sitting blank — i.e. the
+  status (Achieved / Missed, or Partial where it applies) rather than sitting blank or stuck on Planned — i.e. the
   Strava sync + confirm loop is actually being used, not bypassed.
 - The runner completes at least one full personalized plan (club-style or
   MCR) start to finish using the app as their primary source of truth.
@@ -143,8 +148,8 @@ personalized to them.
   zones (Recovery/Easy/Threshold/10K/5K/Interval) are **blocked**, not
   derived from the goal — deriving Easy/Recovery from an aspirational goal
   risks the highest-volume zone running too fast.
-- **Strength/cross-training completion.** Any non-running activity logged =
-  Achieved; a running-only activity = Partial; nothing = Missed. Prevents a
+- **Strength/cross-training completion.** Any non-running activity logged (classified by Strava
+  sport type) = Achieved; a running-only activity = Partial; nothing = Missed. Prevents a
   runner substituting a run for every strength day from showing false 100%
   adherence.
 - **Template naming.** See Plan library above — never named, permanently,
