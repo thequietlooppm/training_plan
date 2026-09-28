@@ -3,10 +3,11 @@ import { z } from "zod";
 /**
  * Zod schemas for the two inputs `calculate()` accepts: a recent race
  * result (used to derive VDOT and, from it, the six equivalency zones) and
- * a goal time (used to derive the single goal-pace zone directly, with no
- * VDOT involved). See `calculator.ts` for the algorithm and
- * `docs` reference in `vdotTable.ts` for where the equivalency numbers come
- * from.
+ * a goal time (used to derive the goal-pace zone by direct division, and —
+ * when no recentResult is present and the implied VDOT is on-table — as the
+ * fallback VDOT source for the six equivalency zones, #52). See
+ * `calculator.ts` for the algorithm and `docs` reference in `vdotTable.ts`
+ * for where the equivalency numbers come from.
  *
  * Zod is used here — on the *inputs* — because #12 feeds this loosely-typed
  * form values. The output (`PaceZones` in `calculator.ts`) is produced by
@@ -103,9 +104,12 @@ export type GoalTimeInput = z.infer<typeof goalTimeShape>;
  * Top-level input to `calculate()`. Both fields are optional and
  * independent: providing only `recentResult` computes the six equivalency
  * zones and leaves `goal` unset (FR4); providing only `goalTime` computes
- * the goal zone and leaves the six equivalency zones blocked (FR5);
- * providing both computes all seven; providing neither is valid and leaves
- * everything blocked/unset (no data to reject, just none to compute from).
+ * `goal` and, when the implied VDOT is >= VDOT_TABLE_MIN, the six
+ * equivalency zones (FR5 as amended by #52); a below-table goal VDOT still
+ * computes `goal` and leaves equivalency blocked with reason
+ * "goalVdotBelowTable"; providing both computes all seven; providing
+ * neither is valid and leaves everything blocked/unset (no data to reject,
+ * just none to compute from).
  */
 export const calculatorInputSchema = z.strictObject({
   recentResult: recentResultInputSchema.optional(),
