@@ -1,11 +1,12 @@
 # Design spec — Training calendar + day detail (view, Strava match, completion status)
 
-> Owned by `@designer`. Status: **ready for implementation once PR #53 is
-> merged into this branch** (see "Dependencies" below) — scoped against issues
-> #16/#17/#18 (calendar + day-detail) and #24 (Strava activity-match UI in the
-> day-detail sheet), FR8–FR22 in `docs/planning/web-v1-requirements.md` (as
-> updated by **PR #58**, "docs: update completion-status FRs (Planned, any run =
-> Achieved, activity swap)"), and ADR 0005
+> Owned by `@designer`. Status: **ready for implementation once PR #58
+> (`docs/completion-status-fr-update`) is merged to `main`** (see "Dependencies"
+> below). PR #53 is already on `main`. Scoped against issues #16/#17/#18
+> (calendar + day-detail) and #24 (Strava activity-match UI in the day-detail
+> sheet), FR8–FR22 in `docs/planning/web-v1-requirements.md` (as updated by
+> **PR #58**, "docs: update completion-status FRs (Planned, any run = Achieved,
+> activity swap)"), and ADR 0005
 > (`docs/decisions/0005-plan-template-schema.md`) for the template's `dayType` /
 > `description` / `distanceMiles` / `phase` fields.
 > Companion spec: `docs/design/strava-connect-settings.md` (issue #20 — the
@@ -17,24 +18,22 @@
 > ### Dependencies — where the things this spec names are defined
 >
 > **This PR (#55) touches only this file and `strava-connect-settings.md`. It
-> does not modify `docs/design/ui-toolkit.md`.** The following are defined on
-> **PR #53 ("plan-setup flow + pace-reference table", branch
-> `12-plan-setup-flow`)** and arrive in this tree when `main` is merged into
-> this branch after #53 lands:
+> does not modify `docs/design/ui-toolkit.md`.** The following are already on
+> `main` (landed with **PR #53**, "plan-setup flow + pace-reference table"):
 >
-> | Referenced here | Defined in | Arrives with |
+> | Referenced here | Defined in | Status |
 > |---|---|---|
-> | **Tempo** color/type system (tokens `text/secondary`, `accent/solid`, `border/subtle`, `destructive/text`, Display / Numeral / H2 / Body roles) | `docs/design/ui-toolkit.md` | #53 |
-> | **Completion-status decision** (Achieved / Partial / Missed / Rest: icon + label + hex + verified contrast ratios). **Planned is not in #53's table** — it is a fifth value added by PR #58; its chip is specified in §5.7 and must be added to the toolkit with verified contrast (§10). | `docs/design/ui-toolkit.md` | #53 (+ §10 addition) |
-> | `plan-setup-flow.md` §7.4 (compact pace-reference chip strip, deferred to this day-detail sheet; `PaceZoneTable` helpers, `lib/pace-zone-display.ts`) | `docs/design/plan-setup-flow.md` | #53 |
-> | Already-adopted primitives cited here (`Alert`, `RadioGroup`, `Skeleton`) | `plan-setup-flow.md` / `ui-toolkit.md` | #53 |
+> | **Tempo** color/type system (tokens `text/secondary`, `accent/solid`, `border/subtle`, `destructive/text`, Display / Numeral / H2 / Body roles) | `docs/design/ui-toolkit.md` | ✓ on `main` (#53) |
+> | **Completion-status decision** (Achieved / Partial / Missed / Rest: icon + label + hex + verified contrast ratios). **Planned is not in #53's table** — it is a fifth value added by PR #58; its chip is specified in §5.7 and must be added to the toolkit with verified contrast (§10). | `docs/design/ui-toolkit.md` | ✓ on `main` (#53, + §10 addition pending #58) |
+> | `plan-setup-flow.md` §7.4 (compact pace-reference chip strip, deferred to this day-detail sheet; `PaceZoneTable` helpers, `lib/pace-zone-display.ts`) | `docs/design/plan-setup-flow.md` | ✓ on `main` (#53) |
+> | Already-adopted primitives cited here (`Alert`, `RadioGroup`, `Skeleton`) | `plan-setup-flow.md` / `ui-toolkit.md` | ✓ on `main` (#53) |
+> | **Completion-status FRs** (Planned / any run = Achieved / activity swap) | `docs/planning/web-v1-requirements.md` | **Pending PR #58** |
 >
-> The rows this spec **adds** to the toolkit (`StatusBadge`, `AlertDialog`,
-> the new Lucide glyphs, custom-component entries, the Planned chip and
-> activity-swap tag) are **not** in `ui-toolkit.md` yet. They are listed in §10
-> so whoever lands the first consumer can add them once #53 is in. Until then,
-> treat any "see `ui-toolkit.md`" pointer below as a pointer to #53's version of
-> that file.
+> The rows this spec **adds** to the toolkit (the Planned chip and
+> activity-swap tag) are listed in §10 (a delta-only list now that #53 is on
+> `main`). `StatusBadge`, `AlertDialog`, `ActivityMatchCard`, the Lucide glyph
+> set, and the Tempo tokens all arrived with #53 and are already in
+> `ui-toolkit.md`.
 >
 > **Revision history**
 >
@@ -173,10 +172,10 @@ loud: **today**, using Notion Calendar's and Apple Calendar's single-idiom
 "today" treatment. Today's chip reads **Planned** (a hollow, dashed-outline
 chip — "still possible") until something is confirmed or the runner's local day
 ends. Every day states its workout in the **template's own
-words** (pace-zone shorthand such as `3–4x1K @ TP`) and the day-detail sheet
-resolves that shorthand against the runner's personal pace reference
-(`E 8:15 · T 7:05 · …`) — the plan's authoring vocabulary is the product, not
-jargon to hide. Numbers are the hero where genuinely compared — per-day
+words** (the template's verbatim `description`, e.g. `3–4x1K at 10K pace (8:10/mi)`)
+and the day-detail sheet resolves each token against the runner's personal pace
+reference (`Easy 10:30 · MGP 9:09 · 10K pace 8:10 · 5K pace 7:55`) — the
+plan's authoring vocabulary is the product, not jargon to hide. Numbers are the hero where genuinely compared — per-day
 mileage, planned-vs-completed volume — set in tabular figures (Tempo's
 Numeral role); the countdown is a standalone hero stat, so it is large
 Figtree (Display role), **not** mono. Race week is a real week with seven
@@ -209,10 +208,10 @@ dismissed in one tap too.
   complete" tap.
 - Into a day's detail in one tap, back in one tap; confirming/dismissing is
   one tap from inside that sheet.
-- **No coach jargon in v1 (no TSS/IF/CTL).** The template's pace-zone
-  shorthand (`E`/`T`/`I`/`M`, `@ TP`) **is** the workout text: show it
-  verbatim and resolve it with the compact pace reference — never rewrite it
-  into conversational copy, never strip it.
+- **No coach jargon in v1 (no TSS/IF/CTL).** The template's `description`
+  text **is** the workout text: show it verbatim (e.g.
+  `3–4x1K at 10K pace (8:10/mi)`) and render the pace reference strip beneath
+  — never rewrite into conversational copy, never strip the pace tokens.
 
 ---
 
@@ -317,12 +316,14 @@ FR19's stored enum is Planned / Achieved / Partial / Missed / Rest.
    panel on desktop (calendar stays visible).
 3. Contents, always: weekday + date and the day's **prescription**:
    - **Running day (`dayType: 'run'`, includes race day):** workout title, the
-     template's **`description` verbatim** (pace-zone shorthand), the `Planned`
+     template's **`description` verbatim** (with pace tokens resolved inline,
+     e.g. `10–12 mile long run, last 4 miles at MGP (9:09/mi)`), the `Planned`
      row (distance/duration), and — directly beneath — the **compact pace
-     reference** strip (`E 8:15 · T 7:05 · I 6:40 · M 7:30`), reusing
-     `PaceZoneTable`'s formatting helpers from `plan-setup-flow.md` §7.4
-     (`lib/pace-zone-display.ts`, arrives with #53). The full table stays in
-     plan setup.
+     reference** strip (full token names + pace, e.g.
+     `Easy 10:30 · MGP 9:09 · 10K pace 8:10 · 5K pace 7:55`; `HMGP` only if
+     the runner has a half-marathon goal pace set), reusing `PaceZoneTable`'s
+     formatting helpers from `plan-setup-flow.md` §7.4 (`lib/pace-zone-display.ts`,
+     on `main` with #53). The full table stays in plan setup.
    - **Strength / cross-training (`strength`, `cross_training`):**
      `description` verbatim, no distance/pace figure (FR11), **no pace
      strip** (nothing to resolve).
@@ -364,8 +365,8 @@ FR19's stored enum is Planned / Achieved / Partial / Missed / Rest.
    prescription/match section: an unscheduled activity on a Rest day, or an
    extra activity on an already-matched day. Type, distance/duration, start
    time, "Extra activity" outline chip. A Rest day with a bonus entry stays
-   **Rest**; the entry counts toward the week's total (§5.7). Nothing to do
-   with it in this pass.
+   **Rest**; a bonus run entry counts toward the run-miles total; a bonus
+   non-run entry does not (§5.7). Nothing to do with it in this pass.
 6. In-sheet nav: **‹ / ›** step to the previous/next day; the calendar behind
    updates its scroll/expansion.
 7. Every state change (confirm / dismiss / undo / pick) triggers a polite
@@ -429,27 +430,27 @@ ASCII only. All states drawn.
 │  Week 9 of 18 · build               │  sub: position + template `phase` (ADR 0005)
 │  ▓▓▓▓▓▓▓▓░░░░░░░░                    │  plan progress bar (role=progressbar)
 ├─────────────────────────────────────┤
-│ ▸  Week 8   Mar 3–Mar 9    28/28mi ✓│  COLLAPSED past week (all Achieved). tap header = expand
+│ ▸  Week 8   Mar 2–Mar 8    28/28mi ✓│  COLLAPSED past week (all Achieved). tap header = expand
 ├─────────────────────────────────────┤
 │ ▾  Week 9   Mar 9–Mar 15  18/32 mi │  EXPANDED current week. header is a button (aria-expanded).
-│  ┌───────────────────────────────┐  │  Completed total includes swap + bonus activity miles (§5.7)
-│  │ Mon 10 Easy run    5 mi ●Achvd│  │  Achieved — green chip, check-circle-2 icon (any confirmed run)
-│  │ Tue 11 Intervals    6 mi ✕Msd │  │  Missed + ACTIVITY SWAP: red x-circle chip, plus a second
+│  ┌───────────────────────────────┐  │  Completed total = confirmed run miles only (§5.7)
+│  │ Mon  9 Easy run    5 mi ●Achvd│  │  Achieved — green chip, check-circle-2 icon (any confirmed run)
+│  │ Tue 10 Intervals    6 mi ✕Msd │  │  Missed + ACTIVITY SWAP: red x-circle chip, plus a second
 │  │        ⇄ Swap · Walk 2.1 mi  ›│  │  line tag with arrow-left-right icon + text (§4.2d-3)
-│  │ Wed 12 Rest             ☾Rest │  │  Rest — grey chip, moon icon, STILL a tap target (FR17)
-│  │ Thu 13 Tempo        7 mi ✕Msd │  │  Missed (elapsed) with a pending/late suggestion:
+│  │ Wed 11 Rest             ☾Rest │  │  Rest — grey chip, moon icon, STILL a tap target (FR17)
+│  │ Thu 12 Tempo        7 mi ✕Msd │  │  Missed (elapsed) with a pending/late suggestion:
 │  │        ◇ Suggestion          ›│  │  quiet outline "Suggestion" tag — status unchanged (§4.2j)
-│  │▎Fri 14 Easy · Today  4 mi ○Plan›│  │  TODAY — accent left border + "Today" label; chip = Planned
+│  │▎Fri 13 Easy · Today  4 mi ○Plan›│  │  TODAY — accent left border + "Today" label; chip = Planned
 │  │                               │  │  (dashed-outline circle, NOT red, NOT filled grey)
-│  │ Sat 15 Rest                   │  │  future Rest day: no chip (future)
-│  │ Sun 16 Long run [LONG] 14 mi ›│  │  UPCOMING long run — "Long" tag, no status (future)
+│  │ Sat 14 Rest                   │  │  future Rest day: no chip (future)
+│  │ Sun 15 Long run [LONG] 14 mi ›│  │  UPCOMING long run — "Long" tag, no status (future)
 │  └───────────────────────────────┘  │
 ├─────────────────────────────────────┤
-│ ▸  Week 10  Mar 17–Mar 23  34 mi    │  COLLAPSED future week (adjacent, always shown)
+│ ▸  Week 10  Mar 16–Mar 22  34 mi    │  COLLAPSED future week (adjacent, always shown)
 ├─────────────────────────────────────┤
 │        • • •  Show weeks 11–16      │  ellipsis: ONLY distant future weeks (never race week)
 ├─────────────────────────────────────┤
-│ ▸  Week 17  Apr 28–May 4   30 mi    │  adjacent-to-race-week, always shown
+│ ▸  Week 17  May 4–May 10   30 mi    │  adjacent-to-race-week, always shown
 │ ▸  Week 18  May 11–May 17 · Race week│  RACE WEEK — real week block, header always visible.
 │                            22 mi    │  Expands to 7 day rows (see 4.1d)
 ├─────────────────────────────────────┤
@@ -510,6 +511,19 @@ Without a connection, every elapsed/current day still computes a status —
 — correct per FR19–22 (nothing can sync). Not an error state; the banner
 nudges without blocking.
 
+**Confirmed statuses persist after disconnect.** Disconnecting Strava does
+not blank or reset any day's status. If a day was Achieved before disconnect,
+it stays Achieved; the calendar shows confirmed statuses as they were. Only
+*new* activities stop arriving after the disconnect.
+
+**Post-purge "Logged" row (NFR3).** Raw Strava activity data is purged within
+24 hours of disconnect. After purge, the day-detail sheet's `Logged` row shows
+only what the match record retains: activity type + distance (e.g.
+`Run · 6.2 mi`). Fields sourced from the raw payload — average heart rate,
+Strava activity link, split data — are unavailable and are not shown.
+Confirmed status (Achieved/Partial/Rest) and the match record (type +
+distance) survive the purge.
+
 ### 4.1c "Reconnect needed" banner (Strava auth expired) — new, drawn here
 
 Same slot as 4.1b, **replaces** it (never both at once). This is the
@@ -542,13 +556,13 @@ explanation. Precedence when several banners apply: connection banner (4.1b
 ```
 │ ▾  Week 18  May 11–May 17 · Race week│
 │  ┌───────────────────────────────┐  │
-│  │ Mon 5  Easy run      4 mi     ›│  │  future days: no chip
-│  │ Tue 6  Easy run      3 mi     ›│  │
-│  │ Wed 7  Rest                   ›│  │
-│  │ Thu 8  Shakeout      2 mi     ›│  │
-│  │ Fri 9  Rest                   ›│  │
-│  │ Sat 10 Easy run      2 mi     ›│  │
-│  │ Sun 11 [⚑] Race day  26.2 mi  ›│  │  race-day row → opens C. Race day detail. A normal running
+│  │ Mon 11 Easy run      4 mi     ›│  │  future days: no chip
+│  │ Tue 12 Easy run      3 mi     ›│  │
+│  │ Wed 13 Rest                   ›│  │
+│  │ Thu 14 Shakeout      2 mi     ›│  │
+│  │ Fri 15 Rest                   ›│  │
+│  │ Sat 16 Easy run      2 mi     ›│  │
+│  │ Sun 17 [⚑] Race day  26.2 mi  ›│  │  race-day row → opens C. Race day detail. A normal running
 │  └───────────────────────────────┘  │  day: chip = Planned on the day, then Achieved / Missed
 ```
 
@@ -566,20 +580,22 @@ explanation. Precedence when several banners apply: connection banner (4.1b
 │  Long run                            │  h2 — sheet's accessible name
 │  Week 9 · build                      │
 │                                      │
-│  14 mi, first 10 @ E, last 4 @ M     │  template `description`, verbatim (pace-zone shorthand)
+│  14 miles, first 10 easy (10:30/mi), │  template `description`, verbatim with pace tokens resolved
+│  last 4 at MGP (9:09/mi)             │  inline by the token-substitution helper (§5.3)
 │  Planned      14 mi · long run       │
-│  E 8:15 · T 7:05 · I 6:40 · M 7:30  │  compact pace reference (PaceZoneTable helpers, #53 §7.4)
-│                                      │
+│  Easy 10:30 · MGP 9:09               │  compact pace reference strip: full token name + pace.
+│                                      │  HMGP omitted (runner has no half-marathon goal set here)
 │  ── future day: nothing below here — no status chip, no activity section ──
 ```
 
 **4.2b — Running day, ELAPSED, Strava connected, nothing synced**
 
 ```
-│  Easy run                            │
-│  3–4x1K @ TP · 6 mi                  │  description verbatim (example of a quality day)
+│  Threshold intervals                 │
+│  3–4x1K at threshold pace (7:05/mi)  │  description verbatim with pace tokens resolved inline
+│  with 400m jog recoveries            │
 │  Planned      6 mi · threshold       │
-│  E 8:15 · T 7:05 · I 6:40 · M 7:30  │
+│  Threshold 7:05                      │  compact pace reference strip
 │                                      │
 │  Missed  ✕                           │  status chip (red, x-circle) — FR20: nothing confirmed
 │  No activity logged for this day.    │  once the local day ended; plain note, no card
@@ -589,9 +605,9 @@ explanation. Precedence when several banners apply: connection banner (4.1b
 
 ```
 │  Easy run                            │
-│  4 mi easy @ E                       │
+│  4 miles easy (10:30/mi)             │  description verbatim with pace token resolved inline
 │  Planned      4 mi · easy            │  the prescription row keeps its label "Planned" (it is the
-│  E 8:15 · T 7:05 · I 6:40 · M 7:30  │  plan); the status chip below is a separate element
+│  Easy 10:30                          │  plan); the status chip below is a separate element
 │                                      │
 │  ○ Planned  (dashed outline)         │  status chip: dashed-outline circle icon (circle-dashed) +
 │  No activity logged yet today.       │  label. Not red, not filled — see §5.7 for the identity rules
@@ -611,7 +627,7 @@ Elapsed day shown (chip Missed). On **today** the same card sits under a
 
 ```
 │  Planned      4 mi · easy            │
-│  E 8:15 · T 7:05 · I 6:40 · M 7:30  │
+│  Easy 10:30                          │  compact pace reference strip
 │                                      │
 │  Missed  ✕                           │  nothing is applied until Confirm (FR14); on today this
 │  ┌───────────────────────────────┐   │  chip reads "○ Planned"; recomputes on Confirm
@@ -628,7 +644,7 @@ Elapsed day shown (chip Missed). On **today** the same card sits under a
 
 ```
 │  Planned      4 mi · easy            │
-│  E 8:15 · T 7:05 · I 6:40 · M 7:30  │
+│  Easy 10:30                          │  compact pace reference strip
 │  Logged       4.1 mi · 34:12 · Run   │
 │                                      │
 │  Achieved  ✓                         │  status chip (green, check-circle-2)
@@ -641,7 +657,7 @@ Elapsed day shown (chip Missed). On **today** the same card sits under a
 
 ```
 │  Planned      6 mi · threshold       │
-│  E 8:15 · T 7:05 · I 6:40 · M 7:30  │
+│  Threshold 7:05                      │  compact pace reference strip
 │  Logged       3.2 mi · 27:40 · Trail run │  Strava sport type TrailRun (any run variant counts)
 │                                      │
 │  Achieved  ✓                         │  same chip as 4.2d — FR20 has no distance/duration threshold
@@ -665,14 +681,13 @@ reason under the chip; not built now.
 
 ```
 │  Planned      5 mi · easy            │
-│  E 8:15 · T 7:05 · I 6:40 · M 7:30  │
+│  Easy 10:30                          │  compact pace reference strip
 │  Logged       2.1 mi · 41:00 · Walk  │  the activity is shown on the day
 │                                      │
 │  Missed  ✕   ⇄ Activity swap         │  chip stays Missed (red, x-circle); indicator is a separate
 │  You did a walk instead of the       │  outline tag: arrow-left-right icon + "Activity swap"
-│  planned run. It counts toward your  │  plain, neutral line. No blame, no "only".
-│  weekly total.                       │
-│  ┌───────────────────────────────┐   │
+│  planned run.                        │  plain, neutral line. No blame, no "only".
+│  ┌───────────────────────────────┐   │  Walk miles do NOT count toward the run-miles fraction
 │  │           Undo                │   │  returns to 4.2c (Planned today / Missed elapsed)
 │  └───────────────────────────────┘   │
 ```
@@ -688,7 +703,7 @@ strength or cross-training days.
 
 ```
 │  Planned      4 mi · easy            │
-│  E 8:15 · T 7:05 · I 6:40 · M 7:30  │
+│  Easy 10:30                          │  compact pace reference strip
 │                                      │
 │  Missed  ✕                           │  unchanged until a choice is confirmed (today: ○ Planned)
 │  Which one is this?                  │  h3, group legend
@@ -725,8 +740,8 @@ automatically, §8).
 │  ┌───────────────────────────────┐   │
 │  │ ＋ Extra activity              │   │  outline chip, no fill — the "bonus entry"
 │  │ Run · 3.2 mi · 28:40           │   │  read-only — nothing to confirm/dismiss
-│  │ Wed, Mar 12 · 5:30 PM          │   │  counts toward the week's total (§5.7)
-│  └───────────────────────────────┘   │
+│  │ Wed, Mar 11 · 5:30 PM          │   │  a Rest-day bonus RUN counts toward run-miles total (§5.7);
+│  └───────────────────────────────┘   │  a non-run bonus does not count toward the run fraction
 ```
 
 **4.2h — Strength / cross-training day (FR11, FR14, FR21) — goes through `ActivityMatchCard` like every other day**
@@ -744,7 +759,7 @@ today it would read **○ Planned**):
 │  ┌───────────────────────────────┐   │
 │  │ Is this it?                   │   │  the SAME ActivityMatchCard as 4.2c
 │  │ Weight training · 38 min       │   │
-│  │ Thu, Mar 13 · 6:10 PM          │   │
+│  │ Thu, Mar 12 · 6:10 PM          │   │
 │  │  [ Confirm ]   [ Dismiss ]     │   │
 │  └───────────────────────────────┘   │
 ```
@@ -799,7 +814,7 @@ Row (in the week list, once its week is expanded):
 
 Sheet:
 │  Planned      4 mi · easy            │
-│  E 8:15 · T 7:05 · I 6:40 · M 7:30  │
+│  Easy 10:30                          │  compact pace reference strip
 │                                      │
 │  Missed  ✕                           │  unchanged — a suggestion never changes status
 │  ┌───────────────────────────────┐   │
@@ -879,26 +894,26 @@ No spinner. Skeleton mirrors the real layout. SR: `aria-busy="true"` on
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │  Marathon plan          9 weeks to race day · Week 9 of 18              [⚙]   │  slim top bar
 ├──────────────────────────────────────────────────────────────────────────────┤
-│  Week 8 · Mar 3–Mar 9                                         28 / 28 mi  ✓   │  week sub-header (sticky), Numeral role
+│  Week 8 · Mar 2–Mar 8                                         28 / 28 mi  ✓   │  week sub-header (sticky), Numeral role
 │  ┌───────┬───────┬───────┬───────┬─────────┬───────┬─────────────┬─────────┐  │
-│  │Mon 3  │Tue 4  │Wed 5  │Thu 6  │Fri 7    │Sat 8  │Sun 9  [LONG]│  wk 8   │  │
+│  │Mon 2  │Tue 3  │Wed 4  │Thu 5  │Fri 6    │Sat 7  │Sun 8  [LONG]│  wk 8   │  │
 │  │Easy   │Hills  │Rest   │Tempo  │Easy     │Rest   │Long run     │  28 mi  │  │  ← weekly-summary rail
 │  │5mi●Ach│6mi●Ach│ ☾Rest │6mi●Ach│4mi●Ach  │ ☾Rest │12mi●Achieved│ all Ach │  │
 │  └───────┴───────┴───────┴───────┴─────────┴───────┴─────────────┴─────────┘  │
 │  Week 9 · Mar 9–Mar 15                                       18 / 32 mi      │
 │  ┌───────┬───────┬───────┬───────┬─────────┬───────┬─────────────┬─────────┐  │
-│  │Mon 10 │Tue 11 │Wed 12 │Thu 13 │▏Fri 14  │Sat 15 │Sun 16 [LONG]│  wk 9   │  │
+│  │Mon 9  │Tue 10 │Wed 11 │Thu 12 │▏Fri 13  │Sat 14 │Sun 15 [LONG]│  wk 9   │  │
 │  │Easy   │Interv │Rest   │Tempo  │▏Today   │Rest   │Long run     │  32 mi  │  │
 │  │5mi●Ach│6mi✕Msd│ ☾Rest │7mi✕Msd│▏4mi○Plan│       │14 mi        │ 18 done │  │  today: Planned (dashed), never Missed
 │  │       │⇄Swap  │       │◇Sugg. │▏        │       │             │         │  │  swap tag / suggestion tag on their own line
 │  └───────┴───────┴───────┴───────┴─────────┴───────┴─────────────┴─────────┘  │
-│  Week 10 · Mar 17–Mar 23                                      34 mi planned   │
+│  Week 10 · Mar 16–Mar 22                                      34 mi planned   │
 │  ...                                                                          │
 │                     • • •  Show weeks 11–16                                   │  distant weeks only
-│  Week 17 · Apr 28–May 4                                       30 mi planned   │
+│  Week 17 · May 4–May 10                                       30 mi planned   │
 │  Week 18 · May 11–May 17 · Race week                           22 mi planned   │  RACE WEEK = full 7-column row
 │  ┌───────┬───────┬───────┬───────┬─────────┬───────┬─────────────┬─────────┐  │
-│  │Mon 5  │Tue 6  │Wed 7  │Thu 8  │Fri 9    │Sat 10 │Sun 11 [⚑]   │  wk 18  │  │
+│  │Mon 11 │Tue 12 │Wed 13 │Thu 14 │Fri 15   │Sat 16 │Sun 17 [⚑]   │  wk 18  │  │
 │  │Easy   │Easy   │Rest   │Shake  │Rest     │Easy   │Race day     │  22 mi  │  │
 │  │4 mi   │3 mi   │       │2 mi   │         │2 mi   │26.2 mi      │         │  │
 │  └───────┴───────┴───────┴───────┴─────────┴───────┴─────────────┴─────────┘  │
@@ -1001,7 +1016,7 @@ Stack is decided (ADR 0002: React + Vite, Tailwind, shadcn/ui, Lucide).
 | Status chip labels | `Planned` · `Achieved` · `Partial` · `Missed` · `Rest` (verbatim) |
 | Planned-today note (no activity) | `No activity logged yet today.` |
 | Activity-swap tag | `Activity swap` (sheet) · `Swap` (mobile row, desktop cell) |
-| Activity-swap explanation | `You did a {walk\|hike\|ride…} instead of the planned run. It counts toward your weekly total.` (activity type from Strava sport type, lower-cased) |
+| Activity-swap explanation | `You did a {walk\|hike\|ride…} instead of the planned run.` (activity type from Strava sport type, lower-cased; non-run miles do not count toward the run-miles total per §5.7) |
 | Partial reason, run on strength day | `Logged a run, not a strength session.` |
 | Unlinked/bonus chip | `Extra activity` |
 | Suggestion row tag | `Suggestion` (mobile row) · `Sugg.` (desktop cell, accessible name always `Suggestion waiting`) |
@@ -1012,7 +1027,7 @@ Stack is decided (ADR 0002: React + Vite, Tailwind, shadcn/ui, Lucide).
 | Race block countdown | `9 weeks to go` → `Race week` → `Race day is today` |
 | Day detail — workout text | template `description`, verbatim |
 | Day detail — planned row | `Planned` → e.g. `4 mi · easy` |
-| Day detail — pace reference | `Easy 10:30 · MGP 9:09 · HMGP 8:45 · 10K pace 8:10 · 5K pace 7:55` (full zone names; formatting from `packages/pace-zones/src/formatter.ts`) |
+| Day detail — pace reference | `Easy 10:30 · MGP 9:09 · 10K pace 8:10 · 5K pace 7:55` (full token names + pace; `HMGP` entry only appears if the runner has a half-marathon goal pace set; formatting from the token-substitution helper in `packages/pace-zones/src/`) |
 | Day detail — logged row | `Logged` → e.g. `4.1 mi · 34:12 · Run` |
 | Day detail — no activity (elapsed) | `No activity logged for this day.` |
 | Suggested-match card heading | `Is this it?` |
@@ -1035,11 +1050,39 @@ Stack is decided (ADR 0002: React + Vite, Tailwind, shadcn/ui, Lucide).
 | Loading (SR only) | `Loading your plan` |
 
 Tone: plain, second person, no exclamation marks, no blame ("only a walk" is
-banned; the swap line states the fact and says it counts). **Coach jargon**
-(TSS/IF/CTL) is out; the template's own pace-zone shorthand is the workout
-text and is shown as written. The old "Nice. Long run Sunday." nudge is
-dropped — a confirmed match is a matter-of-fact event, so live-region copy
-states the fact plainly.
+banned; the swap line states the fact neutrally). **Coach jargon**
+(TSS/IF/CTL) is out; the template's own `description` text is the workout
+text and is shown as written (with pace tokens resolved inline). The old
+"Nice. Long run Sunday." nudge is dropped — a confirmed match is a
+matter-of-fact event, so live-region copy states the fact plainly.
+
+**Pace token display (swe — how the description and pace strip are produced).**
+The day-detail sheet uses a **token-substitution helper** to add to
+`packages/pace-zones/src/` (name TBD with tech-lead). It receives the
+template's `description` string and the runner's computed `ZoneId` paces, and
+returns the description with each recognized token followed by its computed
+pace in parentheses (e.g. `at MGP (9:09/mi)`). The pace reference strip is
+built from the same mapping — full token name + pace, one entry per token that
+appears in the description, `HMGP` only if the runner has a half-marathon goal
+pace set.
+
+Token → ZoneId mapping:
+
+| Template token | ZoneId | Notes |
+|---|---|---|
+| `easy` / `E` | `easy` | |
+| `MGP` / `M` | `goal` | marathon goal pace |
+| `HMGP` | `goal` | half-marathon goal pace; **omit from legend if not set** |
+| `10K pace` | `tenK` | |
+| `5K pace` | `fiveK` | |
+| `TP` / `threshold` / `T` | `threshold` | |
+| `interval` / `I` | `interval` | |
+
+The helper lives in `packages/` so iOS and Android clients can reuse it. It
+does **not** live in `apps/web/src/lib/pace-zone-display.ts` (that file
+handles display formatting of zone table rows; this is a separate
+token-in-string substitution concern). Unknown tokens are passed through
+unchanged.
 
 ### 5.4 Responsive behaviour
 
@@ -1159,6 +1202,14 @@ deliberate tightening).
 The Swap and Suggestion tags are part of the day's single `<button>`, not
 separate tab stops.
 
+**WCAG 2.4.3 Focus Order — auth-expired reconnect banner (4.1c).** The
+`Reconnect` button's tab stop must come **after** the Settings card in DOM
+order, matching the visual reading order (banner is below the top bar but
+above the countdown). Do **not** use a positive `tabindex` value to pull the
+Reconnect button ahead of its visual position — doing so would violate WCAG
+2.4.3 (Focus Order). Render the banner in DOM order; tab order follows
+automatically.
+
 **Enhancement (not required for v1):** roving `tabindex` + arrow keys between
 day cells within a week (Notion Calendar). Tab must still reach every day.
 
@@ -1171,11 +1222,12 @@ day cells within a week (Notion Calendar). Tab must still reach every day.
 - `role="dialog"`, `aria-modal="true"` on mobile, `aria-labelledby` → workout
   title `<h2>`.
 - Prev/next: `aria-label="Previous day"` / `"Next day"`; day change announced
-  via `aria-live="polite"` ("Now showing Thursday, March 13").
+  via `aria-live="polite"` ("Now showing Thursday, March 12").
 - The compact pace strip is plain text in reading order after `Planned`, e.g.
-  read as "Pace reference: E 8:15 per mile, T 7:05 per mile …"; give the
-  container `aria-label="Pace reference"` and expand the zone letters for
-  screen readers (`E` → "easy"), since the letters alone are ambiguous.
+  read as "Pace reference: Easy 10:30 per mile, MGP 9:09 per mile, 10K pace
+  8:10 per mile …"; give the container `aria-label="Pace reference"`. Since
+  the strip now uses full token names (not single letters), no additional
+  expansion is needed for screen readers.
 - **Prescription row vs. status chip both say "Planned".** The prescription
   row is labelled for AT as "Prescribed: 4 miles, easy"; the chip is
   announced as "Status: Planned". Visible text stays `Planned` for both.
@@ -1206,9 +1258,9 @@ day cells within a week (Notion Calendar). Tab must still reach every day.
 - Week list: `<ol>` of weeks; day list inside a week: `<ol>` of days.
 - Each day control's accessible name is self-sufficient and **always includes
   a status word for an elapsed/current day**: `"Friday, March 13. Today.
-  Easy run, 4 miles. Planned."` / `"Tuesday, March 11. Intervals, 6 miles.
-  Missed. Activity swap: walk, 2.1 miles."` / `"Thursday, March 13. Tempo,
-  7 miles. Missed. Suggestion waiting."` / `"Wednesday, March 12. Rest. Extra
+  Easy run, 4 miles. Planned."` / `"Tuesday, March 10. Intervals, 6 miles.
+  Missed. Activity swap: walk, 2.1 miles."` / `"Thursday, March 12. Tempo,
+  7 miles. Missed. Suggestion waiting."` / `"Wednesday, March 11. Rest. Extra
   activity logged."` For a future day, no status word: `"Sunday, March 15.
   Long run, 14 miles."`
 - Status icon, "Long" tag, "Today" pill, tag glyphs are supplementary
@@ -1354,10 +1406,9 @@ Before committing further build:
 - **Planned vs. Missed vs. Rest at a glance** — is the dashed-outline Planned
   chip distinguishable from Rest and Missed at real mobile size, including in
   greyscale?
-- **Activity-swap copy** — does "You did a walk instead of the planned run. It
-  counts toward your weekly total." read as neutral, or does "Missed" next to
-  a logged walk feel unfair? (FR20 mandates Missed; the copy and tag are the
-  only softening lever.)
+- **Activity-swap copy** — does "You did a walk instead of the planned run."
+  read as neutral, or does "Missed" next to a logged walk feel unfair?
+  (FR20 mandates Missed; the copy and tag are the only softening lever.)
 - **"Is this it?" copy and `ActivityMatchCard` layout** — enough information
   to confirm without opening Strava?
 - ~~**Pace-zone shorthand in the day-detail sheet** — does `3–4x1K @ TP` plus
@@ -1384,31 +1435,31 @@ After shipping:
 
 ---
 
-## 10. Toolkit rows to add to `docs/design/ui-toolkit.md` once PR #53 is merged
+## 10. Toolkit additions (delta since PR #53 is on `main`)
 
-`ui-toolkit.md` is not touched by this PR. After #53 lands on `main` and `main`
-is merged into this branch, add these (or land them with the first consumer
-PR — #16/#17/#18/#20/#24). Sections named below are #53's; match its table
-format.
+PR #53 is on `main`. The following are **already in `docs/design/ui-toolkit.md`
+on `main`** and do NOT need to be added again: `StatusBadge`, `AlertDialog`,
+`ActivityMatchCard`, the Lucide glyph set, and the Tempo color/type tokens.
 
-**Components**
+This section lists only what **this PR (#55) adds** to the toolkit (or
+corrections to existing entries). Land these with the first consumer PR
+(#16/#17/#18/#20/#24); match the table format in `ui-toolkit.md`.
 
-| Row | Value |
+**New entries this PR adds**
+
+| Entry | Spec |
 |---|---|
-| `StatusBadge` | shadcn `Badge`, custom color + icon; **completion** values **Planned** / Achieved / Partial / Missed / Rest and a **connection** value set (Not connected / Connected / Reconnect needed) using the same four hues; one shared module. Compact variant for the desktop grid cell. |
-| **Planned** completion-status value | `circle-dashed` icon, label `Planned`, dashed-outline/no-fill chip in a neutral hue; verified hex + contrast (≥ 4.5:1 text, ≥ 3:1 border, both modes) to be recorded in the completion-status table. Only used for the current day. Connection value sets do **not** use it. |
-| Activity-swap tag, Suggestion tag | outline `Badge` + Lucide glyph (`arrow-left-right`, `link-2`); neutral, never a status color. |
-| `AlertDialog` | shadcn `AlertDialog` — first adoption (Strava disconnect). Cancel default-focused, destructive confirm. |
-| `Alert` warning (amber) variant | Needed for the reconnect-needed banner (4.1c) if not already present. |
-| `ActivityMatchCard` | Custom (`Card` + 2 `Button`) — confirm-an-inference pattern; used on running and strength/cross-training days. |
-| Unlinked/bonus-activity card | Custom (`Card` outline + outline `Badge`). |
-| Week block, day row / desktop day cell, race-day block | Custom (Deliberately-custom list) — week container on `Accordion`. |
-| Compact pace strip | Reuse of `PaceZoneTable` helpers (`lib/pace-zone-display.ts`), no new dependency. |
-| `Accordion`, `Progress`, `Drawer` (Vaul), `Skeleton`, `RadioGroup` | Adopt if not already listed by #53 (`RadioGroup`, `Skeleton` are already used by plan-setup). |
+| **Planned** completion-status chip | `circle-dashed` icon, label `Planned`, dashed-outline/no-fill chip, neutral hue (not the accent color). Record verified hex + contrast in the completion-status table: ≥ 4.5:1 for label text, ≥ 3:1 for the dashed border against its background, both light and dark modes. Only used for the current day. |
+| **Activity-swap tag** | outline `Badge` + `arrow-left-right` Lucide glyph; neutral, never a status color. New use of the outline-Badge pattern. |
+| **Suggestion tag** | outline `Badge` + `link-2` Lucide glyph; same neutral treatment. New use of the outline-Badge pattern. |
 
-**Lucide icons** (one set, per toolkit): `check-circle-2`, `circle-dot`,
-`x-circle`, `moon`, `circle-dashed`, `arrow-left-right`, `link-2`,
-`plus-circle`, `undo-2`, `link-2-off`, `alert-triangle`, `external-link`,
-`flag`, `chevron-right`/`chevron-down`, `info`. Verify names against the
-installed Lucide version (some have been renamed, e.g. `check-circle-2` →
-`circle-check`).
+**Three corrections to record in `ui-toolkit.md`**
+
+1. **Last-synced absolute timestamp:** use `sr-only` visually-hidden text to
+   expose the full timestamp to screen readers — do **not** use a `title`
+   attribute (inaccessible on touch, inconsistent SR support).
+2. **Auth-expired reconnect banner (4.1c):** warning treatment (amber `Alert`
+   variant), **not** destructive (red). The situation is recoverable and not
+   an error.
+3. **Not-connected state icon:** use `link-2-off` Lucide icon, not any other
+   broken-link variant.
