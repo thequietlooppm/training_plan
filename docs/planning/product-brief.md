@@ -138,10 +138,7 @@ personalized to them.
   zones (Recovery/Easy/Threshold/10K/5K/Interval) are **blocked**, not
   derived from the goal — deriving Easy/Recovery from an aspirational goal
   risks the highest-volume zone running too fast.
-- **Strength/cross-training completion.** Any non-running activity logged (classified by Strava
-  sport type) = Achieved; a running-only activity = Partial; nothing = Missed. Prevents a
-  runner substituting a run for every strength day from showing false 100%
-  adherence.
+- **Strength/cross-training completion.** Any confirmed non-running activity (Strava sport type, same allowlist as FR20) = Achieved; Partial = the confirmed match is a run (a bonus gym session on the same day does not change that); nothing confirmed = Missed (elapsed) or Planned (today). Prevents a runner substituting a run for every strength day from showing false 100% adherence.
 - **Template naming.** See Plan library above — never named, permanently,
   for v1/MVP.
 - **Units.** Miles only for v1.
