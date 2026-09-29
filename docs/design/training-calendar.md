@@ -174,7 +174,7 @@ chip — "still possible") until something is confirmed or the runner's local da
 ends. Every day states its workout in the **template's own
 words** (the template's verbatim `description`, e.g. `3–4x1K at 10K pace (8:10/mi)`)
 and the day-detail sheet resolves each token against the runner's personal pace
-reference (`Easy 10:30 · MGP 9:09 · 10K pace 8:10 · 5K pace 7:55`) — the
+reference (`Easy 10:30 /mi · MGP 9:09 /mi · 10K pace 8:10 /mi · 5K pace 7:55 /mi`) — the
 plan's authoring vocabulary is the product, not jargon to hide. Numbers are the hero where genuinely compared — per-day
 mileage, planned-vs-completed volume — set in tabular figures (Tempo's
 Numeral role); the countdown is a standalone hero stat, so it is large
@@ -210,7 +210,7 @@ dismissed in one tap too.
   one tap from inside that sheet.
 - **No coach jargon in v1 (no TSS/IF/CTL).** The template's `description`
   text **is** the workout text: show it verbatim (e.g.
-  `3–4x1K at 10K pace (8:10/mi)`) and render the pace reference strip beneath
+  `3–4x1K at 10K pace (8:10 /mi)`) and render the pace reference strip beneath
   — never rewrite into conversational copy, never strip the pace tokens.
 
 ---
@@ -317,13 +317,16 @@ FR19's stored enum is Planned / Achieved / Partial / Missed / Rest.
 3. Contents, always: weekday + date and the day's **prescription**:
    - **Running day (`dayType: 'run'`, includes race day):** workout title, the
      template's **`description` verbatim** (with pace tokens resolved inline,
-     e.g. `10–12 mile long run, last 4 miles at MGP (9:09/mi)`), the `Planned`
+     e.g. `10–12 mile long run, last 4 miles at MGP (9:09 /mi)`), the `Planned`
      row (distance/duration), and — directly beneath — the **compact pace
-     reference** strip (full token names + pace, e.g.
-     `Easy 10:30 · MGP 9:09 · 10K pace 8:10 · 5K pace 7:55`; `HMGP` only if
-     the runner has a half-marathon goal pace set), reusing `PaceZoneTable`'s
-     formatting helpers from `plan-setup-flow.md` §7.4 (`lib/pace-zone-display.ts`,
-     on `main` with #53). The full table stays in plan setup.
+     reference** strip (full token names + pace with `/mi` unit, e.g.
+     `Easy 10:30 /mi · MGP 9:09 /mi · 10K pace 8:10 /mi · 5K pace 7:55 /mi`;
+     `HMGP` only if the runner has a half-marathon goal pace set). The token-
+     substitution helper and `formatPace` function that produce both the resolved
+     description and the pace strip live in `packages/pace-zones/src/` (§5.3);
+     they are **not** `apps/web/src/lib/pace-zone-display.ts`, which handles
+     zone-table-row display formatting — a different concern. The full pace-zone
+     table stays in plan setup.
    - **Strength / cross-training (`strength`, `cross_training`):**
      `description` verbatim, no distance/pace figure (FR11), **no pace
      strip** (nothing to resolve).
@@ -580,10 +583,11 @@ explanation. Precedence when several banners apply: connection banner (4.1b
 │  Long run                            │  h2 — sheet's accessible name
 │  Week 9 · build                      │
 │                                      │
-│  14 miles, first 10 easy (10:30/mi), │  template `description`, verbatim with pace tokens resolved
-│  last 4 at MGP (9:09/mi)             │  inline by the token-substitution helper (§5.3)
+│  10-12 mile long run, last 4 miles   │  template `description`, verbatim with pace tokens resolved
+│  at marathon goal pace (MGP)         │  inline by the token-substitution helper (§5.3);
+│  (9:09 /mi)                          │  MGP token resolved to its computed pace
 │  Planned      14 mi · long run       │
-│  Easy 10:30 · MGP 9:09               │  compact pace reference strip: full token name + pace.
+│  Easy 10:30 /mi · MGP 9:09 /mi       │  compact pace reference strip: full token name + pace /mi.
 │                                      │  HMGP omitted (runner has no half-marathon goal set here)
 │  ── future day: nothing below here — no status chip, no activity section ──
 ```
@@ -592,10 +596,10 @@ explanation. Precedence when several banners apply: connection banner (4.1b
 
 ```
 │  Threshold intervals                 │
-│  3–4x1K at threshold pace (7:05/mi)  │  description verbatim with pace tokens resolved inline
+│  3–4x1K at threshold pace (7:05 /mi) │  description verbatim with pace tokens resolved inline
 │  with 400m jog recoveries            │
 │  Planned      6 mi · threshold       │
-│  Threshold 7:05                      │  compact pace reference strip
+│  Threshold 7:05 /mi                  │  compact pace reference strip
 │                                      │
 │  Missed  ✕                           │  status chip (red, x-circle) — FR20: nothing confirmed
 │  No activity logged for this day.    │  once the local day ended; plain note, no card
@@ -605,9 +609,9 @@ explanation. Precedence when several banners apply: connection banner (4.1b
 
 ```
 │  Easy run                            │
-│  4 miles easy (10:30/mi)             │  description verbatim with pace token resolved inline
+│  4 miles easy (10:30 /mi)            │  description verbatim with pace token resolved inline
 │  Planned      4 mi · easy            │  the prescription row keeps its label "Planned" (it is the
-│  Easy 10:30                          │  plan); the status chip below is a separate element
+│  Easy 10:30 /mi                      │  plan); the status chip below is a separate element
 │                                      │
 │  ○ Planned  (dashed outline)         │  status chip: dashed-outline circle icon (circle-dashed) +
 │  No activity logged yet today.       │  label. Not red, not filled — see §5.7 for the identity rules
@@ -626,8 +630,9 @@ Elapsed day shown (chip Missed). On **today** the same card sits under a
 **Planned** chip.
 
 ```
+│  4 miles easy (10:30 /mi)            │  template `description`, verbatim with pace token resolved
 │  Planned      4 mi · easy            │
-│  Easy 10:30                          │  compact pace reference strip
+│  Easy 10:30 /mi                      │  compact pace reference strip
 │                                      │
 │  Missed  ✕                           │  nothing is applied until Confirm (FR14); on today this
 │  ┌───────────────────────────────┐   │  chip reads "○ Planned"; recomputes on Confirm
@@ -643,8 +648,9 @@ Elapsed day shown (chip Missed). On **today** the same card sits under a
 **4.2d — Confirmed run, Achieved (FR20: any confirmed run type)**
 
 ```
+│  4 miles easy (10:30 /mi)            │  template `description`, verbatim with pace token resolved
 │  Planned      4 mi · easy            │
-│  Easy 10:30                          │  compact pace reference strip
+│  Easy 10:30 /mi                      │  compact pace reference strip
 │  Logged       4.1 mi · 34:12 · Run   │
 │                                      │
 │  Achieved  ✓                         │  status chip (green, check-circle-2)
@@ -656,8 +662,10 @@ Elapsed day shown (chip Missed). On **today** the same card sits under a
 **4.2d-2 — Confirmed run, any distance — still Achieved (logged vs. planned is informational)**
 
 ```
+│  3–4x1K at threshold pace (7:05 /mi) │  template `description`, verbatim with pace token resolved
+│  with 400m jog recoveries            │
 │  Planned      6 mi · threshold       │
-│  Threshold 7:05                      │  compact pace reference strip
+│  Threshold 7:05 /mi                  │  compact pace reference strip
 │  Logged       3.2 mi · 27:40 · Trail run │  Strava sport type TrailRun (any run variant counts)
 │                                      │
 │  Achieved  ✓                         │  same chip as 4.2d — FR20 has no distance/duration threshold
@@ -680,8 +688,9 @@ reason under the chip; not built now.
 **4.2d-3 — Confirmed NON-run on a run day: Missed + activity swap (FR20)**
 
 ```
+│  5 miles easy (10:30 /mi)            │  template `description`, verbatim with pace token resolved
 │  Planned      5 mi · easy            │
-│  Easy 10:30                          │  compact pace reference strip
+│  Easy 10:30 /mi                      │  compact pace reference strip
 │  Logged       2.1 mi · 41:00 · Walk  │  the activity is shown on the day
 │                                      │
 │  Missed  ✕   ⇄ Activity swap         │  chip stays Missed (red, x-circle); indicator is a separate
@@ -702,8 +711,9 @@ strength or cross-training days.
 **4.2e — Multiple plausible matches (FR18) — status does not change until Confirm**
 
 ```
+│  4 miles easy (10:30 /mi)            │  template `description`, verbatim with pace token resolved
 │  Planned      4 mi · easy            │
-│  Easy 10:30                          │  compact pace reference strip
+│  Easy 10:30 /mi                      │  compact pace reference strip
 │                                      │
 │  Missed  ✕                           │  unchanged until a choice is confirmed (today: ○ Planned)
 │  Which one is this?                  │  h3, group legend
@@ -809,12 +819,13 @@ sync, or a backfill). The day was already Missed.
 
 ```
 Row (in the week list, once its week is expanded):
-│ Fri 7  Easy run     4 mi   ✕Missed  │
-│        ◇ Suggestion                ›│  quiet outline tag; chip unchanged
+│ Fri, Mar 6  Easy run  4 mi   ✕Missed │
+│             ◇ Suggestion            ›│  quiet outline tag; chip unchanged
 
 Sheet:
+│  4 miles easy (10:30 /mi)            │  template `description`, verbatim with pace token resolved
 │  Planned      4 mi · easy            │
-│  Easy 10:30                          │  compact pace reference strip
+│  Easy 10:30 /mi                      │  compact pace reference strip
 │                                      │
 │  Missed  ✕                           │  unchanged — a suggestion never changes status
 │  ┌───────────────────────────────┐   │
@@ -975,7 +986,7 @@ Stack is decided (ADR 0002: React + Vite, Tailwind, shadcn/ui, Lucide).
 | Day row / day cell | **custom** | Core object; `<button>` per day. |
 | `StatusBadge` (Planned/Achieved/Partial/Missed/Rest) | `Badge` (custom color/icon) | Shared module used by day row, desktop cell (compact), and day-detail sheet. Definition lands with #53 (four values); **Planned** is added by this spec (§5.7); toolkit row in §10. |
 | Activity-swap tag / "Suggestion" tag | `Badge` (outline variant) + Lucide icon | Neutral outline, never a status color. Same primitive as the "Extra activity" chip. |
-| Compact pace reference strip | plain markup over `PaceZoneTable` helpers (`lib/pace-zone-display.ts`) | Reuse, don't rebuild; defined in `plan-setup-flow.md` §7.4 (#53). |
+| Compact pace reference strip | plain markup over the token-substitution helper in `packages/pace-zones/src/` (§5.3) | Token substitution and `formatPace` (emits `/mi` unit) live in `packages/`, not `apps/web/src/lib/pace-zone-display.ts`. |
 | "Long" tag, "Today" label, "Race day" tag | **custom** (span) | Text badges; never colour-only. |
 | Day detail — mobile sheet | `Drawer` (Vaul) or `Dialog` styled as sheet | Focus trap, Esc, focus return. |
 | Day detail — desktop side panel | `Dialog` with side styling, or aside in layout | Non-modal acceptable; don't trap focus, do move focus in. |
@@ -1027,7 +1038,7 @@ Stack is decided (ADR 0002: React + Vite, Tailwind, shadcn/ui, Lucide).
 | Race block countdown | `9 weeks to go` → `Race week` → `Race day is today` |
 | Day detail — workout text | template `description`, verbatim |
 | Day detail — planned row | `Planned` → e.g. `4 mi · easy` |
-| Day detail — pace reference | `Easy 10:30 · MGP 9:09 · 10K pace 8:10 · 5K pace 7:55` (full token names + pace; `HMGP` entry only appears if the runner has a half-marathon goal pace set; formatting from the token-substitution helper in `packages/pace-zones/src/`) |
+| Day detail — pace reference | `Easy 10:30 /mi · MGP 9:09 /mi · 10K pace 8:10 /mi · 5K pace 7:55 /mi` (full token names + pace with `/mi` unit; `HMGP` entry only appears if the runner has a half-marathon goal pace set; `Estimated` badge on any pace with `source: "goalTime"` — see §5.3; formatting from the token-substitution helper in `packages/pace-zones/src/`) |
 | Day detail — logged row | `Logged` → e.g. `4.1 mi · 34:12 · Run` |
 | Day detail — no activity (elapsed) | `No activity logged for this day.` |
 | Suggested-match card heading | `Is this it?` |
@@ -1061,27 +1072,42 @@ The day-detail sheet uses a **token-substitution helper** to add to
 `packages/pace-zones/src/` (name TBD with tech-lead). It receives the
 template's `description` string and the runner's computed `ZoneId` paces, and
 returns the description with each recognized token followed by its computed
-pace in parentheses (e.g. `at MGP (9:09/mi)`). The pace reference strip is
-built from the same mapping — full token name + pace, one entry per token that
-appears in the description, `HMGP` only if the runner has a half-marathon goal
-pace set.
+pace in parentheses (e.g. `at MGP (9:09 /mi)`). The pace reference strip is
+built from the same mapping — full token name + pace (with `/mi` unit,
+e.g. `Easy 10:30 /mi`), one entry per token that appears in the description,
+`HMGP` only if the runner has a half-marathon goal pace set.
+
+**`formatPace` unit.** The helper's `formatPace` function always appends
+` /mi` (with a space before the slash), so pace values render as `10:30 /mi`,
+`9:09 /mi`, etc. — both inline in the resolved description and in the pace
+reference strip.
+
+**`source: "goalTime"` / Estimated badge.** When a zone's pace is derived
+from the runner's goal time only (no recent race result), the zone carries
+`source: "goalTime"` in the computed pace data (as defined by PR #53 and
+`plan-setup-flow.md` §7.4). The inline substitution and the pace reference
+strip must show an **Estimated** badge on any pace whose zone has
+`source: "goalTime"`, matching the treatment in `PaceZoneTable` from PR #53.
+Display: small muted badge with label `Estimated` immediately after the pace
+value (e.g. `Easy 10:30 /mi Estimated`). swe: read `source` from each
+resolved zone; no `source` field or `source: "recentResult"` → no badge.
 
 Token → ZoneId mapping:
 
 | Template token | ZoneId | Notes |
 |---|---|---|
 | `easy` / `E` | `easy` | |
-| `MGP` / `M` | `goal` | marathon goal pace |
-| `HMGP` | `goal` | half-marathon goal pace; **omit from legend if not set** |
+| `MGP` / `M` | `goal` | marathon goal pace; `goalZoneLabel()` returns `Goal — Marathon` on a marathon plan |
+| `HMGP` | *(not a ZoneId)* | Half-marathon goal pace. Resolves to the runner's half-marathon goal zone pace when set; shown as `HMGP (not set)` when not set. **Not** the same as `MGP` / the `goal` zone. Only appears in half-marathon plan descriptions and in cross-plan tempo descriptions. |
 | `10K pace` | `tenK` | |
 | `5K pace` | `fiveK` | |
 | `TP` / `threshold` / `T` | `threshold` | |
 | `interval` / `I` | `interval` | |
 
-The helper lives in `packages/` so iOS and Android clients can reuse it. It
-does **not** live in `apps/web/src/lib/pace-zone-display.ts` (that file
+The helper lives in `packages/pace-zones/src/` so iOS and Android clients can
+reuse it. It is **not** `apps/web/src/lib/pace-zone-display.ts` — that file
 handles display formatting of zone table rows; this is a separate
-token-in-string substitution concern). Unknown tokens are passed through
+token-in-string substitution concern. Unknown tokens are passed through
 unchanged.
 
 ### 5.4 Responsive behaviour
@@ -1186,11 +1212,14 @@ deliberate tightening).
 1. Skip link (`Skip to this week`) — first focusable, visible on focus; jumps
    to the current week's header.
 2. Menu button
-3. Connection banner (4.1b **or** 4.1c) and/or backfill banner, if present —
-   its `Connect`/`Reconnect`/dismiss controls are real tab stops.
-4. Title (`<h1>`, not focusable)
-5. "Today" pill button
-6. Settings button
+3. Title (`<h1>`, not focusable)
+4. "Today" pill button
+5. Settings button
+6. Connection banner (4.1b **or** 4.1c), if present — its `Connect`/`Reconnect`/
+   dismiss controls are real tab stops. Backfill banner follows immediately after
+   if both are present. Rendered in DOM order after Settings; tab order follows
+   automatically (WCAG 2.4.3 — do **not** use a positive `tabindex` value to
+   pull the Reconnect button ahead of its visual position).
 7. Progress bar — not focusable
 8. Week 8 header — `<button aria-expanded="false" aria-controls="week-8-days">`
 9. (if expanded) every day, DOM order Mon→Sun, **including Rest days**
@@ -1201,14 +1230,6 @@ deliberate tightening).
 
 The Swap and Suggestion tags are part of the day's single `<button>`, not
 separate tab stops.
-
-**WCAG 2.4.3 Focus Order — auth-expired reconnect banner (4.1c).** The
-`Reconnect` button's tab stop must come **after** the Settings card in DOM
-order, matching the visual reading order (banner is below the top bar but
-above the countdown). Do **not** use a positive `tabindex` value to pull the
-Reconnect button ahead of its visual position — doing so would violate WCAG
-2.4.3 (Focus Order). Render the banner in DOM order; tab order follows
-automatically.
 
 **Enhancement (not required for v1):** roving `tabindex` + arrow keys between
 day cells within a week (Notion Calendar). Tab must still reach every day.
@@ -1314,7 +1335,7 @@ day cells within a week (Notion Calendar). Tab must still reach every day.
 | Collapsible section | library accordion | Reused | — |
 | Bottom sheet / side panel for detail | library dialog/drawer | Reused | — |
 | Skeleton loading, error-with-retry, empty-with-single-CTA | `HomePage.tsx` / `plan-setup-flow.md` | Reused | House state patterns. |
-| Compact pace-reference strip | `plan-setup-flow.md` §7.4 (#53) | Reused | Same helpers; this sheet is where the compact variant ships. |
+| Compact pace-reference strip | token-substitution helper in `packages/pace-zones/src/` (§5.3) | Reused | Same `formatPace` and token-mapping logic; this sheet is where the compact variant ships. Not `apps/web/src/lib/pace-zone-display.ts`. |
 | **Week block** | — | New | The product's core object; built on an accordion, internal layout custom. |
 | **Race-day / milestone block** | — | New | Pinned dated milestone with countdown; additional to race week, not a substitute. |
 | **`StatusBadge`** | completion-status decision (#53) | New | First render of the cross-cutting status system; one shared module for calendar, sheet, and (with a different value set) the Strava settings card. |

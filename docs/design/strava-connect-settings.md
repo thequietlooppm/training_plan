@@ -237,7 +237,7 @@ spinner.
 │ │ Strava                         │   │
 │ │ ✓ Connected                    │   │  status chip: green, check-circle-2
 │ │ Last synced 12 minutes ago     │   │  visible relative time; absolute timestamp in
-│ │  (Fri, Mar 7, 2026, 6:58 AM)   │   │  VISUALLY-HIDDEN text right after it (not `title`)
+│ │  (Fri, Mar 13, 2026, 6:58 AM)  │   │  VISUALLY-HIDDEN text right after it (not `title`)
 │ │                                 │   │
 │ │  ┌───────────────────────────┐ │   │
 │ │  │        Disconnect         │ │   │  secondary/outline button — NOT destructive-
@@ -366,7 +366,7 @@ defined once in `ui-toolkit.md` (#53).
 | Connecting (SR-only) | `Connecting to Strava` |
 | Connected status | `Connected` |
 | Last synced, relative (visible) | `Last synced 12 minutes ago` |
-| Last synced, absolute (visually hidden, follows the visible text) | `, Friday, March 7, 2026 at 6:58 AM` |
+| Last synced, absolute (visually hidden, follows the visible text) | `, Friday, March 13, 2026 at 6:58 AM` |
 | Last synced, never yet | `Just connected` |
 | Disconnect button (on card) | `Disconnect` |
 | Auth-expired status | `Reconnect needed` |
