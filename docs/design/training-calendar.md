@@ -431,7 +431,7 @@ ASCII only. All states drawn.
 ├─────────────────────────────────────┤
 │ ▸  Week 8   Mar 3–Mar 9    28/28mi ✓│  COLLAPSED past week (all Achieved). tap header = expand
 ├─────────────────────────────────────┤
-│ ▾  Week 9   Mar 10–Mar 16  18/32 mi │  EXPANDED current week. header is a button (aria-expanded).
+│ ▾  Week 9   Mar 9–Mar 15  18/32 mi │  EXPANDED current week. header is a button (aria-expanded).
 │  ┌───────────────────────────────┐  │  Completed total includes swap + bonus activity miles (§5.7)
 │  │ Mon 10 Easy run    5 mi ●Achvd│  │  Achieved — green chip, check-circle-2 icon (any confirmed run)
 │  │ Tue 11 Intervals    6 mi ✕Msd │  │  Missed + ACTIVITY SWAP: red x-circle chip, plus a second
@@ -450,12 +450,12 @@ ASCII only. All states drawn.
 │        • • •  Show weeks 11–16      │  ellipsis: ONLY distant future weeks (never race week)
 ├─────────────────────────────────────┤
 │ ▸  Week 17  Apr 28–May 4   30 mi    │  adjacent-to-race-week, always shown
-│ ▸  Week 18  May 5–May 11 · Race week│  RACE WEEK — real week block, header always visible.
+│ ▸  Week 18  May 11–May 17 · Race week│  RACE WEEK — real week block, header always visible.
 │                            22 mi    │  Expands to 7 day rows (see 4.1d)
 ├─────────────────────────────────────┤
 │ ╔═════════════════════════════════╗ │
 │ ║ [⚑]  RACE DAY                   ║ │  pinned finish-line block: ADDITIONAL scroll target,
-│ ║      Sun, May 11 · Marathon 26.2║ │  after race week — not a replacement for it
+│ ║      Sun, May 17 · Marathon 26.2║ │  after race week — not a replacement for it
 │ ║      9 weeks to go            › ║ │
 │ ╚═════════════════════════════════╝ │
 └─────────────────────────────────────┘
@@ -540,7 +540,7 @@ explanation. Precedence when several banners apply: connection banner (4.1b
 ### 4.1d Race week expanded (mobile) — a full 7-day block
 
 ```
-│ ▾  Week 18  May 5–May 11 · Race week│
+│ ▾  Week 18  May 11–May 17 · Race week│
 │  ┌───────────────────────────────┐  │
 │  │ Mon 5  Easy run      4 mi     ›│  │  future days: no chip
 │  │ Tue 6  Easy run      3 mi     ›│  │
@@ -561,7 +561,7 @@ explanation. Precedence when several banners apply: connection banner (4.1b
 ```
 ┌─────────────────────────────────────┐
 │               ────                   │  drag handle (mobile). [✕] close (44px) also present
-│ ‹ Prev     Sun, Mar 16     Next ›    │  in-sheet day stepper. center = focus target on open
+│ ‹ Prev     Sun, Mar 15     Next ›    │  in-sheet day stepper. center = focus target on open
 ├─────────────────────────────────────┤
 │  Long run                            │  h2 — sheet's accessible name
 │  Week 9 · build                      │
@@ -617,7 +617,7 @@ Elapsed day shown (chip Missed). On **today** the same card sits under a
 │  ┌───────────────────────────────┐   │  chip reads "○ Planned"; recomputes on Confirm
 │  │ Is this it?                   │   │  ActivityMatchCard
 │  │ Run · 4.1 mi · 34:12           │   │
-│  │ Fri, Mar 14 · 6:42 AM          │   │
+│  │ Fri, Mar 13 · 6:42 AM          │   │
 │  │  ┌───────────┐ ┌─────────────┐ │   │
 │  │  │  Confirm  │ │   Dismiss   │ │   │  primary / secondary buttons, ≥44px
 │  │  └───────────┘ └─────────────┘ │   │
@@ -789,7 +789,7 @@ numeric target"; do not infer FR22 from a missing `distanceMiles`.
 
 **4.2j — Late-synced suggestion on an old elapsed day (FR19, no time limit)**
 
-Scenario: it is a month later; a Strava activity for Mar 7 arrives (a delayed
+Scenario: it is a month later; a Strava activity for Mar 6 arrives (a delayed
 sync, or a backfill). The day was already Missed.
 
 ```
@@ -805,7 +805,7 @@ Sheet:
 │  ┌───────────────────────────────┐   │
 │  │ Is this it?                   │   │  the same ActivityMatchCard
 │  │ Run · 4.1 mi · 34:12           │   │
-│  │ Fri, Mar 7 · 6:42 AM           │   │
+│  │ Fri, Mar 6 · 6:42 AM           │   │
 │  │ Synced later — confirming will │   │  one neutral line, shown only for a suggestion whose
 │  │ update this day.               │   │  activity synced after its day ended
 │  │  [ Confirm ]   [ Dismiss ]     │   │
@@ -885,7 +885,7 @@ No spinner. Skeleton mirrors the real layout. SR: `aria-busy="true"` on
 │  │Easy   │Hills  │Rest   │Tempo  │Easy     │Rest   │Long run     │  28 mi  │  │  ← weekly-summary rail
 │  │5mi●Ach│6mi●Ach│ ☾Rest │6mi●Ach│4mi●Ach  │ ☾Rest │12mi●Achieved│ all Ach │  │
 │  └───────┴───────┴───────┴───────┴─────────┴───────┴─────────────┴─────────┘  │
-│  Week 9 · Mar 10–Mar 16                                       18 / 32 mi      │
+│  Week 9 · Mar 9–Mar 15                                       18 / 32 mi      │
 │  ┌───────┬───────┬───────┬───────┬─────────┬───────┬─────────────┬─────────┐  │
 │  │Mon 10 │Tue 11 │Wed 12 │Thu 13 │▏Fri 14  │Sat 15 │Sun 16 [LONG]│  wk 9   │  │
 │  │Easy   │Interv │Rest   │Tempo  │▏Today   │Rest   │Long run     │  32 mi  │  │
@@ -896,14 +896,14 @@ No spinner. Skeleton mirrors the real layout. SR: `aria-busy="true"` on
 │  ...                                                                          │
 │                     • • •  Show weeks 11–16                                   │  distant weeks only
 │  Week 17 · Apr 28–May 4                                       30 mi planned   │
-│  Week 18 · May 5–May 11 · Race week                           22 mi planned   │  RACE WEEK = full 7-column row
+│  Week 18 · May 11–May 17 · Race week                           22 mi planned   │  RACE WEEK = full 7-column row
 │  ┌───────┬───────┬───────┬───────┬─────────┬───────┬─────────────┬─────────┐  │
 │  │Mon 5  │Tue 6  │Wed 7  │Thu 8  │Fri 9    │Sat 10 │Sun 11 [⚑]   │  wk 18  │  │
 │  │Easy   │Easy   │Rest   │Shake  │Rest     │Easy   │Race day     │  22 mi  │  │
 │  │4 mi   │3 mi   │       │2 mi   │         │2 mi   │26.2 mi      │         │  │
 │  └───────┴───────┴───────┴───────┴─────────┴───────┴─────────────┴─────────┘  │
 │  ╔════════════════════════════════════════════════════════════════════════╗   │
-│  ║ [⚑]  RACE DAY       Sun, May 11 · Marathon 26.2 mi · 9 weeks to go      ║   │  additional target after race week
+│  ║ [⚑]  RACE DAY       Sun, May 17 · Marathon 26.2 mi · 9 weeks to go      ║   │  additional target after race week
 │  ╚════════════════════════════════════════════════════════════════════════╝   │
 └──────────────────────────────────────────────────────────────────────────────┘
      Day detail opens as a right-hand SIDE PANEL — calendar stays visible.
@@ -987,7 +987,7 @@ Stack is decided (ADR 0002: React + Vite, Tailwind, shadcn/ui, Lucide).
 | Countdown, race day | `Race day is today` |
 | Plan position sub-line | `Week 9 of 18 · build` (phase = template `phase`, ADR 0005) |
 | Jump-to-today control | `Today` |
-| Week header | `Week 9` · `Mar 10 – Mar 16`; race week: `Week 18` · `May 5 – May 11 · Race week` |
+| Week header | `Week 9` · `Mar 9 – Mar 15`; race week: `Week 18` · `May 11 – May 17 · Race week` |
 | Weekly volume, before activity | `32 mi planned` |
 | Weekly volume, in progress | `18 / 32 mi` |
 | Weekly volume, week complete | `28 / 28 mi` + check |
@@ -1008,11 +1008,11 @@ Stack is decided (ADR 0002: React + Vite, Tailwind, shadcn/ui, Lucide).
 | Late-synced suggestion line | `Synced later — confirming will update this day.` |
 | Distant-weeks control | `• • •` (tap: `Show weeks 11–16`) |
 | Race block title | `Race day` |
-| Race block detail line | `Sun, May 11 · Marathon 26.2 mi` |
+| Race block detail line | `Sun, May 17 · Marathon 26.2 mi` |
 | Race block countdown | `9 weeks to go` → `Race week` → `Race day is today` |
 | Day detail — workout text | template `description`, verbatim |
 | Day detail — planned row | `Planned` → e.g. `4 mi · easy` |
-| Day detail — pace reference | `E 8:15 · T 7:05 · I 6:40 · M 7:30` (formatting from `lib/pace-zone-display.ts`) |
+| Day detail — pace reference | `Easy 10:30 · MGP 9:09 · HMGP 8:45 · 10K pace 8:10 · 5K pace 7:55` (full zone names; formatting from `packages/pace-zones/src/formatter.ts`) |
 | Day detail — logged row | `Logged` → e.g. `4.1 mi · 34:12 · Run` |
 | Day detail — no activity (elapsed) | `No activity logged for this day.` |
 | Suggested-match card heading | `Is this it?` |
@@ -1100,7 +1100,7 @@ current day**; a row is never Planned on an elapsed day.
 **Run classification (swe).** "Running" vs "non-running" comes from the
 **Strava sport type** on the activity — not from distance, pace, or the
 activity's name. **All run variants are running** (`Run`, `TrailRun`,
-`VirtualRun`, and any other run-family sport type Strava returns);
+`VirtualRun` — the closed v1 allowlist, defined in `packages/` so iOS/Android share it);
 **`Walk` and `Hike` are non-running**, as are Ride, Swim, WeightTraining,
 Yoga, etc. Implement as one shared classifier over the sport-type string
 (ideally in `packages/` so iOS/Android reuse it) with a default for unknown
@@ -1112,12 +1112,13 @@ applies.
 
 **Weekly totals — informational only.** No FR defines a weekly-totals
 feature. The calendar week header **already shows a mileage total**
-(`18 / 32 mi`, §4.1/§4.6), so no new element is designed. Per FR17/FR20,
-**activity-swap activities and bonus (extra / Rest-day) activities feed that
-completed-miles figure**; they don't change any day's status. Suggestions that
-are not confirmed do not feed it. The number is shown for information and
-is never used to grade a day or a week. What the total should include beyond
-that (e.g. non-distance activities) is a scoping question (§8).
+(`18 / 32 mi`, §4.1/§4.6), so no new element is designed. The completed-miles
+numerator is **confirmed run miles only** (Run/TrailRun/VirtualRun per the FR20
+allowlist); activity-swap non-run confirmations and Rest-day bonus activities
+do not count toward run volume (non-run miles may appear as a separate note,
+e.g. "also: 4.2 mi walked", but never merged into the running fraction).
+Suggestions that are not confirmed do not feed the total. The number is shown
+for information and is never used to grade a day or a week.
 
 **Day-status rules at a glance (for tests).**
 
@@ -1204,17 +1205,17 @@ day cells within a week (Notion Calendar). Tab must still reach every day.
   aria-valuenow="9" aria-label="Plan progress, week 9 of 18"`.
 - Week list: `<ol>` of weeks; day list inside a week: `<ol>` of days.
 - Each day control's accessible name is self-sufficient and **always includes
-  a status word for an elapsed/current day**: `"Friday, March 14. Today.
+  a status word for an elapsed/current day**: `"Friday, March 13. Today.
   Easy run, 4 miles. Planned."` / `"Tuesday, March 11. Intervals, 6 miles.
   Missed. Activity swap: walk, 2.1 miles."` / `"Thursday, March 13. Tempo,
   7 miles. Missed. Suggestion waiting."` / `"Wednesday, March 12. Rest. Extra
-  activity logged."` For a future day, no status word: `"Sunday, March 16.
+  activity logged."` For a future day, no status word: `"Sunday, March 15.
   Long run, 14 miles."`
 - Status icon, "Long" tag, "Today" pill, tag glyphs are supplementary
   (`aria-hidden`); the tag **text** is what is announced.
-- Race-week Sunday row: `"Sunday, May 11. Race day. Marathon, 26.2 miles."`
+- Race-week Sunday row: `"Sunday, May 17. Race day. Marathon, 26.2 miles."`
   (plus the status word once it is today or elapsed.)
-  Race block: `"Race day. Sunday, May 11. Marathon, 26.2 miles. 9 weeks to
+  Race block: `"Race day. Sunday, May 17. Marathon, 26.2 miles. 9 weeks to
   go."`
 - `ActivityMatchCard`: `role="group"` with `aria-label` summarizing the
   candidate ("Possible match: run, 4.1 miles, 34 minutes, Friday 6:42 AM").
@@ -1327,12 +1328,10 @@ boundaries are authored in the template).
    account) — and it must not require location data (CLAUDE.md privacy:
    an IANA zone name is the minimum needed).
 7. **Offline/PWA** — is offline plan viewing a v1 requirement? Not addressed.
-8. **Weekly totals need scoping.** The week header already shows a mileage
-   total, and swap + bonus activities feed it (§5.7), but no FR defines a
-   weekly-totals feature: what counts toward "completed" (distance of every
-   confirmed activity type? duration for strength?), whether there is ever a
-   per-week adherence number, and whether unconfirmed suggestions should be
-   excluded (assumed here: yes). Treated as informational until scoped.
+8. ~~**Weekly totals need scoping.**~~ **Closed:** confirmed run miles only
+   (FR20 run-type allowlist: Run/TrailRun/VirtualRun; see §5.7). Non-run
+   swap/bonus miles do not count toward run volume. Unconfirmed suggestions
+   excluded. Treated as informational; no per-week adherence number in v1.
 9. **Discovering late suggestions in collapsed weeks.** v1 shows a per-day
    "Suggestion" tag only; a week-header count is deliberately omitted (§4.1).
    Revisit if runners miss late syncs (§9).
@@ -1361,9 +1360,12 @@ Before committing further build:
   only softening lever.)
 - **"Is this it?" copy and `ActivityMatchCard` layout** — enough information
   to confirm without opening Strava?
-- **Pace-zone shorthand in the day-detail sheet** — does `3–4x1K @ TP` plus
+- ~~**Pace-zone shorthand in the day-detail sheet** — does `3–4x1K @ TP` plus
   the `E/T/I/M` strip read clearly to the target runner, or do people need
-  the letters spelled out?
+  the letters spelled out?~~ **Closed:** full zone names in the legend
+  (`Easy · MGP · HMGP · 10K pace · 5K pace`), inline pace in the workout
+  description (`3–4x1K @ 10K pace (8:10/mi)…`). No single-letter shorthand
+  in workout text.
 - **Collapsing past weeks by default** — do runners want an at-a-glance
   adherence read?
 - **Status chip legibility at compact desktop size** (`●Ach`/`◐Prt`/`✕Msd`/
