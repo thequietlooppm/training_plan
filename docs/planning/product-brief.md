@@ -70,17 +70,7 @@ personalized to them.
   different one mid-stream. The new plan gets the same bounded backfill
   treatment as any mid-cycle join (new-plan-start → today). The abandoned
   plan is preserved, not deleted, so its history stays visible.
-- **Completion status.** Every day — including freeform-described ones —
-  gets a status via suggest-and-confirm sync: **Achieved / Partial / Missed
-  / Rest**. In v1, any confirmed run on a running day is
-  Achieved (no distance threshold). A non-running activity on a running day
-  stays Missed but is shown with an "activity swap" indicator and still counts
-  toward weekly totals. Partial stays in the model for later partial credit
-  and is reached in v1 only by a run on a strength day. The current day shows
-  **Planned** until an activity is confirmed. Late-syncing activities
-  re-evaluate any affected day, with no time limit, still via
-  suggest-and-confirm. Freeform-described days (no v1 template has one) would
-  score as a confirmed activity = Achieved, no Partial tier.
+- **Completion status.** Every non-future day gets a status via suggest-and-confirm sync — a five-value enum: **Planned / Achieved / Partial / Missed / Rest**. Rest days stay Rest regardless (never Planned, never Missed). The current non-Rest day shows Planned until an activity is confirmed; at local midnight with nothing confirmed it becomes Missed. In v1, any confirmed run on a running day is Achieved (no distance threshold); a non-running activity confirmed on a running day stays Missed but shows an "activity swap" indicator. Weekly totals count confirmed run miles only. Partial stays in the model for later partial credit and is reached in v1 only by a run confirmed on a strength day. Late-syncing activities re-evaluate any affected day, with no time limit, still via suggest-and-confirm. Freeform-described days are deferred (no v1 template has one — see FR22).
 
 ### Fast-follow (within the v1 release, required before beta — not MVP)
 
@@ -164,9 +154,7 @@ personalized to them.
   `provider_connections` table, encrypted token columns), but the actual
   encryption/secrets-storage approach is a separate ADR, deliberately
   deferred until the Strava-sync issue starts.
-- **`docs/design/training-calendar.md` needs a redo pass** — still describes
-  a binary mark-complete flow, not the Achieved/Partial/Missed/Rest model.
-  Designer's task, not blocking planning.
+- **`docs/design/training-calendar.md` needs a redo pass** — addressed in PR #55 (`docs/tempo-calendar-strava-specs`); do not build issues #16, #17, #18, #20, #24, or #29 until that PR and PR #58 are both on `main`.
 - **Backfill job-status UX.** Backfill is async/queued, but a mid-cycle
   joiner expects their calendar populated at setup — needs a design decision
   (poll a job-status field vs. "populates over the next few minutes"
