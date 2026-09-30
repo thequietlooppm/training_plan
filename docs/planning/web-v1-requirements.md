@@ -33,19 +33,19 @@
 
 - **FR12** — Runner connects a Strava account via OAuth from settings; UI shows not-connected / connecting / connected (last-synced time) / auth-expired / error states.
 - **FR13** — Once connected, activities of any type sync automatically going forward (webhook-driven), attached to their calendar day.
-- **FR14** — A matched activity surfaces as a suggestion in the day-detail sheet; the runner must confirm or dismiss — never silently auto-applied. Runner can undo a confirmed match.
+- **FR14** — Any same-day Strava activity of any sport type surfaces as a suggestion on a non-Rest day; the runner must confirm or dismiss — never silently auto-applied, and an unconfirmed suggestion never changes the day's status. Distance and duration are not confirm gates. A non-run confirmed on a running-prescribed day triggers the activity-swap path (FR20); a run confirmed on a strength/cross-training day triggers Partial (FR21). Runner can undo a confirmed match, which returns the day to Planned (today) or Missed (elapsed); undoing a bonus suggestion on a Rest day leaves the day as Rest.
 - **FR15** — Runner can disconnect Strava at any time; disconnect revokes the token, stops future sync, purges stored raw activity data; already-applied completions persist by default.
 - **FR16** — Joining a plan after its start date triggers a one-time bounded backfill (plan-start → today) of both the prescribed schedule and matched Strava activity for the elapsed days of that plan only.
-- **FR17** — An unscheduled activity on a Rest day, or an extra activity on an already-matched day, surfaces as an unlinked/bonus entry — never dropped, never auto-applied.
+- **FR17** — An unscheduled activity on a Rest day, or an extra activity on an already-matched day, surfaces as an unlinked/bonus entry — never dropped, never auto-applied. A Rest day with an activity stays Rest (no penalty, no status credit). Weekly totals follow FR20: confirmed run miles only; a Rest-day bonus run counts toward run volume, a non-run bonus does not.
 - **FR18** — When multiple same-day activities plausibly match one prescribed day, the runner picks one from a single-select list (or "none of these") — never both applied.
 
 ### Completion status
 *Serves: know if you're on track without manual entry.*
 
-- **FR19** — Every elapsed/current day shows a status: Achieved / Partial / Missed / Rest.
-- **FR20** — Running-prescribed day: Achieved = matching activity type meeting the prescription; Partial = activity happened but wrong type or short of it; Missed = nothing logged.
-- **FR21** — Strength/cross-training day: Achieved = any non-running activity logged; Partial = a running-only activity logged; Missed = nothing logged.
-- **FR22** — Freeform-described day: Achieved = a logged, confirmed activity; Missed = nothing logged (no Partial tier — no numeric target to fall short of).
+- **FR19** — Every day up to and including today shows a status: Planned / Achieved / Partial / Missed / Rest. Rest days stay Rest regardless — never Planned (even if today is a Rest day), never Missed. The midnight rollover (Planned → Missed when the runner's local day ends with nothing confirmed) applies only to non-Rest days. Planned applies only to the current non-Rest day, while nothing is confirmed yet. Future days show no status. Only a confirmed activity changes a day's status (see FR14); a pending or dismissed suggestion does not. Status is stored as a five-value enum including Partial (see FR20/FR21). Whenever a sync brings in new activities — including late-arriving ones for elapsed days, with no time limit — affected days are re-evaluated: the activity creates or updates a suggestion on its day, and status changes only when the runner confirms it.
+- **FR20** — Running-prescribed day (v1): Achieved = any confirmed running activity. The closed v1 run-type allowlist (lives in `packages/` so all clients classify identically): Run, TrailRun, VirtualRun. Walk, Hike, Ride, Swim, Workout, WeightTraining, and all other Strava sport types are non-running. Confirmed run = Achieved regardless of distance or duration. Missed = nothing confirmed once the runner's local day has ended, *or* a non-running activity confirmed — in that case the day stays Missed, the `activitySwap` boolean is `true` on the day's API response, and the logged activity is shown with an "activity swap" indicator. Weekly totals count confirmed run miles only; swap/bonus non-run miles do not contribute to the running-volume fraction. Planned = today, nothing confirmed yet. v1 does not compute Partial for any running-day case (no short-of-prescription threshold); Partial stays in the status enum and data model so partial credit can be added later without a migration. Race day is scored under this same rule.
+- **FR21** — Strength/cross-training day: Achieved = any confirmed non-running activity. Partial = the confirmed match is a run-type activity (using the same allowlist as FR20); a bonus non-running activity on the same day does not affect this — the day is still Partial if the confirmed match is a run. Partial is the only path to this status in v1. Missed = nothing confirmed once the runner's local day has ended. Planned = today, nothing confirmed yet. Running vs. non-running is classified from the Strava sport type per the FR20 allowlist.
+- **FR22** — *(Deferred — no v1 template has a description-only day; not built until one does.)* Freeform-described day: Achieved = a confirmed activity. Planned = today, nothing confirmed yet. Missed = nothing confirmed once the runner's local day has ended. No Partial tier — no numeric target to fall short of.
 
 ### Plan switching
 *Serves: real usage survives a runner abandoning or changing plans.*
@@ -106,11 +106,13 @@ No target date. Sequenced purely by dependency and value:
 Confirmed as written in `docs/planning/product-brief.md`:
 
 - The runner actually opens training_plan instead of the source spreadsheet/PDF to know where they stand on a given day.
-- By a few weeks into a training cycle, most scheduled days carry a real status (Achieved/Partial/Missed) rather than sitting blank.
+- By a few weeks into a training cycle, most elapsed scheduled days carry a real status (Achieved/Missed, or Partial where it applies) rather than sitting blank or stuck on Planned.
 - The runner completes at least one full personalized plan start to finish using the app as their primary source of truth.
 
 ## Open questions / assumptions carried forward
 
-- `docs/design/training-calendar.md` needs a redo pass (still describes a binary complete/skip flow) — designer's task, not blocking issue creation, but the calendar/day-detail issues should not be built against its current stale content.
+- `docs/design/training-calendar.md` needs a redo pass (still describes a binary complete/skip flow) — designer's task, not blocking issue creation, but the calendar/day-detail issues should not be built against its current stale content. It must also add Planned, any-run = Achieved, Missed + activity-swap indicator for a non-run on a run day, and Partial kept-but-inactive for runs (reachable only via a run on a strength day).
 - Strava token encryption/secrets-storage approach — deferred ADR, written when the Strava-sync epic starts implementation.
 - Backfill job-status UX (poll vs. "populates over the next few minutes" messaging) — designer decision, not yet made.
+- Post-race plan is unscoped — see the Backlog issue #56 "Define what a runner does after race day".
+- Day-swap detection and manual calendar rearranging are unscoped — see the Backlog issue #57 "Detect day swaps after the fact". Note: issue #57's "day swap" (runner moved their long run from Sunday to Saturday — a calendar-day shift) is distinct from FR20's "activity swap" indicator (wrong sport type confirmed on a running-prescribed day, same calendar day). Do not conflate the two.

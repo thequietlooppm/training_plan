@@ -76,12 +76,7 @@ personalized to them.
   different one mid-stream. The new plan gets the same bounded backfill
   treatment as any mid-cycle join (new-plan-start → today). The abandoned
   plan is preserved, not deleted, so its history stays visible.
-- **Completion status.** Every day — including freeform-described ones —
-  gets a status via suggest-and-confirm sync: **Achieved / Partial / Missed
-  / Rest**. Partial means an activity happened but was the wrong type or
-  short of the prescription (e.g. hiked instead of ran). Freeform days score
-  the same way (a logged, confirmed activity = Achieved), just without a
-  numeric target to check against.
+- **Completion status.** Every non-future day gets a status via suggest-and-confirm sync — a five-value enum: **Planned / Achieved / Partial / Missed / Rest**. Rest days stay Rest regardless (never Planned, never Missed). The current non-Rest day shows Planned until an activity is confirmed; at local midnight with nothing confirmed it becomes Missed. In v1, any confirmed run on a running day is Achieved (no distance threshold); a non-running activity confirmed on a running day stays Missed but shows an "activity swap" indicator. Weekly totals count confirmed run miles only. Partial stays in the model for later partial credit and is reached in v1 only by a run confirmed on a strength day. Late-syncing activities re-evaluate any affected day, with no time limit, still via suggest-and-confirm. Freeform-described days are deferred (no v1 template has one — see FR22).
 
 ### Fast-follow (within the v1 release, required before beta — not MVP)
 
@@ -115,7 +110,7 @@ personalized to them.
 - The runner actually opens training_plan instead of the source
   spreadsheet/PDF to know where they stand on a given day.
 - By a few weeks into a training cycle, most scheduled days carry a real
-  status (Achieved / Partial / Missed) rather than sitting blank — i.e. the
+  status (Achieved / Missed, or Partial where it applies) rather than sitting blank or stuck on Planned — i.e. the
   Strava sync + confirm loop is actually being used, not bypassed.
 - The runner completes at least one full personalized plan (club-style or
   MCR) start to finish using the app as their primary source of truth.
@@ -154,10 +149,7 @@ personalized to them.
   overrode this: the six zones are now derived from the goal time as a
   fallback, visibly flagged as aspirational, rather than blocked outright. A
   real recent result still wins whenever one exists.
-- **Strength/cross-training completion.** Any non-running activity logged =
-  Achieved; a running-only activity = Partial; nothing = Missed. Prevents a
-  runner substituting a run for every strength day from showing false 100%
-  adherence.
+- **Strength/cross-training completion.** Any confirmed non-running activity (Strava sport type, same allowlist as FR20) = Achieved; Partial = the confirmed match is a run (a bonus gym session on the same day does not change that); nothing confirmed = Missed (elapsed) or Planned (today). Prevents a runner substituting a run for every strength day from showing false 100% adherence.
 - **Template naming.** See Plan library above — never named, permanently,
   for v1/MVP.
 - **Units.** Miles only for v1.
@@ -170,9 +162,7 @@ personalized to them.
   `provider_connections` table, encrypted token columns), but the actual
   encryption/secrets-storage approach is a separate ADR, deliberately
   deferred until the Strava-sync issue starts.
-- **`docs/design/training-calendar.md` needs a redo pass** — still describes
-  a binary mark-complete flow, not the Achieved/Partial/Missed/Rest model.
-  Designer's task, not blocking planning.
+- **`docs/design/training-calendar.md` needs a redo pass** — addressed in PR #55 (`docs/tempo-calendar-strava-specs`); do not build issues #16, #17, #18, #20, #24, or #29 until that PR and PR #58 are both on `main`.
 - **Backfill job-status UX.** Backfill is async/queued, but a mid-cycle
   joiner expects their calendar populated at setup — needs a design decision
   (poll a job-status field vs. "populates over the next few minutes"
