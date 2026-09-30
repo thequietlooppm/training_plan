@@ -12,11 +12,14 @@
 - **FR1** — Runner selects one of the two available templates (club-style marathon, MCR 10-mile) to start a plan.
 - **FR2** — Runner enters a recent race result (distance + time); system derives Recovery / Easy / Threshold / 10K / 5K / Interval paces (VDOT/Riegel-style equivalency).
 - **FR3** — Runner enters a goal race time (marathon or half); system derives that goal pace directly (not equivalency-derived).
+- **FR3a** — Plan setup requires at least one of a recent result (FR2) or a goal time (FR3) before it can be submitted; submitting with neither is rejected (disabled submit control or inline validation error). This is a UI/product-level constraint only — the underlying pace-zone `calculate()` function still accepts neither input per its own contract; the flow around it now demands one.
 - **FR4** — Recent-result-only: Marathon/Half goal pace stays unset until a goal time is entered.
-- **FR5** — Goal-time-only: the other six zones stay blocked until a recent result is entered.
+- **FR5** — Goal-time-only fallback: when no recent result has been entered, the other six zones (Recovery/Easy/Threshold/10K/5K/Interval) are derived from the goal time using the same VDOT/Riegel-style equivalency math as FR2, and are visibly flagged as aspirational / not based on demonstrated fitness. If a recent result exists, it remains the source for those six zones — the goal-derived values are only a fallback for when nothing else exists, never a competing source.
 - **FR6** — System generates a personalized plan instance from the template, scaling daily prescriptions to the runner's derived peak-week volume (peak volume is computed from the template's own workouts, never entered manually).
 - **FR7** — Plan setup rejects a race date earlier than today.
 - **FR8** — Runner can view a personal pace-reference table (zone → concrete pace) alongside any workout's shorthand text.
+
+> **Revision note (2026-09-28):** FR5 revised, and FR3a added, after #11 (pace-zone calculator) shipped and while #12/#14 (plan-setup flow) were mid-build. Original scoping had goal-time-only leave the six equivalency zones blocked entirely; Patrick decided a goal-derived, clearly-flagged aspirational fallback serves the product better — recent-result-derived paces still win whenever a real result exists, goal-derived is the fallback of last resort. Tracked in **#52**, which amends #11's scope on the same package without reopening #11 itself. FR3a codifies a related decision on the same in-flight flow: submitting plan setup with neither a recent result nor a goal time is now rejected outright, rather than left open by FR2/FR3's original "and/or" phrasing.
 
 ### Calendar & workout display
 *Serves: at-a-glance status on real dates.*
@@ -69,7 +72,7 @@ No uptime/concurrency NFR is set for MVP — this is a single-user product for n
 
 ## MVP cut line
 
-**MVP (FR1–FR25):** the full core loop — pick a plan, get personal paces, see a personalized calendar, sync Strava, see real status, switch plans without losing history. No login; single-user by default. Nothing in this set is a coherent product with a piece removed.
+**MVP (FR1–FR25, including FR3a):** the full core loop — pick a plan, get personal paces, see a personalized calendar, sync Strava, see real status, switch plans without losing history. No login; single-user by default. Nothing in this set is a coherent product with a piece removed.
 
 **Fast-follow (within v1, before beta):** FR26 (Google Calendar push), FR27 (Sign in with Strava) + NFR6.
 
@@ -79,7 +82,7 @@ No uptime/concurrency NFR is set for MVP — this is a single-user product for n
 
 Minimal-collection pass per `CLAUDE.md`'s privacy principle:
 
-- **Race result (distance + time) / goal race time** — not identifying; keyed to opaque `user_id`.
+- **Race result (distance + time) / goal race time** — not identifying; keyed to opaque `user_id`. Per FR5, the goal time is also reused (no additional field collected) to derive the six equivalency zones as an aspirational fallback when no recent result exists.
 - **Strava OAuth tokens (access + refresh)** — PII-adjacent secret. Isolated table, encrypted at rest per ADR 0002. Encryption/secrets approach is its own deferred ADR.
 - **Strava `provider_athlete_id`** — needed to map webhook deliveries to a user; opaque-ish but provider-assigned; never used as a join key into `activities`.
 - **Strava display name** — **deferred to the "Sign in with Strava" fast-follow (FR27).** Not collected in MVP (no login, "connect Strava" is sync-only, nothing in the MVP FR set displays a Strava profile). When FR27 ships, store only a display name pulled from the same OAuth grant already being requested — no separate ask of the user. No email, avatar, or other profile field unless a specific feature requires it.
