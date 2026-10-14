@@ -22,3 +22,12 @@ export {
   type PaceZones,
   type ValidationError,
 } from "./calculator.js";
+export { formatPace } from "./format.js";
+export {
+  PACE_TOKEN_TABLE,
+  resolvePaceTokens,
+  type PaceEntry,
+  type PaceSegment,
+  type PaceTokenKey,
+  type ResolvedPaceText,
+} from "./tokens.js";
