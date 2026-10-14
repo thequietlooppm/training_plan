@@ -824,6 +824,12 @@ show the "Estimated" badge, independently of this static table.
 
 ### 7.4 Full-page vs. future compact/inline reuse
 
+> **Slice 1 update (#17):** `formatPace` no longer lives in
+> `lib/pace-zone-display.ts`. Its single home is `packages/pace-zones`
+> (exported from its `index.ts`), and web imports it from there. It rounds the
+> total seconds before splitting into minutes and seconds. See
+> `slice-1-plan-generation.md` §D. The rest of this section stands.
+
 The task brief's AC for #14 is explicit that this component needs to work
 both here (a full page section) and later inline next to a workout's
 freeform text (calendar day-detail). My call on how to split that:

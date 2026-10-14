@@ -1,8 +1,9 @@
 # Design spec — Training calendar + day detail (view, Strava match, completion status)
 
-> Owned by `@designer`. Status: **ready for implementation once PR #58
-> (`docs/completion-status-fr-update`) is merged to `main`** (see "Dependencies"
-> below). PR #53 is already on `main`. Scoped against issues #16/#17/#18
+> Owned by `@designer`. Status: **ready for implementation.** PR #58
+> (`docs/completion-status-fr-update`) and PR #53 are both merged to `main`.
+> The first build is Slice 1, which is reduced in scope; see
+> `slice-1-plan-generation.md`. Scoped against issues #16/#17/#18
 > (calendar + day-detail) and #24 (Strava activity-match UI in the day-detail
 > sheet), FR8–FR22 in `docs/planning/web-v1-requirements.md` (as updated by
 > **PR #58**, "docs: update completion-status FRs (Planned, any run = Achieved,
@@ -1134,6 +1135,10 @@ Miles only (`mi`); Monday-start weeks; both per the brief and ADR 0005. No
 units or week-start setting is designed.
 
 ### 5.6 Data-shape requirement for the calendar (for tech-lead/swe — API contract)
+
+> **Does not apply to Slice 1.** In Slice 1 the plan lives client-side and is
+> regenerated in the browser, so there is no calendar API yet (ADR 0002
+> addendum). This section applies once the plan moves server-side.
 
 The calendar must **not** assume one payload containing every day and every
 activity for the whole 16–20 week plan. The API contract (`/api/v1`, OpenAPI)
