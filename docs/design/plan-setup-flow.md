@@ -1049,3 +1049,9 @@ One thing still worth a quick confirm before/soon after shipping:
   own contract still technically permits "neither" (§7.2's now-dead
   `blocked` state) even though this screen's UI no longer allows a runner to
   reach it.
+
+## 13. Slice 1 — "Create my plan"
+
+The "Create my plan" step (button under the results table, Sunday-only
+race-date validation, replace-plan `AlertDialog`, create states and copy) is
+specified in `docs/design/slice-1-plan-generation.md` §B (issues #13/#16).

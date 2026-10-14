@@ -66,6 +66,14 @@
 
 ---
 
+## Slice 1 (issues #13/#16/#17)
+
+The first build of this screen is a reduced slice: plan on real dates, stacked
+week list, day-detail `Sheet` at `/day/:date`, no status chips, no Strava, no
+desktop 7-column grid. What is in, what is deferred and why lives in
+`docs/design/slice-1-plan-generation.md` §A and §C, which **override this spec
+for Slice 1 behaviour**. Everything below remains the full target design.
+
 ## 1. What this screen is
 
 The home screen of the app: a runner opens it and sees their personalized
