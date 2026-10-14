@@ -131,8 +131,10 @@ start and forward to race day. It answers three questions at a glance:
 - The plan already exists by the time this screen renders (#12/#13).
 - **Settled by the brief + ADR 0005 (no longer open):** distances are **miles
   only** in v1 (`distanceMiles`, product brief "Units. Miles only for v1"),
-  weeks are **Monday-start** (ADR 0005: `days` "exactly 7, Monday-start, race
-  day = Sunday of the final week"), and each week carries a template `phase`
+  weeks are **7-day blocks ending on race day** (they rotate with the race
+  weekday; a Sunday race gives Monday–Sunday). Monday-start is how templates
+  are *authored* (ADR 0005: `days` "exactly 7, Monday-start, race day = Sunday
+  of the final week"), not a calendar rule. Each week each week carries a template `phase`
   (`base | build | peak | taper`) that supplies the phase label.
 
 ---
@@ -391,8 +393,8 @@ FR19's stored enum is Planned / Achieved / Partial / Missed / Rest.
 
 1. **Race week is a real week block.** The final week (week 18 in the 18-week
    template) renders exactly like any other week: a header plus **7 day rows**
-   (mobile) or a 7-column row (desktop), Mon–Sun, each a tap target opening
-   Flow 2. Race day is the Sunday of that week (ADR 0005) and its row is
+   (mobile) or a 7-column row (desktop), in plan-week order, each a tap target
+   opening Flow 2. Race day is the last day of that week and its row is
    tagged `Race day`.
 2. **The `• • •` control may collapse only distant future weeks.** It must
    never contain: the current week, at least one adjacent week on each side
@@ -403,7 +405,7 @@ FR19's stored enum is Planned / Achieved / Partial / Missed / Rest.
    week, not a substitute for it.** It shows **Race day**, the date,
    "Marathon · 26.2 mi", and **"N weeks to go"** (→ "Race week" → "Race day
    is today").
-4. Trigger: **tap the race block, or the Sunday row of race week** → **C.
+4. Trigger: **tap the race block, or the last (race-day) row of race week** → **C.
    Race day detail** — same sheet pattern as a running day. **Race day is a
    normal running day (FR20)**: on race day itself the chip reads **Planned**;
    it becomes **Achieved** when a confirmed run is applied (any distance) and
@@ -910,6 +912,9 @@ No spinner. Skeleton mirrors the real layout. SR: `aria-busy="true"` on
 
 ### 4.6 Calendar — desktop (≥1024px): week as a 7-column row, status chips in each cell
 
+> Column headers derive from the plan's first weekday (Mon–Sun is the
+> Sunday-race case); never a fixed Mon–Sun header.
+
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │  Marathon plan          9 weeks to race day · Week 9 of 18              [⚙]   │  slim top bar
@@ -975,7 +980,7 @@ the accessible name and appears in the side panel.
   indicator; status colors are their own palette. Planned uses the neutral
   palette (not the accent) so it never competes with the today marker.
 - **Race block.** 2px border, slightly inset, reads as a destination. Race
-  week's day rows are ordinary rows; the Sunday row just carries the `Race
+  week's day rows are ordinary rows; the race-day row just carries the `Race
   day` tag and flag icon.
 
 ### 5.2 Component mapping
@@ -1022,7 +1027,7 @@ Stack is decided (ADR 0002: React + Vite, Tailwind, shadcn/ui, Lucide).
 | Countdown, race day | `Race day is today` |
 | Plan position sub-line | `Week 9 of 18 · build` (phase = template `phase`, ADR 0005) |
 | Jump-to-today control | `Today` |
-| Week header | `Week 9` · `Mar 9 – Mar 15`; race week: `Week 18` · `May 11 – May 17 · Race week` |
+| Week header | `Week 9` · `Mar 9 – Mar 15`; race week: `Week 18` · `May 11 – May 17 · Race week` (real dates; a week may start on any weekday) |
 | Weekly volume, before activity | `32 mi planned` |
 | Weekly volume, in progress | `18 / 32 mi` |
 | Weekly volume, week complete | `28 / 28 mi` + check |
@@ -1131,7 +1136,8 @@ Content never depends on hover.
 
 ### 5.5 Unit and week conventions
 
-Miles only (`mi`); Monday-start weeks; both per the brief and ADR 0005. No
+Miles only (`mi`), per the brief; weeks end on race day (rotated per race
+weekday; ADR 0005 authors templates Monday-to-Sunday). No
 units or week-start setting is designed.
 
 ### 5.6 Data-shape requirement for the calendar (for tech-lead/swe — API contract)
@@ -1299,9 +1305,9 @@ day cells within a week (Notion Calendar). Tab must still reach every day.
   Long run, 14 miles."`
 - Status icon, "Long" tag, "Today" pill, tag glyphs are supplementary
   (`aria-hidden`); the tag **text** is what is announced.
-- Race-week Sunday row: `"Sunday, May 17. Race day. Marathon, 26.2 miles."`
+- Race-week race-day row: `"{Weekday}, May 17. Race day. Marathon, 26.2 miles."`
   (plus the status word once it is today or elapsed.)
-  Race block: `"Race day. Sunday, May 17. Marathon, 26.2 miles. 9 weeks to
+  Race block: `"Race day. {Weekday}, May 17. Marathon, 26.2 miles. 9 weeks to
   go."`
 - `ActivityMatchCard`: `role="group"` with `aria-label` summarizing the
   candidate ("Possible match: run, 4.1 miles, 34 minutes, Friday 6:42 AM").
@@ -1366,7 +1372,8 @@ day cells within a week (Notion Calendar). Tab must still reach every day.
 Routed to `@tpm` / `@tech-lead`.
 
 **Closed by the brief + ADR 0005 (no longer open):** units (**miles only**,
-product brief); week start (**Monday**, ADR 0005); phase labels (template
+product brief); week start (**ends on race day**, rotates with race weekday; ADR 0005
+governs template authoring only); phase labels (template
 `phase`: base / build / peak / taper, ADR 0005 — the UI displays the field,
 boundaries are authored in the template).
 

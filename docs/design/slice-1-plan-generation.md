@@ -3,7 +3,8 @@
 > Owned by `@designer`. "PR 0" (docs only) for issues #13 "Generate personalized
 > plan instance from template + derived paces", #16 "Render plan calendar on real
 > calendar dates", #17 "Build day-detail display: workout text + distance/duration
-> or Rest". Revised after tech-lead review of PR #60.
+> or Rest". Revised after tech-lead review of PR #60. Revised again: race day may be
+> any weekday (product-owner decision; plan amendment 2 on #13).
 >
 > **Plan of record.** Engineering plan: tech-lead comment on #13
 > (https://github.com/thequietlooppm/training_plan/issues/13#issuecomment-6178478049)
@@ -33,8 +34,9 @@
 ## Product-owner defaults this slice is built on
 
 1. Template distances are used **as written** — no mileage inputs, no scaling.
-2. Race date **must be a Sunday** (template weeks are Monday-start; race day is the
-   final Sunday, ADR 0005).
+2. Race date can be **any day of the week**. Template days keep a fixed offset from
+   race day, so each plan week is the 7-day block ending on the race weekday. A
+   Sunday race gives Monday–Sunday weeks (how the template is authored, ADR 0005).
 3. **No completion-status chips** anywhere.
 4. Creating a new plan **replaces** the old one, after a confirm dialog.
 5. **No short-runway warning.**
@@ -55,12 +57,12 @@
 | # | Item | Notes |
 |---|---|---|
 | 1 | Calendar at `/` for the one active plan | Opens on the current week expanded; every other week collapsed. |
-| 2 | Plan header | `N weeks to race day` (Display role), `Week N of M · {phase}` (template `phase`). Text only. |
-| 3 | Week list as `Accordion` (multiple open) | Header: `Week 9 · Mar 9–15 · 32 mi` (planned miles, template as written). |
-| 4 | Day rows | `Mon 9 · Easy run · 5 mi` or `Wed 11 · Rest`. Every row, including Rest, is a link to `/day/:date`. |
+| 2 | Plan header | `N weeks to race day` (Display role), `Week N of M · {phase}` (template `phase`). Text only. Under it, for every plan: `Weeks run {Monday} to {Sunday} and end on race day.` (weekdays derived from the plan). |
+| 3 | Week list as `Accordion` (multiple open) | Header: `Week 9 · Mar 9–15 · 32 mi` (planned miles, template as written). The range is the plan week's real dates and may start on any weekday. |
+| 4 | Day rows | `Mon 9 · Easy run · 5 mi` or `Wed 11 · Rest`. Every row, including Rest, is a link to `/day/:date`. The row weekday comes from the real date, never from the template's `dayOfWeek`. |
 | 5 | Today marker | Accent left border + the word `Today`. The only loud element. |
 | 6 | `Long` tag | On the week's long run, text label. |
-| 7 | Race week as a real 7-day week + pinned race-day block after it | Block links to `/day/<race date>`. |
+| 7 | Race week and race-day block | Race week = the final 7-day block, ending on race day, + pinned race-day block after it. Block links to `/day/<race date>`. |
 | 8 | `Today` pill in the top bar | Scrolls to and expands the current week. Shown only when the current week is off-screen **and** the plan has started. |
 | 9 | Day detail at `/day/:date` as a `Sheet` | Part C. |
 | 10 | `/paces` page | Part C. |
@@ -81,6 +83,7 @@
 | Drag-down-to-dismiss on the day sheet | `Sheet`, not `Drawer` (C.2). Close button, scrim, Esc. |
 | Short-runway warning | Product-owner default 5. See B.6. |
 | Mileage inputs / scaling | Product-owner default 1. |
+| Choosing your long-run day | Race weekday decides it (B.2). Revisit only if testers need it (Validate with users). |
 | Post-race state (#56), day-swap detection (#57), plan switching (#32/#33) | Unchanged from the calendar spec. |
 
 ### Why this cut
@@ -97,6 +100,8 @@ that does not change whether that sentence is true.
 ├─────────────────────────────────────┤
 │  9 weeks to race day                │  Display (Figtree), not mono
 │  Week 9 of 18 · build               │  Body-sm, text/secondary
+│  Weeks run Monday to Sunday and end │  Body-sm, text/secondary; weekdays derived from the plan
+│  on race day.                       │
 ├─────────────────────────────────────┤
 │ ▸ Week 8   Mar 2–8          28 mi   │  collapsed, planned miles only
 ├─────────────────────────────────────┤
@@ -122,12 +127,15 @@ that does not change whether that sentence is true.
 └─────────────────────────────────────┘
 ```
 
+Sample shows a Sunday race. For other race weekdays only the row weekdays, week
+ranges and the "Weeks run" line change.
+
 Row copy comes from the template: title = leading label / `workoutTag`, distance =
 `distanceMiles` formatted `5 mi` (drop `.0`, keep `.5`, `26.2`). In the stacked
 list distances are Body, not Numeral (no comparison column yet).
 
 Countdown copy: `N weeks to race day` -> `1 week to race day` -> `Race week` ->
-`Race day is today` -> after race day: `Race day was {Sun, May 17}` (nothing else;
+`Race day is today` -> after race day: `Race day was {Weekday, Mon D}` (nothing else;
 #56 owns the aftermath).
 
 ### A.1 Calendar states
@@ -182,9 +190,10 @@ for an 18-week plan). Week 1 starts in the future.
 └─────────────────────────────────────┘
 ```
 
-Copy: header line `Starts Mon, Jan 12 · 18-week plan` (year appended only if not
-the current year). Rule: no week contains today and today is before week 1 -> expand
-week 1, hide the Today pill, show no Today marker. (Today after race day is the
+Copy: header line `Starts {Weekday}, {Mon D} · 18-week plan` (year appended only
+if not the current year). The start weekday is that of week 1's first date, so it
+is not always Monday. Rule: no week contains today and today is before week 1 ->
+expand week 1, hide the Today pill, show no Today marker. (Today after race day is the
 post-race case, deferred to #56.)
 
 ### A.2 Accessibility (calendar, Slice 1)
@@ -210,15 +219,15 @@ post-race case, deferred to #56.)
 ## B. Plan setup — "Create my plan" (for `plan-setup-flow.md`, new §13)
 
 Plan setup stays **one page, no wizard** (§3). Slice 1 adds one action after the
-results, one validation rule, and one confirm dialog. "Calculate my pace zones" and
-everything it does are unchanged.
+results, and one confirm dialog. "Calculate my pace zones" and everything it does are
+unchanged.
 
 ### B.1 Flow
 
 ```
 /setup (form) --Calculate my pace zones--> results table shown
       │                                          │
-      │ (validation: past date, NOT Sunday)      │ trigger: "Create my plan"
+      │ (validation: past date)                  │ trigger: "Create my plan"
       ▼                                          ▼
  inline errors, no calculate()        ┌── existing plan? ──┐
                                       │ no                 │ yes
@@ -233,10 +242,11 @@ everything it does are unchanged.
 ```
 
 1. Runner fills the form and taps **Calculate my pace zones** (unchanged). The
-   Sunday rule (B.2) is checked here with the past-date check, so a bad date is
-   caught before the runner sees paces they cannot use.
+   past-date check runs here, so a bad date is caught before the runner sees paces
+   they cannot use.
 2. On `ok: true` the pace table appears and **Create my plan** appears directly
-   beneath it, in the same results `Card`.
+   beneath it (with the plan-shape line above the button, B.5), in the same results
+   `Card`.
 3. Tap **Create my plan**. No existing plan: create. Existing plan: replace dialog (B.3).
 4. Success: navigate to `/`; focus the page heading; no toast. The calendar is the
    confirmation.
@@ -246,12 +256,13 @@ everything it does are unchanged.
 as a snapshot with the plan. `calculate()` runs **only on `/setup`**; nowhere else in
 the app recomputes paces (see C.8).
 
-If the runner edits any input after calculating, the results table stays (existing
-rule: a bad edit never erases a good result) but **Create my plan** is disabled with
-helper text `Calculate again to use your changes.` Otherwise a plan could be built
-from inputs different from the paces on screen.
+If the runner edits any input after calculating (race date included), the results
+table stays (existing rule: a bad edit never erases a good result) but **Create my
+plan** is disabled with helper text `Calculate again to use your changes.` Otherwise a
+plan could be built from inputs different from the paces on screen, or the plan-shape
+line could describe a different race date.
 
-### B.2 Race-date validation (Sunday only)
+### B.2 Race-date validation
 
 Checks run in this order on **Calculate**; the first failing message shows on the Race
 date field (`aria-invalid`, focus moves to the field):
@@ -259,24 +270,17 @@ date field (`aria-invalid`, focus moves to the field):
 | Order | Condition | Message |
 |---|---|---|
 | 1 | Date in the past (existing) | `Race date can't be in the past.` |
-| 2 | Not a Sunday | `Race date must be a Sunday. Plan weeks run Monday to Sunday and finish on race day.` |
-| 3 | Empty, at **Create my plan** only | `Enter your race date to create a plan.` |
+| 2 | Empty, at **Create my plan** only | `Enter your race date to create a plan.` |
 
-Helper text changes from `The date of the race you're training for.` to `The date of
-the race you're training for. Must be a Sunday.` so the rule is visible **before** the
-error. Empty date on Calculate stays allowed (the form is also a pace calculator); it
-blocks only at Create.
+Helper text stays `The date of the race you're training for.` Empty date on Calculate
+stays allowed (the form is also a pace calculator); it blocks only at Create.
 
-Compute the weekday from the `yyyy-mm-dd` string as a calendar date, not via a
-timezone-shifted `Date`, so the check cannot be off by one west of UTC (swe: test a
+Compute weekdays (for the B.5 plan-shape line and the calendar) from the `yyyy-mm-dd`
+string as a calendar date, never via a timezone-shifted `Date` (swe: test a
 Saturday-night-UTC case).
 
-**Usability flag for tech-lead (needs product-owner validation).** Many marathons and
-most road races are on Saturdays, so Sunday-only will reject some runners at the first
-form. Implemented as the product-owner default. There is no event store, so this
-cannot be measured; instead ask each tester what day their target race falls on and
-whether the error felt arbitrary. If it is a recurring complaint, follow up by
-accepting any day and anchoring weeks to it.
+**Resolved:** race day may be any weekday (product-owner decision, #13 amendment 2).
+Plan weeks rotate to end on race day; long runs fall the day before the race weekday.
 
 ### B.3 Replace-confirm dialog
 
@@ -296,7 +300,8 @@ accepting any day and anchoring weeks to it.
 
 - Exact copy: title `Replace your current plan?`; body `This replaces your plan for the
   race on {old date} with a new plan for {new date}. This can't be undone.`; buttons
-  `Cancel`, `Replace plan`. Dates `Sun, May 17` (add year only if not the current year).
+  `Cancel`, `Replace plan`. Dates `Sun, May 17` (weekday from the real date; add year
+  only if not the current year).
 - Destructive button uses `destructive/text` fill with white label (verified in Tempo).
   Initial focus on `Cancel` because the action is not reversible.
 - Esc and scrim click = Cancel. Focus returns to **Create my plan**.
@@ -310,7 +315,7 @@ accepting any day and anchoring weeks to it.
 | State | Presentation |
 |---|---|
 | Not yet calculated | No Create action rendered. |
-| Ready | `Create my plan` primary button, full width on mobile, below the results table, with the "Saved on this device" note (B.5). |
+| Ready | `Create my plan` primary button, full width on mobile, below the results table, with the plan-shape line (B.5) directly above the button and the "Saved on this device" note below it. |
 | Stale (inputs edited after Calculate) | Button `disabled` + helper `Calculate again to use your changes.` |
 | Checking for existing plan | Button disabled, label unchanged. If the lookup **fails**, do not assume "no plan" (that would skip the confirm): show the B.5 error and keep the button disabled until retry. A **corrupt** stored plan counts as no plan (A.1). |
 | Creating | Label `Creating your plan…`, `aria-busy="true"`, button disabled. |
@@ -324,19 +329,30 @@ accepting any day and anchoring weeks to it.
 | Action button | `Create my plan` |
 | Creating | `Creating your plan…` |
 | Stale helper | `Calculate again to use your changes.` |
+| **Plan-shape line** | `Your plan weeks run {Thursday} to {Wednesday} and end on race day. Long runs fall on {Tuesdays}.` |
 | **Saved on this device** (Body-sm, `text/secondary`, under the button) | `Your plan is saved on this device only. Clearing your browser data removes it, and it won't appear on other devices.` |
 | Race date empty at create | `Enter your race date to create a plan.` |
-| Not a Sunday | `Race date must be a Sunday. Plan weeks run Monday to Sunday and finish on race day.` |
 | Create failed (destructive `Alert`, `role="alert"`, above the button) | `Couldn't create your plan. Your entries are still here — try again.` |
 | Existing-plan lookup failed | `Couldn't check for an existing plan. Try again.` + `Try again` button |
 | Dialog | B.3 |
+
+**Plan-shape line behaviour.** Body-sm in `text/secondary`, directly above `Create my
+plan`, always shown once the button is. It is a plain paragraph and is referenced in
+the button's `aria-describedby`: not an `Alert`, no live region. Weekdays (first and
+last weekday of a plan week, and the weekday of the `long_run` days) come from the
+generated plan via `planWeekShape(plan)` in `packages/plan-instance`. They are never
+hard-coded as race − 1. A Sunday race reads `Your plan weeks run Monday to Sunday and
+end on race day. Long runs fall on Saturdays.` The stale rule (B.4) covers date edits,
+so the line can never describe a different date than the one Create will use.
 
 ### B.6 Short runway (no warning) and long runway
 
 Race closer than the template length (e.g. 12 weeks out for 18): **no warning**. The
 plan is laid on real dates anchored to race day; the earliest weeks fall before today
 and render as ordinary past weeks (collapsed, no status). The runner starts at the
-current week. Tech-lead: confirm generation does not reject or clamp this.
+current week. Every plan week, including week 1, is a full 7-day block; rotation never
+creates a partial week or shortens the taper. Tech-lead's confirmation, answered:
+generation does not reject or clamp.
 
 Race further out than the template length: the plan starts in the future; the
 calendar shows the **not-started** state (A.1). No warning, nothing blocked.
@@ -346,6 +362,8 @@ calendar shows the **not-started** state (A.1). No warning, nothing blocked.
 - Keyboard order unchanged through Submit, then (after results) `Create my plan`.
 - Race date error: `aria-invalid="true"`, `aria-describedby` to the message, focus to
   the field (existing mechanism).
+- `Create my plan`: `aria-describedby` points at the plan-shape line (and the stale
+  helper when shown).
 - Create error `Alert`: `role="alert"`; focus stays on the button.
 - Dialog: `role="alertdialog"`, labelled by title, described by body; focus trap;
   buttons >= 44px; destructive label is text, not color alone.
@@ -423,6 +441,9 @@ exit are dropped for Slice 1.
 └─────────────────────────────────────┘
 ```
 
+The stepper's weekday is from the real date. (On a non-Sunday race the long run is
+on the day before the race weekday, so the sample date/weekday differs.)
+
 **Rest day:** title `Rest`, `Week 9 of 18 · build`, body `Nothing scheduled today.`
 
 **Strength / cross-training:** title, `Week N of M · {phase}`, `description` verbatim.
@@ -478,7 +499,7 @@ recomputed.
 ```
 ┌─────────────────────────────────────┐
 │ Your pace zones                      │  H1
-│ For your race on Sun, May 17.        │  Body-sm
+│ For your race on Sun, May 17.        │  Body-sm (weekday from the real date)
 │ ┌───────────────┬───────────────┐   │
 │ │ Recovery       │      9:10 /mi │   │  same PaceZoneTable as /setup
 │ │ …              │               │   │  incl. Estimated badges + warning banner when source = goalTime
@@ -582,7 +603,8 @@ URL-addressable panel (Linear's peek) showing the template's words with the runn
 frozen paces resolved inline. With statuses and Strava deferred, the surface is
 deliberately plain: Tempo neutrals, Figtree, one orange `Today`. Principles: calendar
 is home; one tap into a day, one tap back; the template's text is shown verbatim; no
-status the product cannot yet compute; paces never change under an existing plan.
+status the product cannot yet compute; paces never change under an existing plan;
+weekdays always come from real dates.
 
 ## New vs. reused patterns
 
@@ -593,12 +615,15 @@ status the product cannot yet compute; paces never change under an existing plan
 | Route-driven overlay (`/day/:date`) | New | First screen where URL equals overlay state. |
 | `PaceStrip` | New, custom | The compact variant `plan-setup-flow.md` §7.4 deferred; built now because day detail is in this slice. |
 | `*_REFERENCE_COPY` variant on `PaceZoneTable` | New | Same table, no form to jump to. |
+| Plan-shape line | New | One sentence stating the rotated week shape before commit; plain paragraph, not an alert. |
 | `Accordion` week block | First build | Already adopted in the toolkit, not yet built. |
 
 ## Validate with users
 
-- Sunday-only race date (B.2): qualitative only. Ask what day their target race is
-  and whether the error felt arbitrary.
+- Whether runners with a non-Sunday race accept rotated weeks (e.g. Thu–Wed) and a
+  weekday long run. Ask: "Would you want to choose your long-run day?" More than ~25%
+  saying they can't do a weekday long run is the trigger for a long-run-day input
+  (open question to tpm on #13).
 - Whether a plain calendar with no done/not-done marks feels empty to someone who has
   already started training; the main risk of deferring status.
 - "Saved on this device" (B.5): whether runners notice it and understand that
