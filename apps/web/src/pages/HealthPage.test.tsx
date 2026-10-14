@@ -1,9 +1,9 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { HomePage } from "@/pages/HomePage";
+import { HealthPage } from "@/pages/HealthPage";
 
-describe("HomePage — cold-start affordance", () => {
+describe("HealthPage — cold-start affordance", () => {
   let resolveFetch: (value: unknown) => void;
 
   beforeEach(() => {
@@ -28,25 +28,25 @@ describe("HomePage — cold-start affordance", () => {
     vi.useRealTimers();
   });
 
-  function renderHomePage() {
+  function renderHealthPage() {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
     return render(
       <QueryClientProvider client={queryClient}>
-        <HomePage />
+        <HealthPage />
       </QueryClientProvider>,
     );
   }
 
   it("does not show the caption while loading has been under 3s", () => {
-    renderHomePage();
+    renderHealthPage();
 
     expect(screen.queryByText(/still connecting/i)).toBeNull();
   });
 
   it("shows the caption once loading passes 3s, and clears it once the request resolves", async () => {
-    renderHomePage();
+    renderHealthPage();
 
     // Just under the threshold: still no caption.
     await act(async () => {

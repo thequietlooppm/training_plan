@@ -13,7 +13,7 @@ import { fetchHealth } from "@/lib/health";
 // client-side abort here, only an additional caption.
 const STILL_CONNECTING_DELAY_MS = 3000;
 
-export function HomePage() {
+export function HealthPage() {
   const query = useQuery({
     queryKey: ["health"],
     queryFn: ({ signal }) => fetchHealth({ signal }),
