@@ -6,7 +6,7 @@ import {
   PLAN_STORAGE_KEY,
   type PlanInstanceStore,
 } from "@/lib/plan-store";
-import { CORRUPT_PLAN_NOTE } from "@/pages/CalendarPage";
+import { CORRUPT_PLAN_NOTE } from "@/lib/calendar-copy";
 import { failingStore, makeStoredPlan } from "@/test-fixtures";
 import { renderWithProviders } from "@/test-utils";
 

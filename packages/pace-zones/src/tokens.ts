@@ -59,7 +59,8 @@ export const PACE_TOKEN_TABLE: Readonly<Record<string, PaceTokenKey>> = {
 const TOKEN_ALTERNATION = Object.keys(PACE_TOKEN_TABLE)
   .sort((a, b) => b.length - a.length)
   .join("|");
-const TOKEN_PATTERN = `(\\()?(?<![\\w-])(${TOKEN_ALTERNATION})(?![\\w-])(\\))?`;
+// A parenthesised token "(MGP)" matches as a pair; otherwise a bare whole word.
+const TOKEN_PATTERN = `\\((${TOKEN_ALTERNATION})\\)|(?<![\\w-])(${TOKEN_ALTERNATION})(?![\\w-])`;
 
 export interface PaceEntry {
   key: PaceTokenKey;
@@ -113,8 +114,8 @@ export function resolvePaceTokens(description: string, zones: PaceZones): Resolv
 
   for (const match of description.matchAll(new RegExp(TOKEN_PATTERN, "g"))) {
     const whole = match[0];
-    const token = match[2] as string;
-    const key = PACE_TOKEN_TABLE[token] as PaceTokenKey;
+    const key = PACE_TOKEN_TABLE[match[1] ?? match[2] ?? ""];
+    if (!key) continue;
     const found = lookup(key, zones);
     const isGoalToken = key === "marathonGoal" || key === "halfGoal";
     if (!found && !isGoalToken) continue; // blocked zone: leave the text alone

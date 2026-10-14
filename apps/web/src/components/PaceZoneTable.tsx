@@ -150,9 +150,11 @@ export function PaceZoneTable({
 
   return (
     <>
-      <div role="status" aria-live="polite" className="sr-only">
-        {liveMessage}
-      </div>
+      {reference ? null : (
+        <div role="status" aria-live="polite" className="sr-only">
+          {liveMessage}
+        </div>
+      )}
       {goalDerived ? (
         <Alert variant="warning" role="status" className="mb-4">
           <Info aria-hidden="true" />

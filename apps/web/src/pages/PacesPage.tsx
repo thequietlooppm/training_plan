@@ -4,7 +4,7 @@ import { PaceZoneTable } from "@/components/PaceZoneTable";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CORRUPT_PLAN_NOTE } from "@/pages/CalendarPage";
+import { CORRUPT_PLAN_NOTE } from "@/lib/calendar-copy";
 import { formatDateLong } from "@/lib/plan-date-format";
 import { useToday } from "@/lib/today";
 import { useActivePlan } from "@/lib/use-plan";

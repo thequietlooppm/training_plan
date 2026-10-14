@@ -2,7 +2,7 @@ import { cleanup, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "@/App";
 import { PLAN_STORAGE_KEY, type PlanInstanceStore } from "@/lib/plan-store";
-import { CORRUPT_PLAN_NOTE } from "@/pages/CalendarPage";
+import { CORRUPT_PLAN_NOTE } from "@/lib/calendar-copy";
 import { failingStore, makeStoredPlan } from "@/test-fixtures";
 import { renderWithProviders } from "@/test-utils";
 
@@ -52,6 +52,13 @@ describe("/paces", () => {
     expect(screen.getAllByText("Estimated").length).toBe(6);
     expect(screen.queryByText(/\babove\b/)).toBeNull();
     expect(screen.getAllByText(/Create a new plan with a recent result for more accurate paces/).length).toBeGreaterThan(0);
+  });
+
+  it("does not announce 'Pace zones updated.' on /paces", async () => {
+    window.localStorage.setItem(PLAN_STORAGE_KEY, JSON.stringify(makeStoredPlan(RACE)));
+    renderPaces();
+    await screen.findByRole("table");
+    expect(screen.queryByText(/Pace zones updated/)).toBeNull();
   });
 
   it("is reachable from the header nav", async () => {

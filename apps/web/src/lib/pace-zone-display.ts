@@ -3,11 +3,11 @@ import type { GoalZone, PaceZones } from "@training-plan/pace-zones";
 /**
  * Shared, format-agnostic display helpers for the 7 pace zones (#14) —
  * zone order, one-line "what it's for" captions, and the
- * blocked/unset row copy. `PaceZoneTable.tsx` (the full-page table, built
- * now) and any future compact/inline variant (calendar day-detail, not
- * built now — see design spec §7.4) both import from here, so the pace
- * format, the zone order, and the "why is this blocked" wording can never
- * drift between the two surfaces.
+ * blocked/unset row copy. `PaceZoneTable.tsx` (used on /setup and, in its
+ * reference variant, on /paces) imports from here, so the zone order and the
+ * "why is this blocked" wording cannot drift between the two. Pace text
+ * itself (`formatPace`, `resolvePaceTokens`) lives in
+ * `@training-plan/pace-zones`, shared with the day sheet and native clients.
  *
  * See `docs/design/plan-setup-flow.md` §7 for the source spec this mirrors.
  */

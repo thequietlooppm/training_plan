@@ -3,15 +3,19 @@ import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { ESTIMATED_BADGE_LABEL, ESTIMATED_BADGE_TOOLTIP_REFERENCE_COPY } from "@/lib/pace-zone-display";
 
-/** The small "Estimated" chip shared by the strip and inline pace text. */
-export function EstimatedChip() {
+/**
+ * The small "Estimated" chip shared by the strip and inline pace text. Only
+ * the strip carries the full explanatory sentence for screen readers; inline
+ * chips say just "Estimated" so it is not read after every pace.
+ */
+export function EstimatedChip({ verbose = false }: { verbose?: boolean }) {
   return (
     <Badge
       title={ESTIMATED_BADGE_TOOLTIP_REFERENCE_COPY}
       className="border-warning/20 bg-warning-chip align-middle text-warning-chip-foreground"
     >
       <span>{ESTIMATED_BADGE_LABEL}</span>
-      <span className="sr-only"> {ESTIMATED_BADGE_TOOLTIP_REFERENCE_COPY}</span>
+      {verbose ? <span className="sr-only"> {ESTIMATED_BADGE_TOOLTIP_REFERENCE_COPY}</span> : null}
     </Badge>
   );
 }
@@ -29,7 +33,7 @@ export function PaceStrip({ entries }: { entries: readonly PaceEntry[] }) {
         <li key={entry.key} className="flex items-center gap-2">
           <span>{entry.label}</span>
           <span className="font-mono tabular-nums">{entry.pace}</span>
-          {entry.estimated ? <EstimatedChip /> : null}
+          {entry.estimated ? <EstimatedChip verbose /> : null}
         </li>
       ))}
     </ul>

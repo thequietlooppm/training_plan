@@ -89,6 +89,12 @@ describe("resolvePaceTokens", () => {
     expect(result.text).toBe("MGP-based, easyish, Tempo, 10K paces, M5");
   });
 
+  it("matches a parenthesised token as a pair, not each parenthesis alone", () => {
+    expect(resolvePaceTokens("(4 mi easy)", MARATHON_ZONES).text).toBe("(4 mi easy (10:30 /mi))");
+    expect(resolvePaceTokens("(MGP)", MARATHON_ZONES).text).toBe("(MGP) (9:09 /mi)");
+    expect(resolvePaceTokens("(MGP", MARATHON_ZONES).text).toBe("(MGP (9:09 /mi)");
+  });
+
   it("lists each zone once, in first-use order, and resolves every occurrence inline", () => {
     const result = resolvePaceTokens("2 mi easy, 4 mi at MGP, 1 mi easy", MARATHON_ZONES);
     expect(result.text).toBe(

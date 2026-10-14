@@ -102,6 +102,15 @@ describe("day sheet content", () => {
     expect(within(dialog).getByRole("heading", { name: "Race day" })).toBeDefined();
     expect(within(dialog).getByText("Marathon · 26.2 mi")).toBeDefined();
     expect(within(dialog).getByText("Wed, Dec 16")).toBeDefined();
+    // The distance appears once, not again in a Planned row.
+    expect(dialog.textContent?.match(/26\.2 mi/g)).toHaveLength(1);
+    expect(within(dialog).queryByText("Planned")).toBeNull();
+  });
+
+  it("shows distance and duration together when the template gives both", async () => {
+    const both = dayWhere((d) => d.dayType === "run" && d.durationMinutes !== undefined && d.distanceMiles !== undefined);
+    const dialog = await open(both.date);
+    expect(within(dialog).getByText(`${both.distanceMiles} mi · ${both.durationMinutes} min`)).toBeDefined();
   });
 
   it("date outside the plan: 'Not in your plan' with no stepper; Back to calendar closes", async () => {
@@ -120,6 +129,17 @@ describe("day sheet content", () => {
     stubWide(true);
     const wide = await open(easyDay.date);
     expect(wide.className).toContain("right-0");
+  });
+
+  it("turns the slide into a fade under prefers-reduced-motion (spec C.5)", async () => {
+    const narrow = await open(easyDay.date);
+    expect(narrow.className).toContain("motion-reduce:data-[state=open]:slide-in-from-bottom-0");
+    expect(narrow.className).toContain("motion-reduce:data-[state=open]:fade-in-0");
+    cleanup();
+    stubWide(true);
+    const wide = await open(easyDay.date);
+    expect(wide.className).toContain("motion-reduce:data-[state=closed]:slide-out-to-right-0");
+    expect(wide.className).toContain("motion-reduce:data-[state=closed]:fade-out-0");
   });
 });
 
@@ -191,6 +211,30 @@ describe("Prev / Next", () => {
     await waitFor(() => expect(within(screen.getByRole("dialog")).getByText("Wed, Oct 14")).toBeDefined());
 
     // Replace: one Close returns to the calendar, not back through every stepped day.
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Close" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(screen.getByRole("heading", { level: 1, name: "9 weeks to race day" })).toBeDefined();
+  });
+});
+
+describe("Close after a deep link", () => {
+  it.each(["Next day", "Previous day"])("goes to the calendar, not out of the app, after %s", async (button) => {
+    const dialog = await open("2026-10-13");
+    fireEvent.click(within(dialog).getByRole("button", { name: button }));
+    await waitFor(() =>
+      expect(within(screen.getByRole("dialog")).getByText(button === "Next day" ? "Wed, Oct 14" : "Mon, Oct 12")).toBeDefined(),
+    );
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Close" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(screen.getByRole("heading", { level: 1, name: "9 weeks to race day" })).toBeDefined();
+  });
+
+  it("still goes to / after several steps", async () => {
+    await open("2026-10-13");
+    for (let i = 0; i < 3; i++) {
+      fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Next day" }));
+    }
+    await waitFor(() => expect(within(screen.getByRole("dialog")).getByText("Fri, Oct 16")).toBeDefined());
     fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Close" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(screen.getByRole("heading", { level: 1, name: "9 weeks to race day" })).toBeDefined();

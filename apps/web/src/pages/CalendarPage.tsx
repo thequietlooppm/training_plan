@@ -3,15 +3,14 @@ import { AlertTriangle, Info } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { Link, Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 import { DaySheet } from "@/components/DaySheet";
+import { isDeepLinkState } from "@/lib/deep-link-state";
 import { PlanCalendar } from "@/components/calendar/PlanCalendar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CORRUPT_PLAN_NOTE } from "@/lib/calendar-copy";
 import { useToday } from "@/lib/today";
 import { useActivePlan } from "@/lib/use-plan";
-
-export const CORRUPT_PLAN_NOTE =
-  "We couldn't read your saved plan, so it isn't shown. It was set aside, not deleted. Create a new plan to continue.";
 
 /** Navigation state set by "Create my plan" so the calendar heading takes focus. */
 export interface CalendarLocationState {
@@ -79,10 +78,12 @@ export function CalendarPage({ selectedDate }: { selectedDate?: string }) {
   }, [focusRequested, ready, navigate, location.pathname]);
 
   function closeSheet() {
-    // `key === "default"` means this is the first entry (deep link): there
-    // is nothing in-app to go back to.
-    if (location.key !== "default") navigate(-1);
-    else navigate("/", { replace: true });
+    // A first entry (`key === "default"`), or one reached by Prev/Next
+    // `replace`s from a deep link (flagged in state), has nothing in-app to
+    // go back to.
+    if (location.key === "default" || isDeepLinkState(location.state)) {
+      navigate("/", { replace: true });
+    } else navigate(-1);
   }
 
   /** Radix restores focus on close; we choose the target: the day's row, else the heading. */

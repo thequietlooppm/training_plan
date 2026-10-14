@@ -30,6 +30,17 @@ sourcing of the reference data in `src/vdotTable.ts`.
 - `src/calculator.ts` — the pure `calculate()` entry point: VDOT derivation,
   table interpolation/VO2(v)-inversion dispatch, goal-pace division,
   zone-state assembly.
+- `src/format.ts` — `formatPace(sec)`: seconds-per-mile to `"7:45 /mi"`.
+  Rounds the total first, then splits (479.6 gives `8:00 /mi`, never `7:60`).
+- `src/tokens.ts` — `resolvePaceTokens(description, zones)`: appends the
+  runner's pace after each pace token in a workout description (`easy`, `MGP`,
+  `HMGP`, `10K pace`, `5K pace`, `TP`/`threshold`, `interval`, and the
+  single-letter `E M T I`) and returns `{ text, segments, entries }`, where
+  `entries` lists the zones the text used (for a pace strip) with an
+  `estimated` flag for `source: "goalTime"` zones. It reads a `PaceZones`
+  snapshot and never calls `calculate()`. Matching is case-sensitive and
+  whole-word; `MGP` resolves only to a marathon goal and `HMGP` only to a
+  half goal, otherwise the token reads "(not set)".
 - `src/index.ts` — the public barrel export. Import from here, not from the
   individual source files.
 
