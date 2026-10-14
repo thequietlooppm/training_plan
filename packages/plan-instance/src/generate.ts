@@ -1,6 +1,5 @@
 import type { Day, DayType, Phase, PlanTemplate, WorkoutTag } from "@training-plan/plan-templates";
-import { addDays } from "./date.js";
-import { validateRaceDate } from "./validation.js";
+import { addDays, isValidDateString, isoWeekday } from "./date.js";
 
 /** Bump when generator output for the same inputs changes; stored in saved plans. */
 export const GENERATOR_VERSION = 1;
@@ -41,6 +40,8 @@ export interface GeneratedPlan {
   weeks: PlanInstanceWeek[];
 }
 
+const DAY_ORDER = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
+
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
 export function weeklyRunMiles(days: readonly Day[]): number {
@@ -66,9 +67,14 @@ export interface GenerateInput {
  * tokens from the frozen snapshot at display time.
  */
 export function generatePlan({ template, raceDate }: GenerateInput): GeneratedPlan {
-  // Passing raceDate as "today" checks format/validity/Sunday without a clock.
-  const check = validateRaceDate(raceDate, raceDate);
-  if (!check.ok) throw new RangeError(`Invalid race date: ${check.error.code}`);
+  // Structural rule (not the Sunday-only product rule in validateRaceDate):
+  // the race date must fall on the weekday of the template's final day.
+  if (!isValidDateString(raceDate)) throw new RangeError("Invalid race date: not a real date");
+  const lastDay = template.weeks.at(-1)?.days.at(-1);
+  if (!lastDay) throw new RangeError("Template has no days");
+  if (isoWeekday(raceDate) !== DAY_ORDER.indexOf(lastDay.dayOfWeek) + 1) {
+    throw new RangeError(`Invalid race date: must fall on the template's final weekday (${lastDay.dayOfWeek})`);
+  }
 
   const startDate = addDays(raceDate, -(template.totalWeeks * 7 - 1));
   const weeks: PlanInstanceWeek[] = template.weeks.map((week, w) => {

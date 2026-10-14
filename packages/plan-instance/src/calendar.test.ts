@@ -70,4 +70,12 @@ describe("calendar helpers", () => {
     expect(planState(plan, today)).toBe("in_progress");
     expect(weekProgress(plan, today).current).toBe(14);
   });
+
+  it("rejects an invalid injected today the same way across helpers", () => {
+    for (const bad of ["2027-02-30", "nope", ""]) {
+      expect(() => planState(plan, bad), bad).toThrow(RangeError);
+      expect(() => currentWeek(plan, bad), bad).toThrow(RangeError);
+      expect(() => findToday(plan, bad), bad).toThrow(RangeError);
+    }
+  });
 });

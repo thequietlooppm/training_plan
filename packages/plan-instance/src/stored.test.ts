@@ -6,6 +6,7 @@ import {
   createStoredPlanInstance,
   materializePlan,
   parseStoredPlanInstance,
+  runMigrations,
   serializeStoredPlanInstance,
   storedPlanInstanceSchema,
 } from "./stored.js";
@@ -68,6 +69,18 @@ describe("stored plan instance", () => {
     });
   });
 
+  it("does not treat a non-Sunday race date as corruption (product rule, not a data check)", () => {
+    const s = { ...stored, raceDate: "2027-04-03" }; // Saturday
+    expect(parseStoredPlanInstance(JSON.stringify(s))).toEqual({ status: "ok", value: s });
+  });
+
+  it("materializePlan reports unsupported_race_date instead of throwing", () => {
+    expect(materializePlan({ ...stored, raceDate: "2027-04-03" }, template)).toEqual({
+      ok: false,
+      reason: "unsupported_race_date",
+    });
+  });
+
   it("treats a missing value as empty", () => {
     expect(parseStoredPlanInstance(null)).toEqual({ status: "empty" });
   });
@@ -78,7 +91,6 @@ describe("stored plan instance", () => {
       ["[]", "invalid_shape"],
       ["null", "invalid_shape"],
       ["{}", "invalid_shape"],
-      [JSON.stringify({ ...stored, raceDate: "2027-04-03" }), "invalid_shape"], // not a Sunday
       [JSON.stringify({ ...stored, raceDate: "2027-02-30" }), "invalid_shape"],
       [JSON.stringify({ ...stored, id: "not-a-uuid" }), "invalid_shape"],
       [JSON.stringify({ ...stored, extra: 1 }), "invalid_shape"],
@@ -95,5 +107,31 @@ describe("stored plan instance", () => {
     const bad = structuredClone(stored);
     bad.paceZones.easy = { state: "computed", paceSecPerMile: -5, source: "recentResult" };
     expect(storedPlanInstanceSchema.safeParse(bad).success).toBe(false);
+  });
+});
+
+describe("runMigrations", () => {
+  it("applies steps in order up to the target", () => {
+    const calls: number[] = [];
+    const out = runMigrations({ schemaVersion: 1, a: 1 }, 3, {
+      1: (b) => (calls.push(1), { ...b, schemaVersion: 2, b: 2 }),
+      2: (b) => (calls.push(2), { ...b, schemaVersion: 3 }),
+    });
+    expect(calls).toEqual([1, 2]);
+    expect(out).toEqual({ schemaVersion: 3, a: 1, b: 2 });
+  });
+
+  it("is a no-op when already at target", () => {
+    const blob = { schemaVersion: 2 };
+    expect(runMigrations(blob, 2, {})).toBe(blob);
+  });
+
+  it("returns null when a step is missing", () => {
+    expect(runMigrations({ schemaVersion: 1 }, 3, { 1: (b) => ({ ...b, schemaVersion: 2 }) })).toBeNull();
+    expect(runMigrations({ schemaVersion: 1 }, 2, {})).toBeNull();
+  });
+
+  it("returns null when a step fails to advance the version", () => {
+    expect(runMigrations({ schemaVersion: 1 }, 2, { 1: (b) => b })).toBeNull();
   });
 });

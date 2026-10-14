@@ -23,12 +23,14 @@ export {
   createStoredPlanInstance,
   materializePlan,
   paceZonesSnapshotSchema,
+  runMigrations,
   parseStoredPlanInstance,
   serializeStoredPlanInstance,
   storedPlanInstanceSchema,
   type CreateStoredInput,
   type LoadResult,
   type MaterializeResult,
+  type MigrationStep,
   type StoredPlanInstance,
 } from "./stored.js";
 export {

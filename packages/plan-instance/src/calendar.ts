@@ -1,10 +1,14 @@
-import { diffDays } from "./date.js";
+import { diffDays, isValidDateString } from "./date.js";
 import type { GeneratedPlan, PlanInstanceDay, PlanInstanceWeek } from "./generate.js";
 
 /**
  * Calendar view-model helpers. Every helper takes an injected `today`
  * (local `YYYY-MM-DD`); none reads the clock.
  */
+
+function assertDate(today: string): void {
+  if (!isValidDateString(today)) throw new RangeError(`Invalid calendar date: ${today}`);
+}
 
 export function groupByWeek(plan: GeneratedPlan): PlanInstanceWeek[] {
   return plan.weeks;
@@ -28,11 +32,13 @@ export function planState(plan: GeneratedPlan, today: string): PlanPhaseState {
 
 /** The plan day for `today`, or undefined if today is outside the plan. */
 export function findToday(plan: GeneratedPlan, today: string): PlanInstanceDay | undefined {
+  assertDate(today);
   return findDay(plan, today);
 }
 
 /** Week containing `today`, or undefined if today is before the start or after the race. */
 export function currentWeek(plan: GeneratedPlan, today: string): PlanInstanceWeek | undefined {
+  assertDate(today);
   return plan.weeks.find((w) => today >= w.startDate && today <= w.endDate);
 }
 

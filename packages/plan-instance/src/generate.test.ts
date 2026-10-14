@@ -73,11 +73,6 @@ describe("generatePlan (committed template)", () => {
     expect(diffDays(p.startDate, p.raceDate)).toBe(template.totalWeeks * 7 - 1);
   });
 
-  it("generates the full plan for a short runway (early days in the past)", () => {
-    const p = generatePlan({ template, raceDate: "2027-04-04" });
-    expect(p.weeks).toHaveLength(18); // independent of any "today"
-  });
-
   it("rejects non-Sunday and invalid race dates", () => {
     expect(() => generatePlan({ template, raceDate: "2027-04-03" })).toThrow(RangeError);
     expect(() => generatePlan({ template, raceDate: "nope" })).toThrow(RangeError);
