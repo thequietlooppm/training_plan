@@ -34,6 +34,13 @@ exists to stop. As of this revision:
 - The system has a name — **Tempo** — so it can be referred to by name in
   review and in future specs instead of re-describing it each time.
 
+## Revision (Slice 1, issues #13/#16/#17) — day detail is a `Sheet`, not a `Drawer`
+
+Adds `Sheet` (day detail) and records that `AlertDialog` is now first used for
+the replace-plan confirm. Vaul/`Drawer` is explicitly **not** adopted. See
+`docs/design/slice-1-plan-generation.md`. Also records the single home of
+`formatPace` (`packages/pace-zones`).
+
 ## Component library
 
 **Decided: shadcn/ui (MIT, copy-in) over Radix UI primitives, styled with
@@ -41,12 +48,15 @@ Tailwind CSS.**
 
 | | Pick | Why | Cost | Alternative to weigh |
 |---|---|---|---|---|
-| ~~React~~ **(decided)** | **shadcn/ui** over Radix primitives | Gives us accordion, dialog, drawer, progress, button, toast, form, table, and a `react-day-picker` calendar — almost everything the calendar and plan-setup screens need — as code we own and restyle. Accessible primitives (Radix) underneath. | Tailwind buy-in; you maintain the copied components; needs a bundler (Vite, already decided). | **Mantine** — batteries-included, own styling engine, installed as a dep rather than copied. Faster to start, heavier to escape. Not pursued. |
+| ~~React~~ **(decided)** | **shadcn/ui** over Radix primitives | Gives us accordion, dialog, sheet, progress, button, toast, form, table, and a `react-day-picker` calendar — almost everything the calendar and plan-setup screens need — as code we own and restyle. Accessible primitives (Radix) underneath. | Tailwind buy-in; you maintain the copied components; needs a bundler (Vite, already decided). | **Mantine** — batteries-included, own styling engine, installed as a dep rather than copied. Faster to start, heavier to escape. Not pursued. |
 | ~~Framework-agnostic~~ *(moot — stack is React; kept for reference only)* | Tailwind CSS + DaisyUI | N/A — not applicable now that the stack is React. | — | — |
 
 Screen-by-screen mapping lives in:
 - `docs/design/training-calendar.md` § Interface detail (calendar / day-detail
   sheet, including the Strava-match UI — not yet built).
+- `docs/design/slice-1-plan-generation.md` (Slice 1: create plan, calendar on
+  real dates, day-detail `Sheet`, `/paces` — issues #13/#16/#17; overrides the
+  calendar spec for Slice 1 behaviour).
 - `docs/design/plan-setup-flow.md` §6.2 (template/race-date/result/goal-time
   form + §7 pace-zone table — issues #12/#14).
 - `docs/design/strava-connect-settings.md` § Interface detail (Strava connect/
@@ -61,19 +71,19 @@ the designer's consult response on that issue, not duplicated here.
 |---|---|---|
 | `Button` | Hello-world shell / `HomePage.tsx` | Standard. |
 | `Card` (+ Header/Content/Footer/Title/Description/Action) | `HomePage.tsx` | Standard section container; reused on the plan-setup, calendar, and Strava-settings screens. |
-| `Skeleton` | `HomePage.tsx` | Loading-state convention: mirrors real layout, no spinner. Reused for the Strava "connecting" state (`strava-connect-settings.md`). |
-| `Progress` | `docs/design/training-calendar.md` (not yet built) | Plan-progress bar. |
-| `Accordion` | `docs/design/training-calendar.md` (not yet built) | Collapsible week block. |
-| `Dialog` / a `Drawer` (e.g. Vaul) | `docs/design/training-calendar.md` (not yet built) | Day-detail sheet (mobile) / side panel (desktop). |
-| `AlertDialog` (shadcn, Radix `AlertDialog`) | `docs/design/strava-connect-settings.md` (issue #20, not yet built) | **New adoption.** Modal confirmation for the Strava **Disconnect** action — the copy must state the purge-on-disconnect behavior (FR15) before the runner confirms, so a plain `Dialog` isn't enough; `AlertDialog` is the primitive that models "confirm a consequential, non-trivial-to-undo action." |
+| `Skeleton` | `HomePage.tsx` | Loading-state convention: mirrors real layout, no spinner. Reused for the Strava "connecting" state (`strava-connect-settings.md`) and for the calendar, day sheet and `/paces` loading states in Slice 1. |
+| `Progress` | `docs/design/training-calendar.md` (not yet built) | Plan-progress bar. **Deferred out of Slice 1** (text `Week N of M` instead). |
+| `Accordion` | `docs/design/training-calendar.md`; first built in Slice 1 | Collapsible week block; `type="multiple"`. |
+| `Sheet` (shadcn, Radix `Dialog` with a `side` prop) | `docs/design/slice-1-plan-generation.md` §C (issues #16/#17) | **New adoption. Replaces the earlier "`Dialog` / `Drawer` (Vaul)" row.** Day-detail panel at route `/day/:date`: `side="bottom"` below 768px, `side="right"` at 768px and up. No extra dependency (Vaul not added), route-driven open state, no drag gesture to maintain. `SheetTitle` is mandatory (accessible name). |
+| `AlertDialog` (shadcn, Radix `AlertDialog`) | `docs/design/strava-connect-settings.md` (issue #20); also Slice 1 replace-plan confirm (`slice-1-plan-generation.md` §B.3) | Modal confirmation for consequential, non-trivial-to-undo actions: Strava **Disconnect** (the copy **must** state the purge-on-disconnect behavior (FR15) **before the runner confirms**) and **Replace your current plan?**. A plain `Dialog` isn't enough; `AlertDialog` models "confirm", puts default focus on Cancel, and closes on Esc as Cancel. Destructive variant on the confirming button. |
 | `Form` (react-hook-form + zod resolver) | `docs/design/plan-setup-flow.md` (issue #12, not yet built) | **New dependency add** — `react-hook-form` + `zod` (`zod` is already used inside `packages/pace-zones`/`plan-templates`, but not yet a direct `apps/web` dependency). Chosen over hand-rolled `useState` validation because this form has real multi-field, cross-field, and calculator-shaped (`errors[].path`) validation to reconcile — see the spec's "Form: recommendation" for the full trade-off. |
 | `Input` | `docs/design/plan-setup-flow.md` | Text/number/`type="date"` fields — race date, and the 3-field H/M/S time-entry composite (`TimeInputGroup`, custom, built from `Input` + `Label`). **All set in the body typeface (see Type scale, below) — never the numeral/mono face used for pace numbers.** |
 | `Label` | `docs/design/plan-setup-flow.md` | Paired with every `Input`/`Select`/`RadioGroup` item. |
 | `Select` | `docs/design/plan-setup-flow.md` | Recent-result distance (6 options). |
 | `RadioGroup` | `docs/design/plan-setup-flow.md`, `docs/design/training-calendar.md` | Three uses: template picker and goal-time distance toggle on plan-setup (same primitive, different CSS); **new use** — the multi-match single-select list in the day-detail sheet (FR18, "runner picks one of several plausible same-day Strava activities, or 'none of these'") reuses this same primitive rather than inventing a new list-selection component. |
-| `Table` | `docs/design/plan-setup-flow.md` | The #14 pace-zone reference table. Pace column uses the numeral/mono face (Type scale, below); everything else in the table uses the body typeface. |
-| `Alert` | `docs/design/plan-setup-flow.md`, `docs/design/training-calendar.md`, `docs/design/strava-connect-settings.md` | Variants in use: destructive (form errors, Strava auth-expired/error states), and info/warning, non-destructive (goal-time pace-estimate banner; Strava backfill-in-progress banner). |
-| `Badge` | `docs/design/plan-setup-flow.md`, `docs/design/training-calendar.md`, `docs/design/strava-connect-settings.md` | Template metadata tag; "Estimated" pace-zone tag (issue #52); **new uses** — the completion-status chip (Achieved/Partial/Missed/Rest, see below) and the Strava connection-status chip (Connected/Not connected/Auth expired). Custom color per status, see "Deliberately custom" below for why the status chip isn't a bare `Badge`. |
+| `Table` | `docs/design/plan-setup-flow.md` | The #14 pace-zone reference table, reused on `/paces` in Slice 1. Pace column uses the numeral/mono face (Type scale, below); everything else in the table uses the body typeface. |
+| `Alert` | `docs/design/plan-setup-flow.md`, `docs/design/training-calendar.md`, `docs/design/strava-connect-settings.md` | Variants in use: destructive (form errors, create-plan failure, Strava auth-expired/error states), and info/warning, non-destructive (goal-time pace-estimate banner; Strava backfill-in-progress banner). |
+| `Badge` | `docs/design/plan-setup-flow.md`, `docs/design/training-calendar.md`, `docs/design/strava-connect-settings.md` | Template metadata tag; "Estimated" pace-zone tag (issue #52); the `Long` / `Race day` tags on calendar rows (Slice 1); **later uses** — the completion-status chip (Achieved/Partial/Missed/Rest, see below; not in Slice 1) and the Strava connection-status chip (Connected/Not connected/Auth expired). Custom color per status, see "Deliberately custom" below for why the status chip isn't a bare `Badge`. |
 
 Not yet adopted / not needed anywhere yet: `Popover`, `Calendar`
 (`react-day-picker`) — considered for race-date entry on the plan-setup
@@ -81,7 +91,10 @@ screen and deliberately **not** used there (a native `<input type="date">`
 does that one-date job without a full month-grid component); still expected
 on the training-calendar screen itself, which genuinely needs a month/week
 grid. `Toast`/Sonner — considered for the calendar's activity-match
-confirmation and passed over in favor of an inline live region for v1.
+confirmation and passed over in favor of an inline live region for v1; also
+not used for plan creation (the calendar appearing is the confirmation).
+`Drawer` (Vaul) — considered for the day-detail panel and passed over in
+favor of `Sheet` (no extra dependency, no drag-gesture state, route-driven).
 `Tooltip` — considered twice (the plan-setup "Estimated" badge, and the
 Strava "last synced" timestamp) and passed over both times in favor of a
 native `title` attribute + visually-hidden text, to avoid a new dependency
@@ -210,6 +223,10 @@ distinct from destructive red in both modes.
 
 ## Completion-status color system (Achieved / Partial / Missed / Rest)
 
+> **Not used in Slice 1.** The calendar ships with no status chips
+> (`slice-1-plan-generation.md`). This section is the standing decision for when
+> they arrive; nothing here changes.
+
 **Decided once, here, cross-cutting.** This is the resolution of the "no
 green anywhere in the palette... a future screen with a genuine done/not-done
 semantic can make its own reference-backed case" placeholder from the prior
@@ -290,11 +307,12 @@ Notes:
   success state; also the Achieved status icon, above — same glyph, generic
   "success/complete" meaning in both places, not a conflict).
 - Training-calendar / day-detail: `menu`, `settings`, `chevron-left`,
-  `chevron-right`, `chevron-down`, `chevron-up`, `flag` (race day),
-  `footprints` (run), `activity` (non-running activity / unlinked entry),
-  `moon` (Rest status), `circle-dot` (Partial status), `x-circle` (Missed
-  status), `calendar`, `plus-circle` (unlinked/bonus activity), `undo-2`
-  (undo a confirmed match), `link` / `link-2-off` (matched / dismissed).
+  `chevron-right`, `chevron-down`, `chevron-up`, `x` (close day sheet),
+  `flag` (race day), `footprints` (run), `activity` (non-running activity /
+  unlinked entry), `moon` (Rest status), `circle-dot` (Partial status),
+  `x-circle` (Missed status), `calendar`, `plus-circle` (unlinked/bonus
+  activity), `undo-2` (undo a confirmed match), `link` / `link-2-off`
+  (matched / dismissed).
 - Strava connect/settings: `link` (connect), `link-2-off` or `unlink`
   (disconnect), `refresh-cw` (syncing/connecting), `clock` (last-synced
   time), `alert-triangle` (reused — error/auth-expired), `trash-2`
@@ -320,14 +338,14 @@ below as the standing principle, not a one-screen fix.
 | Role | Typeface | Size / line-height | Weight | Usage |
 |---|---|---|---|---|
 | Display | Figtree | 36 / 44 | 700 (Bold) | A single hero stat read as prose, not a comparison column — e.g. the calendar's countdown number ("9 weeks to race day"). **Not mono** — see the correction to `training-calendar.md` below; a standalone hero number is not "a column of comparable numbers," so it doesn't earn the numeral face. |
-| H1 | Figtree | 28 / 36 | 700 (Bold) | Page title ("Set up your plan", "Marathon plan"). |
+| H1 | Figtree | 28 / 36 | 700 (Bold) | Page title ("Set up your plan", "Marathon plan", "Your pace zones"). |
 | H2 | Figtree | 20 / 28 | 600 (Semibold) | Section heading ("Your pace zones", a week header, the day-detail sheet's workout title). |
 | H3 | Figtree | 16 / 24 | 600 (Semibold) | Card/subsection title. |
 | Body | Figtree | 16 / 24 | 400 (Regular) | Default paragraph text, **every input field**, button labels. |
 | Body-sm / caption | Figtree | 14 / 20 | 400 (Regular) | Helper text, zone-purpose captions, muted metadata. |
 | Label | Figtree | 13 / 16 | 500 (Medium) | Form field labels, section legends, table column headers, status-chip and connection-status-chip text. Section legends may add uppercase + slight letter-spacing; field labels don't. |
 | Numeral (table) | IBM Plex Mono | 16 / 24 | 500 (Medium) | **Only** a column of numbers being compared against each other: the pace-zone table's pace column, the calendar's weekly-mileage/per-day-distance columns (desktop 7-column grid). Right-aligned, tabular figures. |
-| Numeral (inline) | IBM Plex Mono | 14 / 20 | 500 (Medium) | Smaller reuse of the same data in a compact context — e.g. a future inline pace-zone chip strip (`plan-setup-flow.md` §7.4). Same rule, smaller size. |
+| Numeral (inline) | IBM Plex Mono | 14 / 20 | 500 (Medium) | Smaller reuse of the same data in a compact context — the day-sheet `PaceStrip` (Slice 1; `plan-setup-flow.md` §7.4). Same rule, smaller size. |
 
 **The rule, restated as a standing principle (not a one-screen fix):** one
 body face (Figtree) everywhere a person types or reads prose, including every
@@ -362,12 +380,13 @@ sources: unDraw (recolourable), Open Peeps, Humaaans. Keep to one source.
 
 | Component | Why it's custom |
 |---|---|
-| Week block (collapsible header + 7 day rows / 7-column grid) | This is the product's core object and its layout (row-per-week, long-run-as-anchor, planned vs. status vs. today treatment) is the thing that makes the calendar ours. Built on a library disclosure/accordion primitive, but the day-row and week-grid layout is bespoke. |
+| Week block (collapsible header + 7 day rows / 7-column grid) | This is the product's core object and its layout (row-per-week, long-run-as-anchor, planned vs. status vs. today treatment) is the thing that makes the calendar ours. Built on a library disclosure/accordion primitive, but the day-row and week-grid layout is bespoke. Slice 1 builds the stacked list only; each day row is a React Router `Link` to `/day/:date`. |
 | Race-day row | A pinned "finish line" milestone with countdown — no library has this; it's a styled block, low effort. |
-| Weekly-summary rail (desktop) | Small bespoke stat block; trivial to build, no primitive needed. |
-| `StatusBadge` (Achieved/Partial/Missed/Rest chip) | Built on the library `Badge`, but the per-status color/icon/label mapping (this doc's Completion-status section) is bespoke and shared via one module (`lib/status-display.ts`, see `training-calendar.md`) so the calendar day row, the day-detail sheet, and any future week-summary reuse can't drift from each other. |
-| `ActivityMatchCard` (suggested-match confirm/dismiss card in the day-detail sheet) | No library primitive models "here's an unconfirmed inference, confirm or dismiss it, and you can undo later" — assembled from `Card` + `Button` + `Badge`. First-of-its-kind pattern in this repo (see `training-calendar.md` §7). |
+| Weekly-summary rail (desktop) | Small bespoke stat block; trivial to build, no primitive needed. Deferred past Slice 1. |
+| `StatusBadge` (Achieved/Partial/Missed/Rest chip) | Built on the library `Badge`, but the per-status color/icon/label mapping (this doc's Completion-status section) is bespoke and shared via one module (`lib/status-display.ts`, see `training-calendar.md`) so the calendar day row, the day-detail sheet, and any future week-summary reuse can't drift from each other. **Not built in Slice 1.** |
+| `ActivityMatchCard` (suggested-match confirm/dismiss card in the day-detail sheet) | No library primitive models "here's an unconfirmed inference, confirm or dismiss it, and you can undo later" — assembled from `Card` + `Button` + `Badge`. First-of-its-kind pattern in this repo (see `training-calendar.md` §7). **Not built in Slice 1.** |
+| `PaceStrip` (compact pace reference in the day sheet) | Slice 1. A one-line "Easy 10:30 /mi · MGP 9:09 /mi" strip of only the zones the day's description uses, plus an "All pace zones" link to `/paces`. A full `Table` is the wrong DOM shape inline (see `plan-setup-flow.md` §7.4 option (b): sibling component sharing the same helpers). |
 | `TimeInputGroup` (3× number input for H/M/S race/goal time entry) | No library primitive models "a single duration split across three fields" — assembled from `Input` + `Label` inside a `fieldset`. See `docs/design/plan-setup-flow.md` §6.2 for the format decision (three number fields over one free-text field) and §2 for why these fields use the body typeface, not the results table's numeral face. |
-| `PaceZoneTable` + `lib/pace-zone-display.ts` (zone order, `formatPace`, blocked/unset copy, and — per issue #52 — the goal-derived `source` warning banner/badge copy) | The other core product object besides the week block — the direct realization of issue #14, amended by #52's goal-time-derived-fallback warning. Built on the library `Table`/`Alert`/`Badge`, but the zone ordering, pace formatting, blocked/unset microcopy, and the goal-derived warning copy are bespoke and shared via one module so a future compact/inline variant (calendar day-detail) can't drift from this one. See `docs/design/plan-setup-flow.md` §7.4. |
+| `PaceZoneTable` + `lib/pace-zone-display.ts` (zone order, blocked/unset copy, and — per issue #52 — the goal-derived `source` warning banner/badge copy) | The other core product object besides the week block — the direct realization of issue #14, amended by #52's goal-time-derived-fallback warning. Built on the library `Table`/`Alert`/`Badge`, but the zone ordering, blocked/unset microcopy, and the goal-derived warning copy are bespoke and shared via one module so the compact day-sheet `PaceStrip` can't drift from it. **`formatPace` is no longer defined here**: its single home is `packages/pace-zones` (exported from its `index.ts`), imported by web; see `slice-1-plan-generation.md` §D. `/paces` reuses the table with a reference variant that swaps the "above" jump-links for a link to `/setup` (§C.7). See `docs/design/plan-setup-flow.md` §7.4. |
 | Template radio-card list | Built on the library `RadioGroup` (keyboard/roving-tabindex behavior is the primitive); the card layout inside each item — title + distance-type + week-count metadata — is bespoke, same split as the week block. |
 | `ConnectionStatusCard` (Strava not-connected/connecting/connected/auth-expired/error) | Built on `Card` + `Badge` + `Button` + `Alert`, but the state machine and the specific copy per state (`strava-connect-settings.md`) is bespoke — no library primitive models "an OAuth connection's lifecycle status." |

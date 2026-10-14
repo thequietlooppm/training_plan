@@ -35,8 +35,8 @@ confirmation and purge-behavior copy (FR15).
 
 **Explicitly out of scope:**
 - Any other settings (notifications etc. — still open per
-  `training-calendar.md` §8; units and week start are settled — miles,
-  Monday — and need no setting). This spec is the Strava connection card
+  `training-calendar.md` §8; units are settled (miles) and week start
+  follows race day — neither needs a setting). This spec is the Strava connection card
   only; for v1 it may be the entire Settings screen.
 - Displaying the runner's Strava name/profile anywhere — deferred to the
   "Sign in with Strava" fast-follow (FR27) (see §7).

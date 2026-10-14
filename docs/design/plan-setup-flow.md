@@ -824,6 +824,12 @@ show the "Estimated" badge, independently of this static table.
 
 ### 7.4 Full-page vs. future compact/inline reuse
 
+> **Slice 1 update (#17):** `formatPace` no longer lives in
+> `lib/pace-zone-display.ts`. Its single home is `packages/pace-zones`
+> (exported from its `index.ts`), and web imports it from there. It rounds the
+> total seconds before splitting into minutes and seconds. See
+> `slice-1-plan-generation.md` §D. The rest of this section stands.
+
 The task brief's AC for #14 is explicit that this component needs to work
 both here (a full page section) and later inline next to a workout's
 freeform text (calendar day-detail). My call on how to split that:
@@ -1049,3 +1055,9 @@ One thing still worth a quick confirm before/soon after shipping:
   own contract still technically permits "neither" (§7.2's now-dead
   `blocked` state) even though this screen's UI no longer allows a runner to
   reach it.
+
+## 13. Slice 1 — "Create my plan"
+
+The "Create my plan" step (button under the results table, race-date validation
+(any weekday), plan-shape line, replace-plan `AlertDialog`, create states and copy) is
+specified in `docs/design/slice-1-plan-generation.md` §B (issues #13/#16).
