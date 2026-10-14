@@ -434,6 +434,92 @@ ref instead of an image registry.
 Render.com (`apps/api` dev) + Fly.io (`apps/api` staging/prod, later) +
 Cloudflare Pages (`apps/web`).
 
+## Addendum — Client-side plan instance for the pre-sync slice (2026-10-14)
+
+Issues #13 (generate a plan instance), #16 (calendar) and #17 (day detail)
+are built as one end-to-end slice with **no backend**. The earlier plan
+(a `POST /plan-instances` route, materialized Postgres tables, the ADR 0006
+esbuild prerequisite) is deferred to a new "Persist plan instance
+server-side" issue. This addendum records the temporary client-only shape.
+
+**This is temporary.** The end-state model is unchanged: a plan instance is
+materialized as Postgres rows on the server, with `apps/api` as the source of
+truth for every client (web now, iOS/Android later).
+
+### What is stored, and where
+
+A new `packages/plan-instance` holds a pure generator (template + race date
+-> dated days), the stored-form Zod schema, input validation, date utilities
+and calendar helpers. `apps/web` (later PRs) persists the instance in browser
+`localStorage` under the single key `tp:plan-instance`, behind an async
+`PlanInstanceStore { get, save, clear }` interface wrapped in TanStack Query
+hooks, so an API-backed store can replace it without touching UI code.
+
+The blob stores **inputs plus frozen derived values, not the day list**:
+`schemaVersion`, `generatorVersion`, `id` (`crypto.randomUUID()`, reused as
+the Postgres primary key later), `templateId`, `templateVersion`, `raceDate`
+(`YYYY-MM-DD`), the pace-calculator inputs, a snapshot of the computed
+`PaceZones`, `peakWeekMiles`, `scalar` (1.0), `status: 'active'` (mirrors
+#31's enum) and `createdAt`. Days are regenerated on load; this is
+deterministic because the generator is pure and the pinned template version
+is immutable.
+
+### Migration path to the server
+
+The client POSTs the stored inputs, and the server regenerates identical days
+with the same pure function from `packages/plan-instance`, then materializes
+rows. Day identity is the natural key `(instanceId, date)`; the server
+assigns day IDs when it materializes. #31's one-active-plan constraint and
+status column land in the same migration that creates `plan_instances`.
+
+**Trigger to move server-side:** before #22 "Build webhook receiver +
+background sync worker" merges, or before any per-day status or Strava match
+is persisted, or before the FR16 backfill, whichever comes first.
+
+### Pace snapshot
+
+Paces are **snapshotted at plan creation, not recomputed on load**. A
+calculator change silently shifting a runner's paces mid-plan would be a
+training-load change they did not choose. The calculator inputs are stored
+for provenance; an explicit "recalculate paces" action is a later issue.
+
+### Versioning and corruption
+
+The blob is Zod-parsed on load, with an ordered migration chain keyed by
+`schemaVersion`. `generatorVersion` is bumped whenever generator output for
+the same inputs would change, and a mismatch is handled by a migration, never
+silently. On a parse failure the raw value is never deleted: it is moved to
+`tp:plan-instance:corrupt`, the UI shows the empty state with a non-blocking
+note, and the blob is never logged.
+
+### Known limits
+
+One device only; the plan is lost if browser storage is cleared; no plan
+history (FR23 waits for the server). The UI says "Saved on this device".
+Date math uses no new dependency (integer epoch days; `today` is injected,
+never read inside the package). Race date may be any weekday (product-owner decision). Every template day
+keeps its fixed day offset from race day (`startDate = raceDate - (totalWeeks*7 - 1)`),
+so each plan week is the 7-day block ending on the race weekday; a Sunday race
+reproduces the template's Monday-Sunday authoring (ADR 0005). Because stored
+plans are regenerated from `raceDate`, changing this mapping later is a
+`generatorVersion` bump plus migration. A user-chosen long-run day would add a
+stored input and needs its own ADR. Personalization is
+FR6-as-written (template distances, `scalar = 1.0`); a ramp model is deferred
+pending a product decision.
+
+### Privacy
+
+No new PII. The blob (recent result/goal time, race date) is non-identifying,
+stays on the device, and is never logged, put in a URL, or sent to a third
+party. No new ADR is required for PII.
+
+### ADR 0005 interaction
+
+ADR 0005's never-edit-in-place rule for templates applies to
+`club-style-marathon.v1` **from the first real (non-dev) use**: a saved plan
+pins `(templateId, templateVersion)`, so editing that file in place would
+silently change a runner's regenerated plan. Corrections ship as `v2`.
+
 ## What would change this
 
 - If `@data-scientist`'s future precision/recall work on Strava-match
