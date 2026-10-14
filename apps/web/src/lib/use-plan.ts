@@ -5,27 +5,15 @@ import {
   type StoredPlanInstance,
 } from "@training-plan/plan-instance";
 import { COMMITTED_PLAN_TEMPLATES } from "@training-plan/plan-templates";
-import { createContext, useContext, useMemo, type ReactNode } from "react";
+import { useContext, useMemo } from "react";
 import {
   createLocalStoragePlanStore,
   type PlanInstanceStore,
   type PlanLoad,
 } from "@/lib/plan-store";
+import { PlanStoreContext } from "@/lib/plan-store-context";
 
 export const PLAN_QUERY_KEY = ["plan-instance"] as const;
-
-const PlanStoreContext = createContext<PlanInstanceStore | null>(null);
-
-/** Lets tests (or a future API-backed store) swap the store. */
-export function PlanStoreProvider({
-  store,
-  children,
-}: {
-  store: PlanInstanceStore;
-  children: ReactNode;
-}) {
-  return <PlanStoreContext.Provider value={store}>{children}</PlanStoreContext.Provider>;
-}
 
 let defaultStore: PlanInstanceStore | null = null;
 

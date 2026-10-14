@@ -22,6 +22,11 @@ export function findDay(plan: GeneratedPlan, date: string): PlanInstanceDay | un
   return undefined;
 }
 
+/** Planned miles for a plan week (run days only, race day included), rounded to 1 decimal. */
+export function weekPlannedMiles(week: PlanInstanceWeek): number {
+  return Math.round(week.days.reduce((sum, d) => sum + (d.distanceMiles ?? 0), 0) * 10) / 10;
+}
+
 export type PlanPhaseState = "not_started" | "in_progress" | "finished";
 
 export function planState(plan: GeneratedPlan, today: string): PlanPhaseState {

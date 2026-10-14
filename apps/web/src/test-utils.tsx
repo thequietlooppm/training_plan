@@ -3,7 +3,7 @@ import { render } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { MemoryRouter } from "react-router-dom";
 import type { PlanInstanceStore } from "@/lib/plan-store";
-import { PlanStoreProvider } from "@/lib/use-plan";
+import { PlanStoreProvider } from "@/lib/PlanStoreProvider";
 
 /**
  * Renders under a fresh QueryClient, a MemoryRouter at `route`, and
@@ -13,7 +13,7 @@ import { PlanStoreProvider } from "@/lib/use-plan";
  */
 export function renderWithProviders(
   ui: ReactElement,
-  { route = "/", store }: { route?: string; store?: PlanInstanceStore } = {},
+  { route = "/", store }: { route?: string | { pathname: string; state?: unknown }; store?: PlanInstanceStore } = {},
 ) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const wrapped = (

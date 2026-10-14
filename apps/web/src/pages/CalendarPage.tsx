@@ -78,16 +78,24 @@ function DaySheetStub({
   date,
   today,
   onClose,
+  onCloseFocus,
 }: {
   plan: GeneratedPlan;
   date: string;
   today: string;
   onClose: () => void;
+  onCloseFocus: (date: string) => void;
 }) {
   const day = findDay(plan, date);
   return (
     <Sheet open onOpenChange={(open) => (open ? undefined : onClose())}>
-      <SheetContent side="bottom" className="max-h-[85svh] md:inset-y-0 md:right-0 md:left-auto md:h-full md:max-h-none md:w-[420px] md:border-l">
+      <SheetContent
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          onCloseFocus(date);
+        }}
+        side="bottom"
+        className="max-h-[85svh] md:inset-y-0 md:right-0 md:left-auto md:h-full md:max-h-none md:w-[420px] md:border-l">
         <SheetHeader>
           <SheetTitle>{day ? (day.dayType === "rest" ? "Rest" : dayTitle(day.description)) : "Not in your plan"}</SheetTitle>
           <SheetDescription>
@@ -118,21 +126,24 @@ export function CalendarPage({ selectedDate }: { selectedDate?: string }) {
   const focusRequested = (location.state as CalendarLocationState | null)?.focusHeading === true;
   const ready = active.status === "ready";
   useEffect(() => {
-    if (focusRequested && ready) headingRef.current?.focus();
-  }, [focusRequested, ready]);
+    if (focusRequested && ready) {
+      headingRef.current?.focus();
+      // One-shot: consume the state so Back/reload don't refocus the heading.
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [focusRequested, ready, navigate, location.pathname]);
 
   function closeSheet() {
-    const closedDate = selectedDate;
     // `key === "default"` means this is the first entry (deep link): there
     // is nothing in-app to go back to.
     if (location.key !== "default") navigate(-1);
     else navigate("/", { replace: true });
-    requestAnimationFrame(() => {
-      const row = closedDate
-        ? document.querySelector<HTMLElement>(`[data-date="${closedDate}"]`)
-        : null;
-      (row ?? headingRef.current)?.focus();
-    });
+  }
+
+  /** Radix restores focus on close; we choose the target: the day's row, else the heading. */
+  function focusAfterClose(date: string) {
+    const row = document.querySelector<HTMLElement>(`[data-date="${date}"]`);
+    (row ?? headingRef.current)?.focus();
   }
 
   return (
@@ -172,6 +183,7 @@ export function CalendarPage({ selectedDate }: { selectedDate?: string }) {
               date={selectedDate}
               today={today}
               onClose={closeSheet}
+              onCloseFocus={focusAfterClose}
             />
           ) : null}
         </>

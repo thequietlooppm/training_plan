@@ -55,20 +55,6 @@ export function todayLocalDateString(reference: Date = new Date()): string {
   return `${year}-${month}-${day}`;
 }
 
-/**
- * FR7: a race date of today is allowed; anything before today is rejected.
- * Deliberately a plain string comparison (both sides are already
- * `YYYY-MM-DD`) rather than `new Date(raceDate)` — parsing a bare date
- * string as UTC and comparing against a local "now" is exactly the
- * off-by-one-day timezone bug this avoids.
- */
-export function isRaceDateAtOrAfterToday(
-  raceDate: string,
-  reference: Date = new Date(),
-): boolean {
-  return raceDate >= todayLocalDateString(reference);
-}
-
 function isNonNegativeIntWithinRange(value: string, max: number): boolean {
   return value === "" || (/^\d+$/.test(value) && Number(value) <= max);
 }

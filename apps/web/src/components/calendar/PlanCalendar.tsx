@@ -1,14 +1,13 @@
 import {
-  countdown,
   currentWeek,
   defaultOpenWeekIndex,
   findDay,
   planState,
   planWeekShape,
+  weekPlannedMiles,
   weekProgress,
   type GeneratedPlan,
   type PlanInstanceDay,
-  type PlanInstanceWeek,
 } from "@training-plan/plan-instance";
 import { ChevronRight, Flag } from "lucide-react";
 import { forwardRef, useEffect, useMemo, useState } from "react";
@@ -25,21 +24,7 @@ import {
   weekdayName,
   weekdayShort,
 } from "@/lib/plan-date-format";
-
-const round1 = (n: number) => Math.round(n * 10) / 10;
-
-export function weekPlannedMiles(week: PlanInstanceWeek): number {
-  return round1(week.days.reduce((sum, d) => sum + (d.distanceMiles ?? 0), 0));
-}
-
-/** The countdown `<h1>` copy (spec §A "Countdown copy"). */
-export function countdownHeading(plan: GeneratedPlan, today: string): string {
-  const c = countdown(plan, today);
-  if (c.isPast) return `Race day was ${formatDateLong(plan.raceDate, today)}`;
-  if (c.isRaceDay) return "Race day is today";
-  if (c.daysToRace <= 6) return "Race week";
-  return c.weeks === 1 ? "1 week to race day" : `${c.weeks} weeks to race day`;
-}
+import { countdownHeading } from "@/lib/calendar-copy";
 
 function weekValue(weekIndex: number): string {
   return `week-${weekIndex}`;
@@ -106,17 +91,21 @@ export const PlanCalendar = forwardRef<HTMLHeadingElement, PlanCalendarProps>(
   function PlanCalendar({ plan, today, revealDate }, headingRef) {
     const state = planState(plan, today);
     const shape = useMemo(() => planWeekShape(plan), [plan]);
-    const [openWeeks, setOpenWeeks] = useState<string[]>(() => [
-      weekValue(defaultOpenWeekIndex(plan, today)),
-    ]);
+    const revealWeek = revealDate ? findDay(plan, revealDate)?.weekIndex : undefined;
+    const withWeek = (open: string[], week: number | undefined) =>
+      week === undefined || open.includes(weekValue(week)) ? open : [...open, weekValue(week)];
+    const [openWeeks, setOpenWeeks] = useState<string[]>(() =>
+      withWeek([weekValue(defaultOpenWeekIndex(plan, today))], revealWeek),
+    );
     const [scrollToToday, setScrollToToday] = useState(false);
 
-    const revealWeek = revealDate ? findDay(plan, revealDate)?.weekIndex : undefined;
-    useEffect(() => {
-      if (revealWeek === undefined) return;
-      const value = weekValue(revealWeek);
-      setOpenWeeks((open) => (open.includes(value) ? open : [...open, value]));
-    }, [revealWeek]);
+    // Adjust state during render when the revealed week changes (React's
+    // "adjusting state when a prop changes" pattern), instead of an effect.
+    const [prevRevealWeek, setPrevRevealWeek] = useState(revealWeek);
+    if (revealWeek !== prevRevealWeek) {
+      setPrevRevealWeek(revealWeek);
+      setOpenWeeks(withWeek(openWeeks, revealWeek));
+    }
 
     useEffect(() => {
       if (revealDate === undefined) return;
@@ -149,6 +138,9 @@ export const PlanCalendar = forwardRef<HTMLHeadingElement, PlanCalendarProps>(
       const row = document.querySelector(`[data-date="${todayDay.date}"]`);
       if (row) {
         row.scrollIntoView?.({ block: "center" });
+        // The pill unmounts once the row is in view; keep keyboard focus.
+        (row as HTMLElement).focus({ preventScroll: true });
+        // oxlint-disable-next-line react/set-state-in-effect -- clears one-shot scroll request after DOM commit
         setScrollToToday(false);
       }
     }, [scrollToToday, todayDay, openWeeks]);

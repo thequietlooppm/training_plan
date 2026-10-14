@@ -1,5 +1,5 @@
 import { Activity } from "lucide-react";
-import { Link } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 
 const NAV_LINK_CLASS = "text-sm font-medium underline-offset-4 hover:underline";
 
@@ -9,12 +9,13 @@ export function Header() {
       <Activity aria-hidden="true" className="size-5" />
       <span className="text-sm font-semibold">training_plan</span>
       <nav aria-label="Main" className="ml-auto flex gap-4">
-        <Link to="/" className={NAV_LINK_CLASS}>
+        {/* `end` so "Plan" is not current on /setup or /day/:date. */}
+        <NavLink to="/" end className={NAV_LINK_CLASS}>
           Plan
-        </Link>
-        <Link to="/setup" className={NAV_LINK_CLASS}>
+        </NavLink>
+        <NavLink to="/setup" className={NAV_LINK_CLASS}>
           New plan
-        </Link>
+        </NavLink>
       </nav>
     </header>
   );

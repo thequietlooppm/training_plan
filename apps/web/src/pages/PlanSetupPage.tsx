@@ -20,6 +20,7 @@ import {
   type FieldErrors,
   type Path,
   useForm,
+  useWatch,
 } from "react-hook-form";
 import { PaceZoneTable, RECENT_RESULT_JUMP_TARGET_ID } from "@/components/PaceZoneTable";
 import { GoalTimeFields } from "@/components/plan-setup/GoalTimeFields";
@@ -160,7 +161,7 @@ export function PlanSetupPage() {
   const { errors } = form.formState;
 
   // Re-renders on every edit so the stale rule is always current.
-  const watched = form.watch();
+  const watched = useWatch({ control: form.control });
   const stale = !calculated || JSON.stringify(watched) !== calculated.valuesKey;
 
   // The plan-shape line comes from the generated plan, never hard-coded

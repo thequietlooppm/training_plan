@@ -135,6 +135,24 @@ describe("/day/:date", () => {
     await waitFor(() => expect(document.activeElement).toBe(heading));
   });
 
+  it("focuses the heading once after Create, then not again after open row and close", async () => {
+    savePlan();
+    renderWithProviders(<App />, { route: { pathname: "/", state: { focusHeading: true } } });
+    const heading = await screen.findByRole("heading", { level: 1, name: "9 weeks to race day" });
+    await waitFor(() => expect(document.activeElement).toBe(heading));
+    const spy = vi.spyOn(heading, "focus");
+
+    const row = document.querySelector('[data-date="2026-10-13"]') as HTMLElement;
+    fireEvent.click(row);
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.keyDown(dialog, { key: "Escape" });
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+
+    // Focus returns to the row, and the one-shot heading focus is not replayed.
+    await waitFor(() => expect(document.activeElement).toBe(row));
+    expect(spy).not.toHaveBeenCalled();
+  });
+
   it("opening a row from the calendar shows that day", async () => {
     savePlan();
     renderAt("/");

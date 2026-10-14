@@ -36,5 +36,6 @@ describe("plan-date-format", () => {
     );
     expect(dayTitle("10-12 mile long run, last 4 miles at MGP")).toBe("10-12 mile long run");
     expect(dayTitle("Recovery run")).toBe("Recovery run");
+    expect(dayTitle("Fartlek – 15 min warm-up")).toBe("Fartlek");
   });
 });

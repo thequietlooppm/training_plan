@@ -1,5 +1,5 @@
 import { isoWeekday } from "@training-plan/plan-instance";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it } from "vitest";
 import { PlanCalendar } from "@/components/calendar/PlanCalendar";
@@ -13,6 +13,15 @@ function renderCalendar(raceDate: string, today: string, revealDate?: string) {
       <PlanCalendar plan={makePlan(raceDate)} today={today} revealDate={revealDate} />
     </MemoryRouter>,
   );
+}
+
+// FR9: days are identified by real date, never "Week N, <weekday>".
+const NO_WEEK_WEEKDAY = /Week \d+,\s*(Mon|Tue|Wed|Thu|Fri|Sat|Sun)/;
+
+function openAllWeeks() {
+  for (const trigger of screen.getAllByRole("button", { name: /^Week \d+ ·/ })) {
+    if (trigger.getAttribute("aria-expanded") === "false") fireEvent.click(trigger);
+  }
 }
 
 function weekTrigger(n: number) {
@@ -87,13 +96,22 @@ describe("PlanCalendar — Sunday race (Mon–Sun weeks), plan in progress", () 
     expect(weekTrigger(3).getAttribute("aria-expanded")).toBe("true");
   });
 
-  it("shows the Today pill when the current week is collapsed, and re-opens it", () => {
+  it("shows the Today pill when the current week is collapsed, re-opens it, and moves focus to today's row", async () => {
     renderCalendar(RACE, TODAY);
     expect(screen.queryByRole("button", { name: "Today" })).toBeNull();
     fireEvent.click(weekTrigger(9)); // collapse the current week
     const pill = screen.getByRole("button", { name: "Today" });
     fireEvent.click(pill);
     expect(weekTrigger(9).getAttribute("aria-expanded")).toBe("true");
+    await waitFor(() =>
+      expect(document.activeElement).toBe(document.querySelector(`[data-date="${TODAY}"]`)),
+    );
+  });
+
+  it("never renders 'Week N, <weekday>' text, with every week open", () => {
+    renderCalendar(RACE, TODAY);
+    openAllWeeks();
+    expect(document.body.textContent).not.toMatch(NO_WEEK_WEEKDAY);
   });
 });
 
@@ -111,7 +129,13 @@ describe("PlanCalendar — Wednesday race (Thu–Wed weeks)", () => {
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("9 weeks to race day");
     expect(screen.getByText(/^Week 9 of 18 · /)).toBeDefined();
     expect(weekTrigger(9).textContent).toContain("Oct 8–14");
-    expect(document.body.textContent).not.toMatch(/Week \d+, Monday/);
+  });
+
+  it("never renders 'Week N, <weekday>' text, with every week open", () => {
+    renderCalendar(RACE, TODAY);
+    openAllWeeks();
+    expect(document.querySelectorAll("a[data-date]")).toHaveLength(18 * 7);
+    expect(document.body.textContent).not.toMatch(NO_WEEK_WEEKDAY);
   });
 
   it("lists the current week's days Thu through Wed from the real dates", () => {

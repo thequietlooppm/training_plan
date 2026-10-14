@@ -86,6 +86,6 @@ export function formatMiles(miles: number): string {
  * (structured track or tempo session)" -> "Group quality workout").
  */
 export function dayTitle(description: string): string {
-  const head = description.split(/\s\(|,\s|;\s/)[0]?.trim();
+  const head = description.split(/\s\(|,\s|;\s|\s–\s/)[0]?.trim();
   return head ? head : description;
 }

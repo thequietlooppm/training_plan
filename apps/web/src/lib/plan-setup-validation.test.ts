@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   buildCalculatorInput,
-  isRaceDateAtOrAfterToday,
   mapCalculateError,
   planSetupFormSchema,
   todayLocalDateString,
@@ -21,20 +20,8 @@ const baseValues: PlanSetupFormValues = {
   goalTimeSeconds: "",
 };
 
-describe("isRaceDateAtOrAfterToday (FR7 boundary)", () => {
+describe("todayLocalDateString", () => {
   const reference = new Date(2026, 8, 27); // 2026-09-27, local time
-
-  it("allows a race date of exactly today", () => {
-    expect(isRaceDateAtOrAfterToday("2026-09-27", reference)).toBe(true);
-  });
-
-  it("rejects a race date of yesterday", () => {
-    expect(isRaceDateAtOrAfterToday("2026-09-26", reference)).toBe(false);
-  });
-
-  it("allows a race date in the future", () => {
-    expect(isRaceDateAtOrAfterToday("2026-12-31", reference)).toBe(true);
-  });
 
   it("todayLocalDateString formats using local year/month/day, zero-padded", () => {
     expect(todayLocalDateString(reference)).toBe("2026-09-27");
