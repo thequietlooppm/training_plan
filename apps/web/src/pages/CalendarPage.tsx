@@ -1,19 +1,12 @@
-import { findDay, isValidDateString, type GeneratedPlan } from "@training-plan/plan-instance";
+import { isValidDateString } from "@training-plan/plan-instance";
 import { AlertTriangle, Info } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { Link, Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
+import { DaySheet } from "@/components/DaySheet";
 import { PlanCalendar } from "@/components/calendar/PlanCalendar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import { dayTitle, formatDateLong } from "@/lib/plan-date-format";
 import { useToday } from "@/lib/today";
 import { useActivePlan } from "@/lib/use-plan";
 
@@ -65,54 +58,6 @@ function EmptyState({ corrupt, headingRef }: { corrupt: boolean; headingRef: Rea
         <Link to="/setup">Set up plan</Link>
       </Button>
     </div>
-  );
-}
-
-/**
- * Minimal day sheet. The real body (description with resolved paces, planned
- * distance, prev/next) is #17; this only gives the row links somewhere to
- * land and implements the route edge cases from the spec (§C.1).
- */
-function DaySheetStub({
-  plan,
-  date,
-  today,
-  onClose,
-  onCloseFocus,
-}: {
-  plan: GeneratedPlan;
-  date: string;
-  today: string;
-  onClose: () => void;
-  onCloseFocus: (date: string) => void;
-}) {
-  const day = findDay(plan, date);
-  return (
-    <Sheet open onOpenChange={(open) => (open ? undefined : onClose())}>
-      <SheetContent
-        onCloseAutoFocus={(event) => {
-          event.preventDefault();
-          onCloseFocus(date);
-        }}
-        side="bottom"
-        className="max-h-[85svh] md:inset-y-0 md:right-0 md:left-auto md:h-full md:max-h-none md:w-[420px] md:border-l">
-        <SheetHeader>
-          <SheetTitle>{day ? (day.dayType === "rest" ? "Rest" : dayTitle(day.description)) : "Not in your plan"}</SheetTitle>
-          <SheetDescription>
-            {day
-              ? `${formatDateLong(date, today)} · Week ${day.weekIndex} of ${plan.totalWeeks} · ${day.phase}`
-              : "There's no workout on that date."}
-          </SheetDescription>
-        </SheetHeader>
-        {day ? null : (
-          <div className="px-4 pb-4">
-            <Button type="button" variant="outline" onClick={onClose}>
-              Back to calendar
-            </Button>
-          </div>
-        )}
-      </SheetContent>
-    </Sheet>
   );
 }
 
@@ -178,8 +123,9 @@ export function CalendarPage({ selectedDate }: { selectedDate?: string }) {
             revealDate={selectedDate}
           />
           {selectedDate ? (
-            <DaySheetStub
+            <DaySheet
               plan={active.plan}
+              zones={active.stored.paceZones}
               date={selectedDate}
               today={today}
               onClose={closeSheet}

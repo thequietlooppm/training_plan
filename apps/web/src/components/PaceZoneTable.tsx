@@ -1,6 +1,7 @@
-import type { PaceZones } from "@training-plan/pace-zones";
+import { formatPace, type PaceZones } from "@training-plan/pace-zones";
 import { Info } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -16,11 +17,17 @@ import {
   BLOCKED_EQUIVALENCY_ZONE_COPY,
   ESTIMATED_BADGE_LABEL,
   ESTIMATED_BADGE_TOOLTIP,
+  ESTIMATED_BADGE_TOOLTIP_REFERENCE_COPY,
+  BLOCKED_EQUIVALENCY_ZONE_REFERENCE_COPY,
   GOAL_DERIVED_WARNING_COPY,
+  GOAL_DERIVED_WARNING_REFERENCE_COPY,
+  GOAL_TIME_REFERENCE_LINK_LABEL,
   GOAL_VDOT_BELOW_TABLE_ZONE_COPY,
+  GOAL_VDOT_BELOW_TABLE_ZONE_REFERENCE_COPY,
+  RECENT_RESULT_REFERENCE_LINK_LABEL,
   UNSET_GOAL_ZONE_COPY,
+  UNSET_GOAL_ZONE_REFERENCE_COPY,
   ZONE_ORDER,
-  formatPace,
   goalZoneLabel,
   hasGoalDerivedEquivalencyZone,
   type ZoneId,
@@ -39,6 +46,9 @@ import {
  */
 export const RECENT_RESULT_JUMP_TARGET_ID = "recent-result-distance";
 export const GOAL_TIME_JUMP_TARGET_ID = "goal-time-distance-half";
+
+const RECENT_RESULT_SETUP_LINK_LABEL = "Add a recent result — jump to Recent race result section";
+const GOAL_TIME_SETUP_LINK_LABEL = "Add a goal time — jump to Goal time section";
 
 function jumpTo(targetId: string) {
   const target = document.getElementById(targetId);
@@ -68,11 +78,25 @@ function JumpLink({
   targetId,
   ariaLabel,
   children,
+  variant,
 }: {
   targetId: string;
   ariaLabel: string;
   children: string;
+  variant: PaceZoneTableVariant;
 }) {
+  if (variant === "reference") {
+    // No form on this page: the call to action is a real link to /setup.
+    return (
+      <Link
+        to="/setup"
+        aria-label={ariaLabel}
+        className="inline py-3 underline underline-offset-2 hover:text-foreground"
+      >
+        {children}
+      </Link>
+    );
+  }
   return (
     <button
       type="button"
@@ -86,12 +110,25 @@ function JumpLink({
 }
 
 /**
+ * `setup`: copy says "above" and jumps to the form fields (used on /setup).
+ * `reference`: the `*_REFERENCE_COPY` strings, with links to /setup (/paces).
+ */
+export type PaceZoneTableVariant = "setup" | "reference";
+
+/**
  * The #14 pace-reference table. Pure presentational: no data-fetching, no
  * form logic — just `zones` in, the full §7 table out. Fixed row order via
  * `ZONE_ORDER`; blocked/unset rows render real actionable copy with a
  * jump-link, never a bare "—"/"N/A" (§7.2).
  */
-export function PaceZoneTable({ zones }: { zones: PaceZones }) {
+export function PaceZoneTable({
+  zones,
+  variant = "setup",
+}: {
+  zones: PaceZones;
+  variant?: PaceZoneTableVariant;
+}) {
+  const reference = variant === "reference";
   // Forces the live region's text to actually mutate on every new `zones`
   // value (a trailing zero-width space toggled on/off), rather than
   // re-rendering the literal same string, which some screen readers won't
@@ -106,6 +143,10 @@ export function PaceZoneTable({ zones }: { zones: PaceZones }) {
   }, [zones]);
 
   const goalDerived = hasGoalDerivedEquivalencyZone(zones);
+  const warningCopy = reference ? GOAL_DERIVED_WARNING_REFERENCE_COPY : GOAL_DERIVED_WARNING_COPY;
+  const recentLabel = reference
+    ? RECENT_RESULT_REFERENCE_LINK_LABEL
+    : RECENT_RESULT_SETUP_LINK_LABEL;
 
   return (
     <>
@@ -130,14 +171,15 @@ export function PaceZoneTable({ zones }: { zones: PaceZones }) {
               item, and lays out on the same line as its surrounding text.
             */}
             <p>
-              {GOAL_DERIVED_WARNING_COPY.before}
+              {warningCopy.before}
               <JumpLink
+                variant={variant}
                 targetId={RECENT_RESULT_JUMP_TARGET_ID}
-                ariaLabel="Add a recent result — jump to Recent race result section"
+                ariaLabel={recentLabel}
               >
-                {GOAL_DERIVED_WARNING_COPY.jumpLinkText}
+                {warningCopy.jumpLinkText}
               </JumpLink>
-              {GOAL_DERIVED_WARNING_COPY.after}
+              {warningCopy.after}
             </p>
           </AlertDescription>
         </Alert>
@@ -160,12 +202,12 @@ export function PaceZoneTable({ zones }: { zones: PaceZones }) {
                 <TableCell className="align-top whitespace-normal">
                   <div className="flex flex-wrap items-center gap-2 font-medium text-foreground">
                     {zone.id === "goal" ? goalZoneLabel(zones.goal) : zone.label}
-                    {isGoalDerivedRow ? <EstimatedBadge /> : null}
+                    {isGoalDerivedRow ? <EstimatedBadge reference={reference} /> : null}
                   </div>
                   <p className="text-sm text-muted-foreground">{zone.purpose}</p>
                 </TableCell>
                 <TableCell className="text-right align-top font-mono tabular-nums whitespace-normal">
-                  {renderPaceCell(zone.id, zones)}
+                  {renderPaceCell(zone.id, zones, variant)}
                 </TableCell>
               </TableRow>
             );
@@ -183,17 +225,18 @@ export function PaceZoneTable({ zones }: { zones: PaceZones }) {
  * the native `title` attribute, per the spec's explicit call against a
  * focusable `Tooltip` (no new Radix dependency, no new per-row tab stop).
  */
-function EstimatedBadge() {
+function EstimatedBadge({ reference }: { reference: boolean }) {
+  const tooltip = reference ? ESTIMATED_BADGE_TOOLTIP_REFERENCE_COPY : ESTIMATED_BADGE_TOOLTIP;
   return (
     <Badge
-      title={ESTIMATED_BADGE_TOOLTIP}
+      title={tooltip}
       // Tempo `accent/chip-bg` tint (#FFEDD5) with `accent/hover` text
       // (#9A3412, 6.38:1) — a quiet, non-interactive chip, not a solid
       // `bg-primary` fill that reads as a button.
       className="border-warning/20 bg-warning-chip align-middle text-warning-chip-foreground"
     >
       <span>{ESTIMATED_BADGE_LABEL}</span>
-      <span className="sr-only"> {ESTIMATED_BADGE_TOOLTIP}</span>
+      <span className="sr-only"> {tooltip}</span>
     </Badge>
   );
 }
@@ -209,20 +252,23 @@ function isGoalDerivedEquivalencyRow(zoneId: ZoneId, zones: PaceZones): boolean 
   return zone.state === "computed" && zone.source === "goalTime";
 }
 
-function renderPaceCell(zoneId: ZoneId, zones: PaceZones) {
+function renderPaceCell(zoneId: ZoneId, zones: PaceZones, variant: PaceZoneTableVariant) {
+  const reference = variant === "reference";
   if (zoneId === "goal") {
     const goal = zones.goal;
     if (goal.state === "unset") {
+      const unsetCopy = reference ? UNSET_GOAL_ZONE_REFERENCE_COPY : UNSET_GOAL_ZONE_COPY;
       return (
         <span className="text-sm italic text-muted-foreground">
-          {UNSET_GOAL_ZONE_COPY.before}
+          {unsetCopy.before}
           <JumpLink
+            variant={variant}
             targetId={GOAL_TIME_JUMP_TARGET_ID}
-            ariaLabel="Add a goal time — jump to Goal time section"
+            ariaLabel={reference ? GOAL_TIME_REFERENCE_LINK_LABEL : GOAL_TIME_SETUP_LINK_LABEL}
           >
-            {UNSET_GOAL_ZONE_COPY.jumpLinkText}
+            {unsetCopy.jumpLinkText}
           </JumpLink>
-          {UNSET_GOAL_ZONE_COPY.after}
+          {unsetCopy.after}
         </span>
       );
     }
@@ -231,16 +277,21 @@ function renderPaceCell(zoneId: ZoneId, zones: PaceZones) {
 
   const zone = zones[zoneId];
   if (zone.state === "blocked") {
-    const copy =
-      zone.reason === "goalVdotBelowTable"
+    const belowTable = zone.reason === "goalVdotBelowTable";
+    const copy = reference
+      ? belowTable
+        ? GOAL_VDOT_BELOW_TABLE_ZONE_REFERENCE_COPY
+        : BLOCKED_EQUIVALENCY_ZONE_REFERENCE_COPY
+      : belowTable
         ? GOAL_VDOT_BELOW_TABLE_ZONE_COPY
         : BLOCKED_EQUIVALENCY_ZONE_COPY;
     return (
       <span className="text-sm italic text-muted-foreground">
         {copy.before}
         <JumpLink
+          variant={variant}
           targetId={RECENT_RESULT_JUMP_TARGET_ID}
-          ariaLabel="Add a recent result — jump to Recent race result section"
+          ariaLabel={reference ? RECENT_RESULT_REFERENCE_LINK_LABEL : RECENT_RESULT_SETUP_LINK_LABEL}
         >
           {copy.jumpLinkText}
         </JumpLink>
