@@ -134,7 +134,7 @@ start and forward to race day. It answers three questions at a glance:
   weeks are **7-day blocks ending on race day** (they rotate with the race
   weekday; a Sunday race gives Monday–Sunday). Monday-start is how templates
   are *authored* (ADR 0005: `days` "exactly 7, Monday-start, race day = Sunday
-  of the final week"), not a calendar rule. Each week each week carries a template `phase`
+  of the final week"), not a calendar rule. Each week carries a template `phase`
   (`base | build | peak | taper`) that supplies the phase label.
 
 ---

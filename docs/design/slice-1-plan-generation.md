@@ -344,6 +344,8 @@ generated plan via `planWeekShape(plan)` in `packages/plan-instance`. They are n
 hard-coded as race − 1. A Sunday race reads `Your plan weeks run Monday to Sunday and
 end on race day. Long runs fall on Saturdays.` The stale rule (B.4) covers date edits,
 so the line can never describe a different date than the one Create will use.
+If the race date is empty, omit the plan-shape line; Create then shows `Enter your
+race date to create a plan.`
 
 ### B.6 Short runway (no warning) and long runway
 
