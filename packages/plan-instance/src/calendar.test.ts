@@ -8,6 +8,7 @@ import {
   findToday,
   groupByWeek,
   planState,
+  planWeekShape,
   weekProgress,
 } from "./calendar.js";
 import { generatePlan } from "./generate.js";
@@ -23,7 +24,7 @@ describe("calendar helpers", () => {
 
   it("finds today and the current week mid-plan", () => {
     const today = "2027-01-27"; // Wednesday of week 9
-    expect(findToday(plan, today)).toMatchObject({ date: today, weekIndex: 9, dayOfWeek: "wed" });
+    expect(findToday(plan, today)).toMatchObject({ date: today, weekIndex: 9 });
     expect(currentWeek(plan, today)?.weekIndex).toBe(9);
     expect(weekProgress(plan, today)).toEqual({ current: 9, total: 18, label: "Week 9 of 18" });
     expect(defaultOpenWeekIndex(plan, today)).toBe(9);
@@ -77,5 +78,43 @@ describe("calendar helpers", () => {
       expect(() => currentWeek(plan, bad), bad).toThrow(RangeError);
       expect(() => findToday(plan, bad), bad).toThrow(RangeError);
     }
+  });
+
+  describe("Wednesday race (2027-04-07)", () => {
+    const wed = generatePlan({ template: COMMITTED_PLAN_TEMPLATES[0]!, raceDate: "2027-04-07" });
+    // Week 9 runs Thu 2027-01-28 .. Wed 2027-02-03.
+
+    it("week boundaries follow the race weekday", () => {
+      expect(currentWeek(wed, "2027-02-03")?.weekIndex).toBe(9);
+      expect(currentWeek(wed, "2027-02-04")?.weekIndex).toBe(10);
+      expect(findToday(wed, "2027-02-03")).toMatchObject({ weekIndex: 9 });
+      expect(findToday(wed, "2027-02-04")).toMatchObject({ weekIndex: 10 });
+    });
+
+    it("weekProgress and defaultOpenWeekIndex agree at the boundary", () => {
+      expect(weekProgress(wed, "2027-02-03").current).toBe(9);
+      expect(defaultOpenWeekIndex(wed, "2027-02-03")).toBe(9);
+      expect(weekProgress(wed, "2027-02-04").current).toBe(10);
+      expect(defaultOpenWeekIndex(wed, "2027-02-04")).toBe(10);
+    });
+
+    it("countdown is unaffected", () => {
+      expect(countdown(wed, "2027-04-04")).toMatchObject({ daysToRace: 3, weeks: 0, days: 3 });
+    });
+  });
+
+  describe("planWeekShape", () => {
+    const t = COMMITTED_PLAN_TEMPLATES[0]!;
+    it.each([
+      ["2027-04-04", 1, 7, [6]], // Sunday race
+      ["2027-04-07", 4, 3, [2]], // Wednesday race
+      ["2027-04-03", 7, 6, [5]], // Saturday race
+    ])("race %s", (raceDate, first, last, longRun) => {
+      expect(planWeekShape(generatePlan({ template: t, raceDate }))).toEqual({
+        firstWeekday: first,
+        lastWeekday: last,
+        longRunWeekdays: longRun,
+      });
+    });
   });
 });

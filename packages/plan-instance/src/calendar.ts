@@ -1,4 +1,4 @@
-import { diffDays, isValidDateString } from "./date.js";
+import { diffDays, isValidDateString, isoWeekday } from "./date.js";
 import type { GeneratedPlan, PlanInstanceDay, PlanInstanceWeek } from "./generate.js";
 
 /**
@@ -86,5 +86,31 @@ export function countdown(plan: GeneratedPlan, today: string): Countdown {
     days: remaining % 7,
     isRaceDay: daysToRace === 0,
     isPast: daysToRace < 0,
+  };
+}
+
+export interface PlanWeekShape {
+  /** ISO weekday (1 = Mon ... 7 = Sun) of the first day of each plan week. */
+  firstWeekday: number;
+  /** ISO weekday of the last day of each plan week (the race weekday). */
+  lastWeekday: number;
+  /** Sorted, distinct ISO weekdays on which `long_run` days fall. */
+  longRunWeekdays: number[];
+}
+
+/** Derived from dates and workout tags only; for headers and week layout. */
+export function planWeekShape(plan: GeneratedPlan): PlanWeekShape {
+  const first = plan.weeks[0];
+  if (!first) throw new RangeError("Plan has no weeks");
+  const longRun = new Set<number>();
+  for (const week of plan.weeks) {
+    for (const day of week.days) {
+      if (day.workoutTag === "long_run") longRun.add(isoWeekday(day.date));
+    }
+  }
+  return {
+    firstWeekday: isoWeekday(first.startDate),
+    lastWeekday: isoWeekday(first.endDate),
+    longRunWeekdays: [...longRun].sort((a, b) => a - b),
   };
 }

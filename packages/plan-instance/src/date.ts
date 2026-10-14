@@ -58,7 +58,3 @@ export function isoWeekday(date: string): number {
   const dow = new Date(mustEpochDay(date) * MS_PER_DAY).getUTCDay(); // 0 = Sunday
   return dow === 0 ? 7 : dow;
 }
-
-export function isSunday(date: string): boolean {
-  return isoWeekday(date) === 7;
-}

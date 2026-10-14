@@ -497,9 +497,13 @@ note, and the blob is never logged.
 One device only; the plan is lost if browser storage is cleared; no plan
 history (FR23 waits for the server). The UI says "Saved on this device".
 Date math uses no new dependency (integer epoch days; `today` is injected,
-never read inside the package). Race date must be a Sunday for this slice;
-the generator anchors by day offset from the race date, so lifting that is a
-display/product decision, not a generator rewrite. Personalization is
+never read inside the package). Race date may be any weekday (product-owner decision). Every template day
+keeps its fixed day offset from race day (`startDate = raceDate - (totalWeeks*7 - 1)`),
+so each plan week is the 7-day block ending on the race weekday; a Sunday race
+reproduces the template's Monday-Sunday authoring (ADR 0005). Because stored
+plans are regenerated from `raceDate`, changing this mapping later is a
+`generatorVersion` bump plus migration. A user-chosen long-run day would add a
+stored input and needs its own ADR. Personalization is
 FR6-as-written (template distances, `scalar = 1.0`); a ramp model is deferred
 pending a product decision.
 

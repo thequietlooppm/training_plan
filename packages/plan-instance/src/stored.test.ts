@@ -69,16 +69,27 @@ describe("stored plan instance", () => {
     });
   });
 
-  it("does not treat a non-Sunday race date as corruption (product rule, not a data check)", () => {
+  it("accepts any weekday in stored form", () => {
     const s = { ...stored, raceDate: "2027-04-03" }; // Saturday
     expect(parseStoredPlanInstance(JSON.stringify(s))).toEqual({ status: "ok", value: s });
   });
 
-  it("materializePlan reports unsupported_race_date instead of throwing", () => {
-    expect(materializePlan({ ...stored, raceDate: "2027-04-03" }, template)).toEqual({
-      ok: false,
-      reason: "unsupported_race_date",
+  it("materializes a non-Sunday race", () => {
+    const s = { ...stored, raceDate: "2027-04-03" };
+    const m = materializePlan(s, template);
+    expect(m.ok).toBe(true);
+    if (m.ok) {
+      expect(m.plan.weeks.at(-1)!.days.at(-1)!.date).toBe("2027-04-03");
+      expect(m.plan).toEqual(generatePlan({ template, raceDate: "2027-04-03" }));
+    }
+  });
+
+  it("rejects a non-integer pace in the snapshot", () => {
+    const bad = JSON.stringify({
+      ...stored,
+      paceZones: { ...stored.paceZones, easy: { state: "computed", paceSecPerMile: 500.5, source: "recentResult" } },
     });
+    expect(parseStoredPlanInstance(bad)).toEqual({ status: "corrupt", reason: "invalid_shape" });
   });
 
   it("treats a missing value as empty", () => {

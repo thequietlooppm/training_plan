@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addDays, diffDays, fromEpochDay, isoWeekday, isSunday, toEpochDay } from "./date.js";
+import { addDays, diffDays, fromEpochDay, isoWeekday, toEpochDay } from "./date.js";
 
 // The package.json test script runs this file under UTC, America/Los_Angeles
 // and Pacific/Auckland. These tests must give identical answers in all three.
@@ -70,12 +70,10 @@ describe("diffDays", () => {
   });
 });
 
-describe("isoWeekday / isSunday", () => {
+describe("isoWeekday", () => {
   it("knows known weekdays", () => {
     expect(isoWeekday("2027-03-14")).toBe(7); // Sunday, US DST start
     expect(isoWeekday("2027-03-15")).toBe(1);
     expect(isoWeekday("2028-02-29")).toBe(2); // Tuesday
-    expect(isSunday("2027-04-04")).toBe(true);
-    expect(isSunday("2027-04-05")).toBe(false);
   });
 });

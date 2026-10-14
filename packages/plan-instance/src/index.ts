@@ -2,7 +2,6 @@ export {
   addDays,
   diffDays,
   fromEpochDay,
-  isSunday,
   isValidDateString,
   isoWeekday,
   toEpochDay,
@@ -41,8 +40,10 @@ export {
   findToday,
   groupByWeek,
   planState,
+  planWeekShape,
   weekProgress,
   type Countdown,
   type PlanPhaseState,
+  type PlanWeekShape,
   type WeekProgress,
 } from "./calendar.js";

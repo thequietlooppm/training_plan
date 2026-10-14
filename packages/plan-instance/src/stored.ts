@@ -10,7 +10,7 @@ export const STORED_SCHEMA_VERSION = 1;
 const equivalencyZoneSchema = z.discriminatedUnion("state", [
   z.strictObject({
     state: z.literal("computed"),
-    paceSecPerMile: z.number().positive(),
+    paceSecPerMile: z.number().int().positive(),
     source: z.enum(["recentResult", "goalTime"]),
   }),
   z.strictObject({
@@ -23,7 +23,7 @@ const goalZoneSchema = z.discriminatedUnion("state", [
   z.strictObject({
     state: z.literal("computed"),
     label: z.enum(["marathon", "half"]),
-    paceSecPerMile: z.number().positive(),
+    paceSecPerMile: z.number().int().positive(),
   }),
   z.strictObject({ state: z.literal("unset") }),
 ]);
@@ -169,7 +169,7 @@ export function serializeStoredPlanInstance(stored: StoredPlanInstance): string 
 
 export type MaterializeResult =
   | { ok: true; plan: GeneratedPlan }
-  | { ok: false; reason: "template_mismatch" | "generator_version_mismatch" | "unsupported_race_date" };
+  | { ok: false; reason: "template_mismatch" | "generator_version_mismatch" };
 
 /**
  * Regenerates the dated days from a stored blob and the pinned template.
@@ -186,10 +186,5 @@ export function materializePlan(stored: StoredPlanInstance, template: PlanTempla
   if (stored.generatorVersion !== GENERATOR_VERSION) {
     return { ok: false, reason: "generator_version_mismatch" };
   }
-  try {
-    return { ok: true, plan: generatePlan({ template, raceDate: stored.raceDate }) };
-  } catch (e) {
-    if (e instanceof RangeError) return { ok: false, reason: "unsupported_race_date" };
-    throw e;
-  }
+  return { ok: true, plan: generatePlan({ template, raceDate: stored.raceDate }) };
 }
