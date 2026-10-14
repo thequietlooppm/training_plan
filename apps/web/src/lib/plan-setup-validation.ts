@@ -4,6 +4,7 @@ import {
   type CalculatorInput,
   type ValidationError,
 } from "@training-plan/pace-zones";
+import { validateRaceDate } from "@training-plan/plan-instance";
 import { z } from "zod";
 
 /**
@@ -98,7 +99,9 @@ const secondsField = z
 export const planSetupFormSchema = z
   .object({
     templateId: z.string().min(1, "Select a plan."),
-    raceDate: z.string().min(1, "Race date is required."),
+    // Empty is allowed on Calculate (the form doubles as a pace calculator);
+    // it is rejected only at "Create my plan" (spec B.2).
+    raceDate: z.string(),
     recentResultDistance: z.union([z.literal(""), z.enum(RECENT_RESULT_DISTANCES)]),
     recentResultHours: hoursField,
     recentResultMinutes: minutesField,
@@ -109,12 +112,18 @@ export const planSetupFormSchema = z
     goalTimeSeconds: secondsField,
   })
   .superRefine((values, ctx) => {
-    if (values.raceDate && !isRaceDateAtOrAfterToday(values.raceDate)) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["raceDate"],
-        message: "Race date can't be in the past.",
-      });
+    if (values.raceDate) {
+      const raceDateResult = validateRaceDate(values.raceDate, todayLocalDateString());
+      if (!raceDateResult.ok) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["raceDate"],
+          message:
+            raceDateResult.error.code === "in_past"
+              ? "Race date can't be in the past."
+              : raceDateResult.error.message,
+        });
+      }
     }
 
     const recentResultHasDistance = values.recentResultDistance !== "";
