@@ -6,7 +6,7 @@ import {
   PLAN_STORAGE_KEY,
   type PlanInstanceStore,
 } from "@/lib/plan-store";
-import { CORRUPT_PLAN_NOTE } from "@/pages/CalendarPage";
+import { CORRUPT_PLAN_NOTE } from "@/lib/calendar-copy";
 import { failingStore, makeStoredPlan } from "@/test-fixtures";
 import { renderWithProviders } from "@/test-utils";
 
@@ -81,6 +81,7 @@ describe("calendar at /", () => {
     await screen.findByRole("heading", { level: 1 });
     const nav = screen.getByRole("navigation", { name: "Main" });
     expect(within(nav).getByRole("link", { name: "Plan" }).getAttribute("href")).toBe("/");
+    expect(within(nav).getByRole("link", { name: "Pace zones" }).getAttribute("href")).toBe("/paces");
     expect(within(nav).getByRole("link", { name: "New plan" }).getAttribute("href")).toBe("/setup");
   });
 });
@@ -90,7 +91,8 @@ describe("/day/:date", () => {
     savePlan();
     renderAt("/day/2026-09-02"); // week 3 (Thu Aug 27 – Wed Sep 2)
     const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByText(/Wed, Sep 2 · Week 3 of 18/)).toBeDefined();
+    expect(within(dialog).getByText("Wed, Sep 2")).toBeDefined();
+    expect(within(dialog).getByText(/^Week 3 of 18 · /)).toBeDefined();
     expect(
       screen.getByRole("button", { name: /^Week 3 ·/, hidden: true }).getAttribute("aria-expanded"),
     ).toBe("true");
@@ -160,7 +162,8 @@ describe("/day/:date", () => {
     const row = document.querySelector('[data-date="2026-10-13"]') as HTMLElement;
     fireEvent.click(row);
     const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByText(/Tue, Oct 13 · Week 9 of 18/)).toBeDefined();
+    expect(within(dialog).getByText("Tue, Oct 13")).toBeDefined();
+    expect(within(dialog).getByText(/^Week 9 of 18 · /)).toBeDefined();
   });
 });
 
