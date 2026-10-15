@@ -182,7 +182,7 @@ describe("PlanSetupPage — invalid Minutes/Seconds surfaces its own error (not 
   });
 
   it("surfaces the Minutes error when a non-digit is typed (\"1a\")", async () => {
-    render(<PlanSetupPage />);
+    renderWithProviders(<PlanSetupPage />);
     setRaceDate(futureDateString());
     fireEvent.click(screen.getByRole("radio", { name: "Half" }));
     fireEvent.change(document.getElementById("goal-time-minutes")!, {
