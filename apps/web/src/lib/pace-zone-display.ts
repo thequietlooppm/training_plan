@@ -2,12 +2,12 @@ import type { GoalZone, PaceZones } from "@training-plan/pace-zones";
 
 /**
  * Shared, format-agnostic display helpers for the 7 pace zones (#14) —
- * zone order, one-line "what it's for" captions, pace formatting, and the
- * blocked/unset row copy. `PaceZoneTable.tsx` (the full-page table, built
- * now) and any future compact/inline variant (calendar day-detail, not
- * built now — see design spec §7.4) both import from here, so the pace
- * format, the zone order, and the "why is this blocked" wording can never
- * drift between the two surfaces.
+ * zone order, one-line "what it's for" captions, and the
+ * blocked/unset row copy. `PaceZoneTable.tsx` (used on /setup and, in its
+ * reference variant, on /paces) imports from here, so the zone order and the
+ * "why is this blocked" wording cannot drift between the two. Pace text
+ * itself (`formatPace`, `resolvePaceTokens`) lives in
+ * `@training-plan/pace-zones`, shared with the day sheet and native clients.
  *
  * See `docs/design/plan-setup-flow.md` §7 for the source spec this mirrors.
  */
@@ -75,17 +75,6 @@ export const ZONE_ORDER: ZoneMeta[] = [
 ];
 
 /**
- * Formats seconds-per-mile as `"7:45 /mi"` — the one place this repo
- * converts a raw `paceSecPerMile` number into user-facing text. Callers
- * never do their own `Math.floor(x / 60)` string-building.
- */
-export function formatPace(paceSecPerMile: number): string {
-  const minutes = Math.floor(paceSecPerMile / 60);
-  const seconds = paceSecPerMile % 60;
-  return `${minutes}:${String(seconds).padStart(2, "0")} /mi`;
-}
-
-/**
  * The goal row's label depends on which distance (if any) a goal time was
  * entered for (§7.3: "Goal — Marathon / Goal — Half / Goal (when unset)").
  */
@@ -128,6 +117,36 @@ export const UNSET_GOAL_ZONE_COPY = {
   jumpLinkText: "above",
   after: " to see this.",
 } as const;
+
+/**
+ * `/paces` reference variants (slice-1 spec C.7). That page has no form to
+ * jump to, so the call to action becomes a link to `/setup`. All safety
+ * wording is kept verbatim; only the "Add … above" part changes. Same
+ * `{before, jumpLinkText, after}` shape as the originals.
+ */
+export const BLOCKED_EQUIVALENCY_ZONE_REFERENCE_COPY = {
+  before: "",
+  jumpLinkText: "Create a new plan",
+  after: " with a recent result to see this.",
+} as const;
+
+export const GOAL_VDOT_BELOW_TABLE_ZONE_REFERENCE_COPY = {
+  before: "Your goal time doesn't support estimating this pace. ",
+  jumpLinkText: "Create a new plan",
+  after: " with a recent result to see it.",
+} as const;
+
+export const UNSET_GOAL_ZONE_REFERENCE_COPY = {
+  before: "",
+  jumpLinkText: "Create a new plan",
+  after: " with a goal time to see this.",
+} as const;
+
+/** Accessible names for the reference-variant links (they navigate away). */
+export const RECENT_RESULT_REFERENCE_LINK_LABEL =
+  "Create a new plan with a recent result — go to plan setup";
+export const GOAL_TIME_REFERENCE_LINK_LABEL =
+  "Create a new plan with a goal time — go to plan setup";
 
 /** The six equivalency-zone ids, `ZONE_ORDER` minus `goal` — `goal` has no
  * `source` concept (§7.2/§7.3), so callers checking for a goal-derived
@@ -177,3 +196,15 @@ export const GOAL_DERIVED_WARNING_COPY = {
 export const ESTIMATED_BADGE_LABEL = "Estimated";
 export const ESTIMATED_BADGE_TOOLTIP =
   "Estimated from your goal time — not a demonstrated result. Add a recent result above for more accurate paces.";
+
+export const GOAL_DERIVED_WARNING_REFERENCE_COPY = {
+  before:
+    "These paces are estimated from your goal time, not a race you've run. " +
+    "If that goal is ambitious, expect all of them — especially Interval " +
+    "and 5K — to run faster than your current fitness supports. ",
+  jumpLinkText: "Create a new plan",
+  after: " with a recent result for paces based on what you've actually run.",
+} as const;
+
+export const ESTIMATED_BADGE_TOOLTIP_REFERENCE_COPY =
+  "Estimated from your goal time — not a demonstrated result. Create a new plan with a recent result for more accurate paces.";

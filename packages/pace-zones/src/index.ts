@@ -23,4 +23,12 @@ export {
   type ValidationError,
   type ValidationErrorCode,
 } from "./calculator.js";
-export { describeValidationError, formatDuration } from "./format.js";
+export { describeValidationError, formatDuration, formatPace } from "./format.js";
+export {
+  PACE_TOKEN_TABLE,
+  resolvePaceTokens,
+  type PaceEntry,
+  type PaceSegment,
+  type PaceTokenKey,
+  type ResolvedPaceText,
+} from "./tokens.js";

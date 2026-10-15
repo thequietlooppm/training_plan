@@ -41,6 +41,7 @@ export {
   groupByWeek,
   planState,
   planWeekShape,
+  weekPlannedMiles,
   weekProgress,
   type Countdown,
   type PlanPhaseState,

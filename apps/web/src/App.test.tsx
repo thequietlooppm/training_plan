@@ -37,4 +37,30 @@ describe("App", () => {
 
     expect(screen.getByText("training_plan")).toBeDefined();
   });
+
+  it("serves the health check at /health, and the calendar (not health) at /", async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    const { unmount } = render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={["/health"]}>
+          <App />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    expect(await screen.findByText("Backend connected")).toBeDefined();
+    unmount();
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={["/"]}>
+          <App />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    expect(await screen.findByRole("heading", { level: 1 })).toBeDefined();
+    expect(screen.queryByText("Backend connected")).toBeNull();
+  });
 });
