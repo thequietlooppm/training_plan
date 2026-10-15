@@ -56,7 +56,6 @@ describe("TimeInputGroup", () => {
     expect(row.className).toContain("flex-wrap");
     expect(row.className).not.toMatch(/\bw-/);
     const input = screen.getByLabelText("Minutes");
-    expect(input.className).toContain("min-w-[3.25rem]");
     expect(input.className).toContain("tabular-nums");
   });
 

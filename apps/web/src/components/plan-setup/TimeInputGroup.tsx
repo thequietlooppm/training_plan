@@ -24,7 +24,7 @@ import { padTwoDigits } from "@/lib/plan-setup-format";
  * compact cue (§8). The row wraps (`flex-wrap`) so it never clips at 320px
  * or 200% zoom.
  */
-const FIELD_CLASS = "h-11 w-14 min-w-[3.25rem] px-2 text-center tabular-nums";
+const FIELD_CLASS = "h-11 w-14 px-2 text-center tabular-nums";
 
 export function TimeInputGroup<TFieldValues extends FieldValues>({
   legend,
