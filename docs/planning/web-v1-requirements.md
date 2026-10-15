@@ -11,12 +11,12 @@
 
 - **FR1** — Runner selects one of the two available templates (club-style marathon, MCR 10-mile) to start a plan.
 - **FR2** — Runner enters a recent race result (distance + time); system derives Recovery / Easy / Threshold / 10K / 5K / Interval paces (VDOT/Riegel-style equivalency).
-- **FR3** — Runner enters a goal race time (marathon or half); system derives that goal pace directly (not equivalency-derived).
+- **FR3** — Runner enters a goal race time (marathon or half); system derives that goal pace directly (not equivalency-derived). *Distance set widened by FR30 (QA: Slice 1 alignment review); direct derivation of marathon/half goal pace is unchanged.*
 - **FR3a** — Plan setup requires at least one of a recent result (FR2) or a goal time (FR3) before it can be submitted; submitting with neither is rejected (disabled submit control or inline validation error). This is a UI/product-level constraint only — the underlying pace-zone `calculate()` function still accepts neither input per its own contract; the flow around it now demands one.
 - **FR4** — Recent-result-only: Marathon/Half goal pace stays unset until a goal time is entered.
 - **FR5** — Goal-time-only fallback: when no recent result has been entered, the other six zones (Recovery/Easy/Threshold/10K/5K/Interval) are derived from the goal time using the same VDOT/Riegel-style equivalency math as FR2, and are visibly flagged as aspirational / not based on demonstrated fitness. If a recent result exists, it remains the source for those six zones — the goal-derived values are only a fallback for when nothing else exists, never a competing source.
-- **FR6** — System generates a personalized plan instance from the template, scaling daily prescriptions to the runner's derived peak-week volume (peak volume is computed from the template's own workouts, never entered manually).
-- **FR7** — Plan setup rejects a race date earlier than today.
+- **FR6** — System generates a personalized plan instance from the template, scaling daily prescriptions to the runner's derived peak-week volume (peak volume is computed from the template's own workouts, never entered manually). *Optional current weekly mileage (FR33) never changes how peak volume is computed; whether it can scale distances is a pending decision (see FR33).*
+- **FR7** — Plan setup rejects a race date earlier than today. *Start-date handling for races less than a full plan length away is FR32.*
 - **FR8** — Runner can view a personal pace-reference table (zone → concrete pace) alongside any workout's shorthand text.
 
 > **Revision note (2026-09-28):** FR5 revised, and FR3a added, after #11 (pace-zone calculator) shipped and while #12/#14 (plan-setup flow) were mid-build. Original scoping had goal-time-only leave the six equivalency zones blocked entirely; Patrick decided a goal-derived, clearly-flagged aspirational fallback serves the product better — recent-result-derived paces still win whenever a real result exists, goal-derived is the fallback of last resort. Tracked in **#52**, which amends #11's scope on the same package without reopening #11 itself. FR3a codifies a related decision on the same in-flight flow: submitting plan setup with neither a recent result nor a goal time is now rejected outright, rather than left open by FR2/FR3's original "and/or" phrasing.
@@ -27,6 +27,34 @@
 - **FR9** — Runner views their personalized plan on a calendar rendered on real calendar dates (tied to plan start / race day — never relative "Week 1, Monday" labels).
 - **FR10** — Each day shows its freeform workout text (pace-zone shorthand) plus the hand-set expected distance/duration, or "Rest."
 - **FR11** — Strength/cross-training days display as scheduled entries with no computed pace/distance target.
+
+### Plan setup refinements (from QA: Slice 1 alignment review)
+*Serves: a first-time runner can set up a plan that fits their real race date, fitness, and goal without decoding the form. Sourced from the product owner's local test of Slice 1 `/setup` (milestone "QA: Slice 1 alignment review").*
+
+- **FR28 (input usability)** — The race-date control and the H/M/S time controls (recent result and goal time) are legible and usable without clipping: at a 320px-wide viewport and at 200% browser zoom, the "H", "MM" and "SS" placeholders and any entered two-digit value are fully visible (not truncated by the field width or by number-spinner chrome), and each control is operable by keyboard alone. The race-date control also shows the chosen date in long form (weekday, month, day, year) next to the field so the runner can confirm what they picked. (Observed in Slice 1: the MM and SS fields clip; the race date is a bare native date input.)
+- **FR29 (human-readable errors)** — Every validation message on `/setup` is written for a runner: times are expressed as h:mm:ss (or mm:ss), never as a raw count of seconds, and the message names the field, the entered value, and the acceptable range, e.g. "A 5K time must be between 12:30 and 1:00:00." No message shown to the runner contains the words "timeSeconds" or "seconds" as a unit for a whole-race time, or internal field paths. This applies to errors raised by the pace-zone calculator as well as form-level errors. (Observed in Slice 1: calculator messages read "timeSeconds for goal distance 'marathon' must be between 7260 and 28800 seconds (implausible goal time)".)
+- **FR30 (goal distances)** — Goal time accepts 1 mile, 5K, 10K, 10 mile, half marathon and marathon (extends FR3's marathon/half). Each distance has a plausibility range (FR29 wording) and, per FR5, a goal at any of these distances can seed the equivalency zones when no recent result exists. A recent result remains the preferred source for zones (FR5 precedence unchanged). Recent-result distances are unchanged except that 1 mile is added if the equivalency math supports it (tech-lead / data-scientist to confirm; otherwise 1 mile is goal-only and the reason is shown).
+- **FR31 (goal-to-plan alignment) — PENDING PRODUCT DECISION.** The runner can pick a goal distance that differs from the plan's race distance (e.g. 5K goal on the marathon template). Marathon-goal-pace (MGP) tokens in workouts resolve only from a marathon goal today; with any other goal they show "MGP (not set)". The product owner has left open how to align goal and plan. Options, to be decided before this FR is built:
+  - **Option A, derive from any goal:** goal time at any FR30 distance is converted by equivalency to a marathon pace, so MGP always resolves. Cost: a 5K goal makes marathon pace a prediction, not a target; must be flagged like FR5's aspirational zones.
+  - **Option B, constrain goal to plan:** each template accepts only a goal at its own race distance (marathon plan: marathon goal; MCR 10-mile plan, #10: 10-mile goal). Cost: shorter goals (1 mile / 5K / 10K) work only as pace calculator inputs or recent results, not as plan goals, so FR30's new distances would have no plan to attach to until a matching template exists.
+  - **Option C, hybrid:** allow any goal distance, derive MGP via Option A, but show a clear notice that the plan is a marathon plan and the pace is predicted, and require a marathon goal or recent result for no "aspirational" flag.
+  Acceptance of whichever option is chosen must define what MGP, the pace strip, and the "goal" label show for every goal distance. Until decided, FR30 ships the widened goal-distance list only to the extent it does not change MGP behavior (MGP stays "not set" for non-marathon goals).
+- **FR32 (start date and short runway)** — Runner can choose the plan start date. Default is the date that places the plan's final day on race day (today's behavior: race date minus the template's length). Rules:
+  - Runner may pick a later start date; days before the start date are not part of the plan.
+  - If the chosen (or forced) start leaves fewer weeks than the template's full length (18 for the marathon template), the plan starts mid-cycle: setup shows a warning stating how many weeks are being skipped and that the runner will begin at week N of the template, and requires the runner to acknowledge it before "Create my plan" succeeds.
+  - The default start never lies in the past silently: if race date minus template length is before today, the start defaults to today (or the runner's choice) and the mid-cycle warning in the previous bullet appears. Today's behavior (early weeks rendered in the past with no warning) is removed.
+  - A start date after the race date, or on a race date with no room for any plan weeks, is rejected with a plain-language message.
+  - **Pending product decision:** the minimum runway that can still produce a plan (hard block). The designer's earlier suggestion was warn below ~8 weeks and block below ~4; the product owner's message asks only for the warning. Options: (i) warn at any shortfall, no block; (ii) warn at any shortfall, block below 4 weeks; (iii) warn at any shortfall, block below 8 weeks.
+  - **Pending product decision:** which template weeks a mid-cycle start begins at. Option (i) drop the earliest weeks (runner begins at week N, the plan still ends on race day, peak and taper intact; recommended default as it keeps the race-aligned shape); option (ii) compress. This is a technical question for tech-lead; only the user-visible rule that peak and taper stay intact is a requirement.
+  - Interacts with #61 (optional long-run weekday), which is on hold pending this QA triage, and with the stored plan: start date becomes a stored field, so existing stored plans need a schema migration or deterministic default.
+- **FR33 (optional current weekly mileage and base warning)** — Setup has an optional field "Current weekly mileage" (miles per week; unit follows the app's distance unit). Rules:
+  - Optional: leaving it blank never blocks setup and never changes the generated plan.
+  - If entered and below the plan's required base, setup shows a warning naming the plan's first-week volume and the entered value, e.g. "This plan's first week is about 22.5 miles. You entered 15. Consider building your base first." The required base is a template property, not a hard-coded number in the form (prior analysis put it near 24 mpw; to be confirmed).
+  - If entered and far below the base, the warning is stronger but is still never a block (the runner decides).
+  - **Pending product decision:** whether mileage also changes the plan. Options: (a) warning only (the Slice 1 ship option recorded in #13's plan review); (b) warning plus uniform scale-down of all daily distances by a factor between 0.7 and 1.0 (data-scientist's preferred option in the #13 review; the ramp model proposed in #13's original body was rejected because week 1 alone is ~22.5 mi, which a 10%-per-week ramp rejects for nearly everyone under ~26 mpw); (c) warning now, scale-down as fast-follow. If (b) or (c) is chosen, the scaled plan must be visibly labeled as scaled and show the factor.
+  - The mileage value is stored with the plan and is not used for any other purpose.
+
+**Open question carried into this section (day pace strip):** tech-lead asked whether the day-detail pace strip should fall back to the workout's tag ("Recovery run", "Easy run") on days whose workout text has no pace token. Not resolved here; see the issue tracking the goal-alignment decision, which touches the strip.
 
 ### Strava activity sync
 *Serves: automatic prescribed-vs-actual comparison, removing manual check-off.*
@@ -61,6 +89,7 @@
 
 ## Non-functional requirements
 
+- **NFR7 (usability of setup, QA: Slice 1)** — On `/setup`: 100% of validation messages are free of raw-seconds figures and internal field names (FR29), checked by a test over every error branch; setup controls render without clipping at 320px viewport width and 200% zoom (FR28); every new control (start date, weekly mileage) is keyboard-operable and has an associated visible label (WCAG 2.1 AA, consistent with NFR5).
 - **NFR1 (performance)** — Calendar view p95 load < 2s on broadband.
 - **NFR2 (reliability)** — Strava webhook receiver ACKs within 2s (Strava's own requirement); the actual fetch/match work is deferred to a background job, never done in the request path.
 - **NFR3 (privacy/security)** — Strava tokens encrypted at rest, column-level, in a table isolated from analytics; raw activity payloads purged within 24h of disconnect. (Specific encryption/secrets-storage approach is a deferred ADR, written when Strava-sync implementation starts.)
@@ -72,7 +101,7 @@ No uptime/concurrency NFR is set for MVP — this is a single-user product for n
 
 ## MVP cut line
 
-**MVP (FR1–FR25, including FR3a):** the full core loop — pick a plan, get personal paces, see a personalized calendar, sync Strava, see real status, switch plans without losing history. No login; single-user by default. Nothing in this set is a coherent product with a piece removed.
+**MVP (FR1–FR25, including FR3a, plus FR28–FR33 from the QA: Slice 1 review):** the full core loop — pick a plan, get personal paces, see a personalized calendar, sync Strava, see real status, switch plans without losing history. No login; single-user by default. Nothing in this set is a coherent product with a piece removed. Within the QA additions, FR28 and FR29 are quick fixes; FR30 to FR33 need planning, and FR31 plus the pending sub-decisions in FR32 and FR33 are blocked on product owner choices. If scope must shrink, FR33's scale-down option (b/c) and FR32's hard block are the first to defer to fast-follow; the warnings themselves stay MVP.
 
 **Fast-follow (within v1, before beta):** FR26 (Google Calendar push), FR27 (Sign in with Strava) + NFR6.
 
@@ -82,6 +111,7 @@ No uptime/concurrency NFR is set for MVP — this is a single-user product for n
 
 Minimal-collection pass per `CLAUDE.md`'s privacy principle:
 
+- **Plan start date (FR32) and current weekly mileage (FR33)** — training attributes, not PII: neither identifies a person, both keyed to the opaque plan/`user_id`. Mileage is optional and stored only with the plan to drive the base warning (and scaling if chosen); not sent to analytics at user level (aggregate/bucketed only). No ADR required under CLAUDE.md's new-PII rule, but tech-lead should confirm when planning.
 - **Race result (distance + time) / goal race time** — not identifying; keyed to opaque `user_id`. Per FR5, the goal time is also reused (no additional field collected) to derive the six equivalency zones as an aspirational fallback when no recent result exists.
 - **Strava OAuth tokens (access + refresh)** — PII-adjacent secret. Isolated table, encrypted at rest per ADR 0002. Encryption/secrets approach is its own deferred ADR.
 - **Strava `provider_athlete_id`** — needed to map webhook deliveries to a user; opaque-ish but provider-assigned; never used as a join key into `activities`.
