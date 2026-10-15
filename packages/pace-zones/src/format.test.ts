@@ -1,7 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   PLAUSIBILITY_BOUNDS_SECONDS,
   calculate,
+  calculatorInputSchema,
   describeValidationError,
   formatDuration,
 } from "./index.js";
@@ -77,6 +78,41 @@ describe("describeValidationError", () => {
     expect(e!.code).toBe("invalid_input");
     expect(describeValidationError(e!)).toBe("Check this time and try again.");
     expect(errorsFor({ bogus: 1 })[0]!.code).toBe("invalid_input");
+  });
+
+  it("ignores malformed issue params", () => {
+    const bad = {
+      success: false as const,
+      error: {
+        issues: [
+          { code: "custom", message: "real", path: ["x"], params: { code: 5, path: "evil", message: "evil" } },
+        ],
+      },
+    };
+    const spy = vi.spyOn(calculatorInputSchema, "safeParse").mockReturnValueOnce(bad as never);
+    const [e] = errorsFor({});
+    spy.mockRestore();
+    expect(e).toEqual({ path: "x", message: "real", code: "invalid_input" });
+  });
+
+  it("params cannot overwrite path or message", () => {
+    const hostile = {
+      success: false as const,
+      error: {
+        issues: [
+          {
+            code: "custom",
+            message: "real",
+            path: ["x"],
+            params: { code: "goal_time_implausible", path: "evil", message: "evil" },
+          },
+        ],
+      },
+    };
+    const spy = vi.spyOn(calculatorInputSchema, "safeParse").mockReturnValueOnce(hostile as never);
+    const [e] = errorsFor({});
+    spy.mockRestore();
+    expect(e).toMatchObject({ path: "x", message: "real", code: "goal_time_implausible" });
   });
 
   it("falls back when data is missing", () => {

@@ -2,6 +2,7 @@ import {
   DISTANCE_METERS,
   calculatorInputSchema,
   type CalculatorInput,
+  type GoalDistance,
   type GoalTimeInput,
   type RecentResultDistance,
 } from "./schema.js";
@@ -44,6 +45,16 @@ export type ValidationErrorCode =
   | "result_below_vdot_floor"
   | "invalid_input";
 
+const VALIDATION_ERROR_CODES: readonly string[] = [
+  "result_time_implausible",
+  "goal_time_implausible",
+  "result_below_vdot_floor",
+  "invalid_input",
+];
+function isValidationErrorCode(v: unknown): v is ValidationErrorCode {
+  return typeof v === "string" && VALIDATION_ERROR_CODES.includes(v);
+}
+
 export interface ValidationError {
   /** Dot-joined path into the input, e.g. "recentResult.timeSeconds". */
   path: string;
@@ -54,7 +65,7 @@ export interface ValidationError {
   /** Which input section the error belongs to, when attributable. */
   field?: "recentResult" | "goalTime";
   /** Race distance the entered time was for. */
-  distance?: RecentResultDistance;
+  distance?: RecentResultDistance | GoalDistance;
   /** The entered time, in seconds. */
   valueSeconds?: number;
   /** Plausible range for `distance`, in seconds (implausible-time codes only). */
@@ -378,12 +389,17 @@ export function calculate(input: unknown): CalculateResult {
   const parsed = calculatorInputSchema.safeParse(input);
   if (!parsed.success) {
     const errors: ValidationError[] = parsed.error.issues.map((issue) => {
-      const base = { path: issue.path.join("."), message: issue.message };
+      const path = issue.path.join(".");
       const params = (issue as { params?: unknown }).params;
-      if (issue.code === "custom" && params !== null && typeof params === "object") {
-        return { ...base, ...(params as Omit<ValidationError, "path" | "message">) };
+      if (
+        issue.code === "custom" &&
+        params !== null &&
+        typeof params === "object" &&
+        isValidationErrorCode((params as { code?: unknown }).code)
+      ) {
+        return { ...(params as Partial<ValidationError>), path, message: issue.message } as ValidationError;
       }
-      return { ...base, code: "invalid_input" as const };
+      return { path, message: issue.message, code: "invalid_input" };
     });
     return { ok: false, errors };
   }

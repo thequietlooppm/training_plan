@@ -1,5 +1,5 @@
 import type { ValidationError } from "./calculator.js";
-import type { RecentResultDistance } from "./schema.js";
+import type { GoalDistance, RecentResultDistance } from "./schema.js";
 
 /**
  * Formats whole seconds as `m:ss` under an hour and `h:mm:ss` otherwise.
@@ -15,11 +15,11 @@ export function formatDuration(totalSeconds: number): string {
   return `${m}:${ss}`;
 }
 
-const DISTANCE_LABELS: Record<RecentResultDistance, string> = {
+const DISTANCE_LABELS: Record<RecentResultDistance | GoalDistance, string> = {
   "5k": "5K",
   "10k": "10K",
   "15k": "15K",
-  "10_mile": "10 mile",
+  "10_mile": "10-mile",
   half: "half marathon",
   marathon: "marathon",
 };
