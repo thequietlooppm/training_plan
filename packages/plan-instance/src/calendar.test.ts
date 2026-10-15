@@ -9,12 +9,27 @@ import {
   groupByWeek,
   planState,
   planWeekShape,
+  weekPlannedMiles,
   weekProgress,
 } from "./calendar.js";
 import { generatePlan } from "./generate.js";
 
 const plan = generatePlan({ template: COMMITTED_PLAN_TEMPLATES[0]!, raceDate: "2027-04-04" });
 // startDate 2026-11-30; week 9 starts 2027-01-25
+
+describe("weekPlannedMiles", () => {
+  it("sums run-day distances, rounded to 1 decimal", () => {
+    expect(weekPlannedMiles(plan.weeks[0]!)).toBe(32.5); // 6+5+6+5+10.5
+    expect(weekPlannedMiles(plan.weeks[8]!)).toBe(35); // 6+5+6+5+13
+  });
+
+  it("includes race day in the final week and never exceeds the derived peak elsewhere", () => {
+    const last = plan.weeks.at(-1)!;
+    expect(weekPlannedMiles(last)).toBe(39.1); // 1.9+3+5+3+26.2
+    const peak = Math.max(...plan.weeks.slice(0, -1).map(weekPlannedMiles));
+    expect(peak).toBe(plan.peakWeekMiles);
+  });
+});
 
 describe("calendar helpers", () => {
   it("groups by week", () => {

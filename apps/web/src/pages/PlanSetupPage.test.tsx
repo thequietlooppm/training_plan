@@ -1,7 +1,8 @@
 import { COMMITTED_PLAN_TEMPLATES } from "@training-plan/plan-templates";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { PlanSetupPage } from "@/pages/PlanSetupPage";
+import { renderWithProviders } from "@/test-utils";
 
 // jsdom has no ResizeObserver; Radix's RadioGroup (template picker,
 // goal-time distance toggle) uses one internally to size its indicator.
@@ -113,7 +114,7 @@ function fillGoalTime({
 
 describe("PlanSetupPage — template picker", () => {
   it("renders exactly COMMITTED_PLAN_TEMPLATES.length options", () => {
-    render(<PlanSetupPage />);
+    renderWithProviders(<PlanSetupPage />);
 
     const planGroup = screen.getByRole("group", { name: "Plan" });
     expect(within(planGroup).getAllByRole("radio")).toHaveLength(
@@ -125,7 +126,7 @@ describe("PlanSetupPage — template picker", () => {
 describe("PlanSetupPage — FR7 race date", () => {
   it("rejects a past race date with an inline error and never calls calculate()", async () => {
     const { calculate } = await import("@training-plan/pace-zones");
-    render(<PlanSetupPage />);
+    renderWithProviders(<PlanSetupPage />);
 
     setRaceDate("2000-01-01");
     // Fills the goal-time section so this submission isolates the FR7
@@ -144,7 +145,7 @@ describe("PlanSetupPage — FR7 race date", () => {
 describe("PlanSetupPage — incomplete section (client-side, §5.3/§5.4)", () => {
   it("shows an inline error when a goal-time distance is picked but no time is entered", async () => {
     const { calculate } = await import("@training-plan/pace-zones");
-    render(<PlanSetupPage />);
+    renderWithProviders(<PlanSetupPage />);
 
     setRaceDate(futureDateString());
     fireEvent.click(screen.getByRole("radio", { name: "Half" }));
@@ -161,7 +162,7 @@ describe("PlanSetupPage — incomplete section (client-side, §5.3/§5.4)", () =
 
 describe("PlanSetupPage — invalid Minutes/Seconds surfaces its own error (not just Hours)", () => {
   it("shows an inline error under the time group when Minutes is out of range, even though Hours is untouched", async () => {
-    render(<PlanSetupPage />);
+    renderWithProviders(<PlanSetupPage />);
 
     setRaceDate(futureDateString());
     fireEvent.click(screen.getByRole("radio", { name: "Half" }));
@@ -181,7 +182,7 @@ describe("PlanSetupPage — invalid Minutes/Seconds surfaces its own error (not 
   });
 
   it("shows an inline error under the time group when Seconds is out of range, even though Hours is untouched", async () => {
-    render(<PlanSetupPage />);
+    renderWithProviders(<PlanSetupPage />);
 
     setRaceDate(futureDateString());
     fireEvent.click(screen.getByRole("radio", { name: "Marathon" }));
@@ -198,7 +199,7 @@ describe("PlanSetupPage — invalid Minutes/Seconds surfaces its own error (not 
   });
 
   it("also surfaces a Minutes-only error in the recent-result section, not just goal time", async () => {
-    render(<PlanSetupPage />);
+    renderWithProviders(<PlanSetupPage />);
 
     setRaceDate(futureDateString());
     fireEvent.click(screen.getByRole("combobox"));
@@ -218,7 +219,7 @@ describe("PlanSetupPage — invalid Minutes/Seconds surfaces its own error (not 
 
 describe("PlanSetupPage — distance fields can be cleared once selected", () => {
   it("recent-result distance: a 'Clear' button appears once a distance is selected, and clicking it resets the field to empty", () => {
-    render(<PlanSetupPage />);
+    renderWithProviders(<PlanSetupPage />);
 
     const recentResultDistance = screen.getByRole("combobox");
     expect(
@@ -239,7 +240,7 @@ describe("PlanSetupPage — distance fields can be cleared once selected", () =>
   });
 
   it("goal-time distance: a 'Clear' button appears once a distance is picked, and clicking it deselects it", () => {
-    render(<PlanSetupPage />);
+    renderWithProviders(<PlanSetupPage />);
 
     expect(
       screen.queryByRole("button", { name: "Clear distance" }),
@@ -268,7 +269,7 @@ describe("PlanSetupPage — distance fields can be cleared once selected", () =>
 describe("PlanSetupPage — submitting with neither section filled (§4/§5.9 revision, hard-require)", () => {
   it("is rejected: calculate() is never called, and the exact §6.3 copy renders in the summary Alert", async () => {
     const { calculate } = await import("@training-plan/pace-zones");
-    render(<PlanSetupPage />);
+    renderWithProviders(<PlanSetupPage />);
 
     setRaceDate(futureDateString());
     submit();
@@ -283,7 +284,7 @@ describe("PlanSetupPage — submitting with neither section filled (§4/§5.9 re
   });
 
   it("submit stays enabled (never disabled) even with both sections empty — the block is a validation error, not a disabled control", () => {
-    render(<PlanSetupPage />);
+    renderWithProviders(<PlanSetupPage />);
 
     const submitButton = screen.getByRole("button", {
       name: "Calculate my pace zones",
@@ -295,7 +296,7 @@ describe("PlanSetupPage — submitting with neither section filled (§4/§5.9 re
 describe("PlanSetupPage — happy path (goal time only)", () => {
   it("calls calculate() with the correctly-shaped input and renders the pace-zone table", async () => {
     const { calculate } = await import("@training-plan/pace-zones");
-    render(<PlanSetupPage />);
+    renderWithProviders(<PlanSetupPage />);
 
     setRaceDate(futureDateString());
     fillGoalTime({ distance: "half", hours: "1", minutes: "45", seconds: "0" });
@@ -334,7 +335,7 @@ describe("PlanSetupPage — happy path (goal time only)", () => {
 
   it("a low/beginner goal time whose derived VDOT is below the table floor (#52 amendment) still succeeds: the goal row is a real computed pace, and the six equivalency rows show the goalVdotBelowTable copy, not the old total-failure error", async () => {
     const { calculate } = await import("@training-plan/pace-zones");
-    render(<PlanSetupPage />);
+    renderWithProviders(<PlanSetupPage />);
 
     setRaceDate(futureDateString());
     // A 5:00:00 marathon derives a VDOT well below VDOT_TABLE_MIN (~30) —
@@ -379,7 +380,7 @@ describe("PlanSetupPage — happy path (goal time only)", () => {
 
 describe("PlanSetupPage — ok:false leaves a previous successful table untouched", () => {
   it("shows the calculate()-returned inline error while the prior result stays on screen", async () => {
-    render(<PlanSetupPage />);
+    renderWithProviders(<PlanSetupPage />);
 
     setRaceDate(futureDateString());
     fillGoalTime({ distance: "half", hours: "1", minutes: "45", seconds: "0" });

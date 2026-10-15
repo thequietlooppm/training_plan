@@ -4,6 +4,7 @@ import {
   type CalculatorInput,
   type ValidationError,
 } from "@training-plan/pace-zones";
+import { validateRaceDate } from "@training-plan/plan-instance";
 import { z } from "zod";
 
 /**
@@ -54,20 +55,6 @@ export function todayLocalDateString(reference: Date = new Date()): string {
   return `${year}-${month}-${day}`;
 }
 
-/**
- * FR7: a race date of today is allowed; anything before today is rejected.
- * Deliberately a plain string comparison (both sides are already
- * `YYYY-MM-DD`) rather than `new Date(raceDate)` — parsing a bare date
- * string as UTC and comparing against a local "now" is exactly the
- * off-by-one-day timezone bug this avoids.
- */
-export function isRaceDateAtOrAfterToday(
-  raceDate: string,
-  reference: Date = new Date(),
-): boolean {
-  return raceDate >= todayLocalDateString(reference);
-}
-
 function isNonNegativeIntWithinRange(value: string, max: number): boolean {
   return value === "" || (/^\d+$/.test(value) && Number(value) <= max);
 }
@@ -98,7 +85,9 @@ const secondsField = z
 export const planSetupFormSchema = z
   .object({
     templateId: z.string().min(1, "Select a plan."),
-    raceDate: z.string().min(1, "Race date is required."),
+    // Empty is allowed on Calculate (the form doubles as a pace calculator);
+    // it is rejected only at "Create my plan" (spec B.2).
+    raceDate: z.string(),
     recentResultDistance: z.union([z.literal(""), z.enum(RECENT_RESULT_DISTANCES)]),
     recentResultHours: hoursField,
     recentResultMinutes: minutesField,
@@ -109,12 +98,18 @@ export const planSetupFormSchema = z
     goalTimeSeconds: secondsField,
   })
   .superRefine((values, ctx) => {
-    if (values.raceDate && !isRaceDateAtOrAfterToday(values.raceDate)) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["raceDate"],
-        message: "Race date can't be in the past.",
-      });
+    if (values.raceDate) {
+      const raceDateResult = validateRaceDate(values.raceDate, todayLocalDateString());
+      if (!raceDateResult.ok) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["raceDate"],
+          message:
+            raceDateResult.error.code === "in_past"
+              ? "Race date can't be in the past."
+              : raceDateResult.error.message,
+        });
+      }
     }
 
     const recentResultHasDistance = values.recentResultDistance !== "";

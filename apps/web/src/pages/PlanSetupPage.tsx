@@ -1,13 +1,26 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { COMMITTED_PLAN_TEMPLATES } from "@training-plan/plan-templates";
-import { calculate, type PaceZones, type ValidationError } from "@training-plan/pace-zones";
+import {
+  calculate,
+  type CalculatorInput,
+  type PaceZones,
+  type ValidationError,
+} from "@training-plan/pace-zones";
+import {
+  createStoredPlanInstance,
+  generatePlan,
+  planWeekShape,
+  validateRaceDate,
+} from "@training-plan/plan-instance";
 import { AlertTriangle } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Controller,
   type FieldErrors,
   type Path,
   useForm,
+  useWatch,
 } from "react-hook-form";
 import { PaceZoneTable, RECENT_RESULT_JUMP_TARGET_ID } from "@/components/PaceZoneTable";
 import { GoalTimeFields } from "@/components/plan-setup/GoalTimeFields";
@@ -15,6 +28,16 @@ import { RaceDateField } from "@/components/plan-setup/RaceDateField";
 import { RecentResultFields } from "@/components/plan-setup/RecentResultFields";
 import { TemplatePicker } from "@/components/plan-setup/TemplatePicker";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -31,7 +54,34 @@ import {
   type MappedCalculateError,
   type PlanSetupFormValues,
   PLAN_SETUP_DEFAULT_VALUES,
+  todayLocalDateString,
 } from "@/lib/plan-setup-validation";
+import { formatDateLong, weekdayName } from "@/lib/plan-date-format";
+import { usePlanLoad, useSavePlan } from "@/lib/use-plan";
+import type { CalendarLocationState } from "@/pages/CalendarPage";
+
+/**
+ * What the pace table on screen was computed from. "Create my plan" uses
+ * exactly this (frozen paces), and is disabled once the form drifts from
+ * `valuesKey`.
+ */
+interface Calculated {
+  zones: PaceZones;
+  calculatorInput: CalculatorInput;
+  valuesKey: string;
+  raceDate: string;
+  templateId: string;
+}
+
+const CREATE_PLAN_BUTTON_LABEL = "Create my plan";
+const PLAN_SHAPE_ID = "plan-shape-line";
+const STALE_HELPER_ID = "plan-stale-helper";
+
+function joinWords(names: string[]): string {
+  return names.length <= 2
+    ? names.join(" and ")
+    : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+}
 
 interface SummaryError {
   message: string;
@@ -80,7 +130,16 @@ function firstTimeFieldError(
 export function PlanSetupPage() {
   const templates = COMMITTED_PLAN_TEMPLATES;
 
+  const navigate = useNavigate();
+  const planLoad = usePlanLoad();
+  const savePlan = useSavePlan();
+
   const [zones, setZones] = useState<PaceZones | null>(null);
+  const [calculated, setCalculated] = useState<Calculated | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [createFailed, setCreateFailed] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const createButtonRef = useRef<HTMLButtonElement>(null);
   const [sectionAlert, setSectionAlert] = useState<
     { section: "recentResult" | "goalTime"; message: string } | null
   >(null);
@@ -100,6 +159,28 @@ export function PlanSetupPage() {
   });
 
   const { errors } = form.formState;
+
+  // Re-renders on every edit so the stale rule is always current.
+  const watched = useWatch({ control: form.control });
+  const stale = !calculated || JSON.stringify(watched) !== calculated.valuesKey;
+
+  // The plan-shape line comes from the generated plan, never hard-coded
+  // (spec B.5). Omitted when the race date is empty.
+  const planShapeLine = useMemo(() => {
+    if (!calculated || !calculated.raceDate) return null;
+    const template = templates.find((t) => t.templateId === calculated.templateId);
+    if (!template) return null;
+    try {
+      const shape = planWeekShape(generatePlan({ template, raceDate: calculated.raceDate }));
+      const weeks = `Your plan weeks run ${weekdayName(shape.firstWeekday)} to ${weekdayName(shape.lastWeekday)} and end on race day.`;
+      const longRuns = shape.longRunWeekdays.map((d) => `${weekdayName(d)}s`);
+      return longRuns.length ? `${weeks} Long runs fall on ${joinWords(longRuns)}.` : weeks;
+    } catch {
+      return null;
+    }
+  }, [calculated, templates]);
+
+  const existing = planLoad.data?.status === "ok" ? planLoad.data.value : null;
 
   // Focus the summary alert (not a field) once it appears — §8: "to a
   // summary Alert with tabindex="-1" ... when there are multiple [errors]."
@@ -193,6 +274,73 @@ export function PlanSetupPage() {
     }
 
     setZones(result.zones);
+    setCreateFailed(false);
+    setCalculated({
+      zones: result.zones,
+      calculatorInput: input,
+      valuesKey: JSON.stringify(form.getValues()),
+      raceDate: values.raceDate,
+      templateId: values.templateId,
+    });
+  }
+
+  function failRaceDate(message: string) {
+    form.setError("raceDate", { type: "manual", message });
+    form.setFocus("raceDate");
+  }
+
+  function handleCreate() {
+    if (!calculated || stale) {
+      return;
+    }
+    setCreateFailed(false);
+    if (!calculated.raceDate) {
+      failRaceDate("Enter your race date to create a plan.");
+      return;
+    }
+    const check = validateRaceDate(calculated.raceDate, todayLocalDateString());
+    if (!check.ok) {
+      failRaceDate(
+        check.error.code === "in_past" ? "Race date can't be in the past." : check.error.message,
+      );
+      return;
+    }
+    if (existing) {
+      setConfirmOpen(true);
+      return;
+    }
+    void createPlan();
+  }
+
+  async function createPlan() {
+    if (!calculated) {
+      return;
+    }
+    const template = templates.find((t) => t.templateId === calculated.templateId);
+    setCreating(true);
+    setCreateFailed(false);
+    try {
+      if (!template) {
+        throw new Error("template_not_found");
+      }
+      const stored = createStoredPlanInstance({
+        id: crypto.randomUUID(),
+        template,
+        raceDate: calculated.raceDate,
+        calculatorInput: calculated.calculatorInput,
+        paceZones: calculated.zones,
+        createdAt: new Date().toISOString(),
+      });
+      await savePlan.mutateAsync(stored);
+      const state: CalendarLocationState = { focusHeading: true };
+      navigate("/", { state });
+    } catch {
+      // Nothing is logged: the stored blob holds the runner's race inputs.
+      setCreateFailed(true);
+      setConfirmOpen(false);
+    } finally {
+      setCreating(false);
+    }
   }
 
   function onInvalid(fieldErrors: FieldErrors<PlanSetupFormValues>) {
@@ -386,9 +534,111 @@ export function PlanSetupPage() {
           </CardHeader>
           <CardContent className="grid gap-4">
             <PaceZoneTable zones={zones} />
+            {planLoad.isError ? (
+              <Alert variant="destructive" role="alert">
+                <AlertTriangle aria-hidden="true" />
+                <AlertDescription>
+                  <p>Couldn&apos;t check for an existing plan. Try again.</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="mt-2"
+                    onClick={() => void planLoad.refetch()}
+                  >
+                    Try again
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            ) : null}
+            {createFailed ? (
+              <Alert variant="destructive" role="alert">
+                <AlertTriangle aria-hidden="true" />
+                <AlertDescription>
+                  Couldn&apos;t create your plan. Your entries are still here — try again.
+                </AlertDescription>
+              </Alert>
+            ) : null}
+            {planShapeLine ? (
+              <p id={PLAN_SHAPE_ID} className="text-sm text-muted-foreground">
+                {planShapeLine}
+              </p>
+            ) : null}
+            <Button
+              ref={createButtonRef}
+              type="button"
+              className="h-11 w-full"
+              disabled={stale || planLoad.isPending || planLoad.isError || creating}
+              aria-busy={creating}
+              aria-describedby={
+                [planShapeLine ? PLAN_SHAPE_ID : null, stale ? STALE_HELPER_ID : null]
+                  .filter(Boolean)
+                  .join(" ") || undefined
+              }
+              onClick={handleCreate}
+            >
+              {creating ? "Creating your plan…" : CREATE_PLAN_BUTTON_LABEL}
+            </Button>
+            {stale ? (
+              <p id={STALE_HELPER_ID} className="text-sm text-muted-foreground">
+                Calculate again to use your changes.
+              </p>
+            ) : null}
+            <p className="text-sm text-muted-foreground">
+              Your plan is saved on this device only. Clearing your browser data removes it, and it
+              won&apos;t appear on other devices.
+            </p>
+            <p role="status" className="sr-only">
+              {creating ? "Creating your plan." : ""}
+            </p>
           </CardContent>
         </Card>
       ) : null}
+
+      <AlertDialog
+        open={confirmOpen}
+        onOpenChange={(open) => {
+          if (!creating) {
+            setConfirmOpen(open);
+          }
+        }}
+      >
+        <AlertDialogContent
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            createButtonRef.current?.focus();
+          }}
+        >
+          <AlertDialogHeader>
+            <AlertDialogTitle>Replace your current plan?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This replaces your plan for the race on{" "}
+              {existing ? formatDateLong(existing.raceDate, todayLocalDateString()) : ""} with a new
+              plan for{" "}
+              {calculated?.raceDate
+                ? formatDateLong(calculated.raceDate, todayLocalDateString())
+                : ""}
+              . This can&apos;t be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={creating} className="h-11">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              className="h-11"
+              disabled={creating}
+              onClick={(event) => {
+                // Keep the dialog open until the save settles.
+                event.preventDefault();
+                void createPlan();
+              }}
+            >
+              {creating ? "Replacing…" : "Replace plan"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   );
 }

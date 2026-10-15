@@ -214,6 +214,9 @@ importers:
       '@training-plan/pace-zones':
         specifier: workspace:*
         version: link:../../packages/pace-zones
+      '@training-plan/plan-instance':
+        specifier: workspace:*
+        version: link:../../packages/plan-instance
       '@training-plan/plan-templates':
         specifier: workspace:*
         version: link:../../packages/plan-templates

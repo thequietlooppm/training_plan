@@ -1,0 +1,193 @@
+import { findDay, isValidDateString, type GeneratedPlan } from "@training-plan/plan-instance";
+import { AlertTriangle, Info } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { Link, Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
+import { PlanCalendar } from "@/components/calendar/PlanCalendar";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { dayTitle, formatDateLong } from "@/lib/plan-date-format";
+import { useToday } from "@/lib/today";
+import { useActivePlan } from "@/lib/use-plan";
+
+export const CORRUPT_PLAN_NOTE =
+  "We couldn't read your saved plan, so it isn't shown. It was set aside, not deleted. Create a new plan to continue.";
+
+/** Navigation state set by "Create my plan" so the calendar heading takes focus. */
+export interface CalendarLocationState {
+  focusHeading?: boolean;
+}
+
+/** `/` and `/day/:date`. A malformed `:date` redirects to `/`. */
+export function CalendarRoute() {
+  const { date } = useParams();
+  if (date !== undefined && !isValidDateString(date)) {
+    return <Navigate to="/" replace />;
+  }
+  return <CalendarPage selectedDate={date} />;
+}
+
+function CalendarSkeleton() {
+  return (
+    <div className="grid gap-3" data-testid="calendar-skeleton">
+      <Skeleton className="h-9 w-64" />
+      <Skeleton className="h-4 w-40" />
+      {Array.from({ length: 5 }, (_, i) => (
+        <Skeleton key={i} className="h-11 w-full" />
+      ))}
+    </div>
+  );
+}
+
+function EmptyState({ corrupt, headingRef }: { corrupt: boolean; headingRef: React.Ref<HTMLHeadingElement> }) {
+  return (
+    <div className="grid gap-4">
+      {corrupt ? (
+        <Alert role="status">
+          <Info aria-hidden="true" />
+          <AlertDescription>{CORRUPT_PLAN_NOTE}</AlertDescription>
+        </Alert>
+      ) : null}
+      <h1 ref={headingRef} tabIndex={-1} className="text-2xl font-bold outline-none">
+        No plan yet
+      </h1>
+      <p className="text-sm text-muted-foreground">
+        Enter your race date and a recent result or goal time to get a plan on real dates.
+      </p>
+      <Button asChild className="h-11 w-fit">
+        <Link to="/setup">Set up plan</Link>
+      </Button>
+    </div>
+  );
+}
+
+/**
+ * Minimal day sheet. The real body (description with resolved paces, planned
+ * distance, prev/next) is #17; this only gives the row links somewhere to
+ * land and implements the route edge cases from the spec (§C.1).
+ */
+function DaySheetStub({
+  plan,
+  date,
+  today,
+  onClose,
+  onCloseFocus,
+}: {
+  plan: GeneratedPlan;
+  date: string;
+  today: string;
+  onClose: () => void;
+  onCloseFocus: (date: string) => void;
+}) {
+  const day = findDay(plan, date);
+  return (
+    <Sheet open onOpenChange={(open) => (open ? undefined : onClose())}>
+      <SheetContent
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          onCloseFocus(date);
+        }}
+        side="bottom"
+        className="max-h-[85svh] md:inset-y-0 md:right-0 md:left-auto md:h-full md:max-h-none md:w-[420px] md:border-l">
+        <SheetHeader>
+          <SheetTitle>{day ? (day.dayType === "rest" ? "Rest" : dayTitle(day.description)) : "Not in your plan"}</SheetTitle>
+          <SheetDescription>
+            {day
+              ? `${formatDateLong(date, today)} · Week ${day.weekIndex} of ${plan.totalWeeks} · ${day.phase}`
+              : "There's no workout on that date."}
+          </SheetDescription>
+        </SheetHeader>
+        {day ? null : (
+          <div className="px-4 pb-4">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Back to calendar
+            </Button>
+          </div>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+export function CalendarPage({ selectedDate }: { selectedDate?: string }) {
+  const today = useToday();
+  const active = useActivePlan();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const headingRef = useRef<HTMLHeadingElement>(null);
+
+  const focusRequested = (location.state as CalendarLocationState | null)?.focusHeading === true;
+  const ready = active.status === "ready";
+  useEffect(() => {
+    if (focusRequested && ready) {
+      headingRef.current?.focus();
+      // One-shot: consume the state so Back/reload don't refocus the heading.
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [focusRequested, ready, navigate, location.pathname]);
+
+  function closeSheet() {
+    // `key === "default"` means this is the first entry (deep link): there
+    // is nothing in-app to go back to.
+    if (location.key !== "default") navigate(-1);
+    else navigate("/", { replace: true });
+  }
+
+  /** Radix restores focus on close; we choose the target: the day's row, else the heading. */
+  function focusAfterClose(date: string) {
+    const row = document.querySelector<HTMLElement>(`[data-date="${date}"]`);
+    (row ?? headingRef.current)?.focus();
+  }
+
+  return (
+    <main
+      aria-busy={active.status === "loading"}
+      className="mx-auto w-full max-w-2xl flex-1 p-6"
+    >
+      {active.status === "loading" ? <CalendarSkeleton /> : null}
+
+      {active.status === "error" ? (
+        <Alert variant="destructive" role="alert">
+          <AlertTriangle aria-hidden="true" />
+          <AlertTitle>Couldn&apos;t load your plan</AlertTitle>
+          <AlertDescription>
+            <Button type="button" variant="outline" onClick={active.retry}>
+              Try again
+            </Button>
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
+      {active.status === "empty" || active.status === "corrupt" ? (
+        <EmptyState corrupt={active.status === "corrupt"} headingRef={headingRef} />
+      ) : null}
+
+      {active.status === "ready" ? (
+        <>
+          <PlanCalendar
+            ref={headingRef}
+            plan={active.plan}
+            today={today}
+            revealDate={selectedDate}
+          />
+          {selectedDate ? (
+            <DaySheetStub
+              plan={active.plan}
+              date={selectedDate}
+              today={today}
+              onClose={closeSheet}
+              onCloseFocus={focusAfterClose}
+            />
+          ) : null}
+        </>
+      ) : null}
+    </main>
+  );
+}

@@ -1,6 +1,7 @@
 import { Route, Routes } from "react-router-dom";
 import { Header } from "@/components/Header";
-import { HomePage } from "@/pages/HomePage";
+import { CalendarRoute } from "@/pages/CalendarPage";
+import { HealthPage } from "@/pages/HealthPage";
 import { PlanSetupPage } from "@/pages/PlanSetupPage";
 
 export function App() {
@@ -8,8 +9,10 @@ export function App() {
     <div className="flex min-h-svh flex-col">
       <Header />
       <Routes>
-        <Route path="/" element={<HomePage />} />
+        <Route path="/" element={<CalendarRoute />} />
+        <Route path="/day/:date" element={<CalendarRoute />} />
         <Route path="/setup" element={<PlanSetupPage />} />
+        <Route path="/health" element={<HealthPage />} />
       </Routes>
     </div>
   );
