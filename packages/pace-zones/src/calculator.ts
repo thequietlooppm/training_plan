@@ -3,6 +3,7 @@ import {
   calculatorInputSchema,
   type CalculatorInput,
   type GoalTimeInput,
+  type RecentResultDistance,
 } from "./schema.js";
 import {
   EQUIVALENCY_ZONE_DEFINITIONS,
@@ -33,10 +34,32 @@ import {
 /** One statute mile, in meters — this package's only distance conversion. */
 const MILE_METERS = 1609.344;
 
+/**
+ * Stable, machine-readable error codes (#66). Native clients key their own
+ * copy off these; `describeValidationError` is the shared English text.
+ */
+export type ValidationErrorCode =
+  | "result_time_implausible"
+  | "goal_time_implausible"
+  | "result_below_vdot_floor"
+  | "invalid_input";
+
 export interface ValidationError {
   /** Dot-joined path into the input, e.g. "recentResult.timeSeconds". */
   path: string;
+  /** Developer-facing text (kept stable); runners should see `describeValidationError`. */
   message: string;
+  /** Stable error code. */
+  code: ValidationErrorCode;
+  /** Which input section the error belongs to, when attributable. */
+  field?: "recentResult" | "goalTime";
+  /** Race distance the entered time was for. */
+  distance?: RecentResultDistance;
+  /** The entered time, in seconds. */
+  valueSeconds?: number;
+  /** Plausible range for `distance`, in seconds (implausible-time codes only). */
+  minSeconds?: number;
+  maxSeconds?: number;
 }
 
 /**
@@ -354,10 +377,14 @@ function computeGoalZone(goalTime: GoalTimeInput | undefined): GoalZone {
 export function calculate(input: unknown): CalculateResult {
   const parsed = calculatorInputSchema.safeParse(input);
   if (!parsed.success) {
-    const errors: ValidationError[] = parsed.error.issues.map((issue) => ({
-      path: issue.path.join("."),
-      message: issue.message,
-    }));
+    const errors: ValidationError[] = parsed.error.issues.map((issue) => {
+      const base = { path: issue.path.join("."), message: issue.message };
+      const params = (issue as { params?: unknown }).params;
+      if (issue.code === "custom" && params !== null && typeof params === "object") {
+        return { ...base, ...(params as Omit<ValidationError, "path" | "message">) };
+      }
+      return { ...base, code: "invalid_input" as const };
+    });
     return { ok: false, errors };
   }
 
@@ -402,6 +429,10 @@ export function calculate(input: unknown): CalculateResult {
         errors: [
           {
             path: "recentResult",
+            code: "result_below_vdot_floor",
+            field: "recentResult",
+            distance: validated.recentResult.distance,
+            valueSeconds: validated.recentResult.timeSeconds,
             message: `This result derives a VDOT of ${vdot.toFixed(1)}, below the supported table range (VDOT ${VDOT_TABLE_MIN}+). Try a faster recent result, or a longer/more standard race distance.`,
           },
         ],

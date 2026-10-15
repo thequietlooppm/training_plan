@@ -21,4 +21,6 @@ export {
   type GoalZone,
   type PaceZones,
   type ValidationError,
+  type ValidationErrorCode,
 } from "./calculator.js";
+export { describeValidationError, formatDuration } from "./format.js";
