@@ -200,18 +200,18 @@ describe("buildCalculatorInput", () => {
 describe("mapCalculateError (design spec §6.4)", () => {
   it("maps recentResult.timeSeconds to the recent-result time field group", () => {
     expect(
-      mapCalculateError({ path: "recentResult.timeSeconds", message: "m" }),
+      mapCalculateError({ path: "recentResult.timeSeconds", message: "m", code: "invalid_input" }),
     ).toEqual({ kind: "field", field: "recentResultHours", message: "m" });
   });
 
   it("maps recentResult.distance to the recent-result distance field", () => {
     expect(
-      mapCalculateError({ path: "recentResult.distance", message: "m" }),
+      mapCalculateError({ path: "recentResult.distance", message: "m", code: "invalid_input" }),
     ).toEqual({ kind: "field", field: "recentResultDistance", message: "m" });
   });
 
   it("maps a bare recentResult path to the recent-result section alert", () => {
-    expect(mapCalculateError({ path: "recentResult", message: "m" })).toEqual({
+    expect(mapCalculateError({ path: "recentResult", message: "m", code: "invalid_input" })).toEqual({
       kind: "section",
       section: "recentResult",
       message: "m",
@@ -220,18 +220,18 @@ describe("mapCalculateError (design spec §6.4)", () => {
 
   it("maps goalTime.timeSeconds to the goal-time time field group", () => {
     expect(
-      mapCalculateError({ path: "goalTime.timeSeconds", message: "m" }),
+      mapCalculateError({ path: "goalTime.timeSeconds", message: "m", code: "invalid_input" }),
     ).toEqual({ kind: "field", field: "goalTimeHours", message: "m" });
   });
 
   it("maps goalTime.distance to the goal-time distance field", () => {
     expect(
-      mapCalculateError({ path: "goalTime.distance", message: "m" }),
+      mapCalculateError({ path: "goalTime.distance", message: "m", code: "invalid_input" }),
     ).toEqual({ kind: "field", field: "goalTimeDistance", message: "m" });
   });
 
   it("maps a bare goalTime path to the goal-time section alert", () => {
-    expect(mapCalculateError({ path: "goalTime", message: "m" })).toEqual({
+    expect(mapCalculateError({ path: "goalTime", message: "m", code: "invalid_input" })).toEqual({
       kind: "section",
       section: "goalTime",
       message: "m",
@@ -239,7 +239,7 @@ describe("mapCalculateError (design spec §6.4)", () => {
   });
 
   it("maps any unrecognized path to 'unknown' (routed to the summary alert)", () => {
-    expect(mapCalculateError({ path: "templateId", message: "m" })).toEqual({
+    expect(mapCalculateError({ path: "templateId", message: "m", code: "invalid_input" })).toEqual({
       kind: "unknown",
       message: "m",
     });
