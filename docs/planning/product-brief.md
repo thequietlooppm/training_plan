@@ -39,9 +39,11 @@ personalized to them.
   proceed with plan setup (see FR3a in `docs/planning/web-v1-requirements.md`).
   - A recent result derives Recovery, Easy, Threshold, 10K, 5K, and
     Interval/Repetition paces via VDOT/Riegel-style equivalency.
-  - A goal time derives Marathon or Half-Marathon goal pace directly (not
-    equivalency-derived from current fitness, since a goal pace is often a
-    deliberate stretch).
+  - A goal time (1 mile, 5K, 10K, 10 mile, half marathon or marathon; FR30)
+    derives that distance's goal pace directly (not equivalency-derived from
+    current fitness, since a goal pace is often a deliberate stretch). How a
+    goal at a different distance maps to marathon / half-marathon goal pace
+    is decided as FR31 option C: predicted and badged "Estimated" (#68).
   - If no recent result is entered, the six equivalency zones above are
     instead derived from the goal time as a fallback, flagged as aspirational
     / not based on demonstrated fitness. A real recent result always takes
@@ -153,6 +155,7 @@ personalized to them.
 - **Template naming.** See Plan library above — never named, permanently,
   for v1/MVP.
 - **Units.** Miles only for v1.
+- **Plan start and current mileage (QA: Slice 1).** The runner chooses the plan start from valid week-start dates; a short runway starts mid-cycle by dropping the earliest weeks, with acknowledgement, and a plan is blocked below a per-distance minimum length (table pending; FR32). An optional current weekly mileage drives a base warning, never a block, plus an optional scale-down in MVP (FR33); a base-building pre-phase is fast-follow (FR34). See `docs/planning/web-v1-requirements.md`.
 - **Multiple plans.** See Plan switching above — one active plan, switching
   supported.
 
