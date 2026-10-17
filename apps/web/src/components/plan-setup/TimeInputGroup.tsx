@@ -17,10 +17,11 @@ import { padTwoDigits } from "@/lib/plan-setup-format";
  * primitive — a custom composite assembled from `Input` + `Label` inside a
  * `fieldset`, per design spec §6.2/§8.
  *
- * The visible placeholders ("H" / "MM" / "SS") are decorative cues; each
- * input still gets a real, individually-announced `<Label>` ("Hours" /
- * "Minutes" / "Seconds"), kept visually condensed via `sr-only` rather than
- * removed — screen-reader users get the full word, sighted users get the
+ * The placeholders ("H" / "MM" / "SS") vanish once digits are typed, so
+ * each box also carries a small visible caption ("h" / "min" / "s"),
+ * `aria-hidden` because each input already gets a real,
+ * individually-announced `sr-only` `<Label>` ("Hours" / "Minutes" /
+ * "Seconds") — screen-reader users get the full word, sighted users get the
  * compact cue (§8). The row wraps (`flex-wrap`) so it never clips at 320px
  * or 200% zoom.
  */
@@ -48,9 +49,23 @@ export function TimeInputGroup<TFieldValues extends FieldValues>({
   const invalid = Boolean(errorMessage);
 
   const fields = [
-    { key: "hours", label: "Hours", placeholder: "H", name: hoursName, pad: false },
-    { key: "minutes", label: "Minutes", placeholder: "MM", name: minutesName, pad: true },
-    { key: "seconds", label: "Seconds", placeholder: "SS", name: secondsName, pad: true },
+    { key: "hours", label: "Hours", caption: "h", placeholder: "H", name: hoursName, pad: false },
+    {
+      key: "minutes",
+      label: "Minutes",
+      caption: "min",
+      placeholder: "MM",
+      name: minutesName,
+      pad: true,
+    },
+    {
+      key: "seconds",
+      label: "Seconds",
+      caption: "s",
+      placeholder: "SS",
+      name: secondsName,
+      pad: true,
+    },
   ] as const;
 
   return (
@@ -63,12 +78,14 @@ export function TimeInputGroup<TFieldValues extends FieldValues>({
             if (field.pad) {
               event.currentTarget.value = padTwoDigits(event.currentTarget.value);
             }
+            // RHF's blur handler reads the field's current value, so the
+            // padded "05" reaches form state too, not just the screen.
             return onBlur(event);
           };
           return (
             <div key={field.key} className="flex items-end gap-2">
               {index > 0 ? (
-                <span aria-hidden="true" className="pb-2 text-muted-foreground">
+                <span aria-hidden="true" className="pb-7 text-muted-foreground">
                   :
                 </span>
               ) : null}
@@ -90,6 +107,9 @@ export function TimeInputGroup<TFieldValues extends FieldValues>({
                   onBlur={handleBlur}
                   {...rest}
                 />
+                <span aria-hidden="true" className="text-center text-xs text-muted-foreground">
+                  {field.caption}
+                </span>
               </div>
             </div>
           );
