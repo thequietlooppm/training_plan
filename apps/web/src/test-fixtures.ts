@@ -1,4 +1,4 @@
-import { calculate } from "@training-plan/pace-zones";
+import { calculate, type CalculatorInput } from "@training-plan/pace-zones";
 import {
   createStoredPlanInstance,
   generatePlan,
@@ -11,8 +11,11 @@ import { createLocalStoragePlanStore, type PlanInstanceStore } from "@/lib/plan-
 export const TEMPLATE = COMMITTED_PLAN_TEMPLATES[0]!;
 
 /** A stored plan for `raceDate`, built the same way the setup page builds one. */
-export function makeStoredPlan(raceDate: string, id = "7f3c1a52-4a64-4c0e-9d1b-0a6a1b2c3d4e"): StoredPlanInstance {
-  const calculatorInput = { goalTime: { distance: "marathon" as const, timeSeconds: 3.5 * 3600 } };
+export function makeStoredPlan(
+  raceDate: string,
+  id = "7f3c1a52-4a64-4c0e-9d1b-0a6a1b2c3d4e",
+  calculatorInput: CalculatorInput = { goalTime: { distance: "marathon", timeSeconds: 3.5 * 3600 } },
+): StoredPlanInstance {
   const result = calculate(calculatorInput);
   if (!result.ok) throw new Error("fixture calculate() failed");
   return createStoredPlanInstance({

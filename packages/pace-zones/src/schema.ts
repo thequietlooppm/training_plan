@@ -77,6 +77,14 @@ export const recentResultInputSchema = recentResultShape.superRefine(
         code: "custom",
         message: `timeSeconds for '${input.distance}' must be between ${bounds.min} and ${bounds.max} seconds (implausible race time)`,
         path: ["timeSeconds"],
+        params: {
+          code: "result_time_implausible",
+          field: "recentResult",
+          distance: input.distance,
+          valueSeconds: input.timeSeconds,
+          minSeconds: bounds.min,
+          maxSeconds: bounds.max,
+        },
       });
     }
   },
@@ -95,6 +103,14 @@ export const goalTimeInputSchema = goalTimeShape.superRefine((input, ctx) => {
       code: "custom",
       message: `timeSeconds for goal distance '${input.distance}' must be between ${bounds.min} and ${bounds.max} seconds (implausible goal time)`,
       path: ["timeSeconds"],
+      params: {
+        code: "goal_time_implausible",
+        field: "goalTime",
+        distance: input.distance,
+        valueSeconds: input.timeSeconds,
+        minSeconds: bounds.min,
+        maxSeconds: bounds.max,
+      },
     });
   }
 });

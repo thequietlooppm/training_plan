@@ -1,5 +1,6 @@
 import type { PaceZones } from "@training-plan/pace-zones";
 import { cleanup, render, screen, within } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it } from "vitest";
 import { PaceZoneTable } from "@/components/PaceZoneTable";
 
@@ -269,5 +270,69 @@ describe("PaceZoneTable", () => {
         }),
       ).toHaveLength(6);
     });
+  });
+});
+
+describe("PaceZoneTable reference variant (/paces, spec C.7)", () => {
+  function renderReference(zones: PaceZones) {
+    return render(
+      <MemoryRouter>
+        <PaceZoneTable zones={zones} variant="reference" />
+      </MemoryRouter>,
+    );
+  }
+
+  it("blocked rows (noInput) say 'Create a new plan' and link to /setup, never 'above'", () => {
+    renderReference(ALL_BLOCKED_AND_UNSET);
+    const recent = screen.getAllByRole("link", {
+      name: "Create a new plan with a recent result — go to plan setup",
+    });
+    expect(recent).toHaveLength(6);
+    for (const link of recent) {
+      expect(link.getAttribute("href")).toBe("/setup");
+      expect(link.textContent).toBe("Create a new plan");
+    }
+    const goal = screen.getByRole("link", {
+      name: "Create a new plan with a goal time — go to plan setup",
+    });
+    expect(goal.getAttribute("href")).toBe("/setup");
+    expect(
+      screen.getAllByText(textMatcher("span", "Create a new plan with a recent result to see this.")),
+    ).toHaveLength(6);
+    expect(screen.getByText(textMatcher("span", "Create a new plan with a goal time to see this."))).toBeDefined();
+    expect(document.body.textContent).not.toMatch(/\babove\b/);
+    expect(screen.queryAllByRole("button")).toHaveLength(0);
+  });
+
+  it("below-table goal rows keep the safety sentence verbatim", () => {
+    renderReference(GOAL_VDOT_BELOW_TABLE);
+    expect(
+      screen.getAllByText(
+        textMatcher(
+          "span",
+          "Your goal time doesn't support estimating this pace. Create a new plan with a recent result to see it.",
+        ),
+      ),
+    ).toHaveLength(6);
+  });
+
+  it("goal-derived warning keeps its wording and only changes the call to action", () => {
+    renderReference(GOAL_ONLY);
+    expect(
+      screen.getByText(
+        textMatcher(
+          "p",
+          "These paces are estimated from your goal time, not a race you've run. If that goal is ambitious, expect all of them — especially Interval and 5K — to run faster than your current fitness supports. Create a new plan with a recent result for paces based on what you've actually run.",
+        ),
+      ),
+    ).toBeDefined();
+  });
+
+  it("Estimated badge uses the reference tooltip", () => {
+    renderReference(GOAL_ONLY);
+    const badge = screen.getAllByText("Estimated")[0]!.closest("[title]");
+    expect(badge?.getAttribute("title")).toBe(
+      "Estimated from your goal time — not a demonstrated result. Create a new plan with a recent result for more accurate paces.",
+    );
   });
 });

@@ -32,6 +32,27 @@ const MONTHS_SHORT = [
   "Dec",
 ] as const;
 
+const MONTHS_LONG = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+] as const;
+
+/** "Saturday, March 14": the spoken form, for live-region announcements. */
+export function formatDateSpoken(date: string): string {
+  const { month, day } = parts(date);
+  return `${weekdayName(isoWeekday(date))}, ${MONTHS_LONG[month - 1] ?? ""} ${day}`;
+}
+
 /** `isoWeekday` value (1 = Mon ... 7 = Sun) to its full name. */
 export function weekdayName(iso: number): string {
   return WEEKDAYS_LONG[iso - 1] ?? "";

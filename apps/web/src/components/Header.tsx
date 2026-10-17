@@ -13,6 +13,9 @@ export function Header() {
         <NavLink to="/" end className={NAV_LINK_CLASS}>
           Plan
         </NavLink>
+        <NavLink to="/paces" className={NAV_LINK_CLASS}>
+          Pace zones
+        </NavLink>
         <NavLink to="/setup" className={NAV_LINK_CLASS}>
           New plan
         </NavLink>
