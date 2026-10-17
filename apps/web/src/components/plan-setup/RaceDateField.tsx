@@ -1,7 +1,7 @@
 import { useWatch, type UseFormRegister } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { formatLongDate } from "@/lib/plan-setup-format";
+import { formatDateFull } from "@/lib/plan-date-format";
 import type { PlanSetupFormValues } from "@/lib/plan-setup-validation";
 
 /**
@@ -19,7 +19,7 @@ export function RaceDateField({
   errorMessage?: string;
 }) {
   const value = useWatch<PlanSetupFormValues, "raceDate">({ name: "raceDate" });
-  const longDate = formatLongDate(value ?? "");
+  const longDate = formatDateFull(value ?? "");
 
   return (
     <div className="grid gap-2">

@@ -594,7 +594,7 @@ as settled.
 | Race date | `Input type="date"` | Native date picker, not a Calendar/date-picker component — see "Race date: recommendation" below. Body typeface — not the results table's numeral face (§2). |
 | Distance select (recent result, 6 options) | `Select` | Standard. |
 | Distance toggle (goal time, 2 options) | `RadioGroup` styled as a 2-segment toggle (reuses the same primitive as the template picker, different CSS) | Two options read better as a segmented toggle than a dropdown; no new primitive needed. |
-| Time entry (H / M / S) | 3× `Input type="number" inputMode="numeric"` inside a `fieldset` with a visually-hidden or visible `legend` | **New custom composite**, `TimeInputGroup` — see "Time entry: recommendation" below. Not a shadcn primitive; assembled from `Input` + `Label`. Body typeface on all three fields — this is exactly the input the first mockup incorrectly set in mono; see §2. |
+| Time entry (H / M / S) | 3× `Input type="text" inputMode="numeric" pattern="[0-9]*"` inside a `fieldset` with a visually-hidden or visible `legend` | **New custom composite**, `TimeInputGroup` — see "Time entry: recommendation" below. Not a shadcn primitive; assembled from `Input` + `Label`. Body typeface on all three fields — this is exactly the input the first mockup incorrectly set in mono; see §2. |
 | Field / section error text | `Form`'s `FormMessage` (field-level) or `Alert` (destructive, section-level for a `calculate()`-returned error with no single field to attach to, **or for the pre-`calculate()` "at least one section required" check, §5.9**) | New adoption: `Alert`. See §6.4 for the path→location mapping. |
 | Goal-derived pace warning banner (§7.2) | `Alert` (info/warning variant, **not** destructive) | New use of the already-adopted primitive — renders once, above the results table, whenever any equivalency zone's `source` is `"goalTime"`. Not an error: this is a real, usable number, just flagged as an estimate. |
 | "Estimated" badge on goal-derived equivalency rows (§7.2) | `Badge` (already adopted for template metadata) | New usage of the same primitive — plain visible text "Estimated"; a native `title` attribute plus a visually-hidden (`sr-only`) span carry the fuller explanation. No new tab stop — see "Badge tooltip: recommendation" in §7.2. |
@@ -633,12 +633,14 @@ but not here. Cost of the native input: inconsistent chrome across browsers
 (Firefox/Safari/Chrome render the picker differently) — accepted for v1;
 revisit only if that inconsistency becomes a real complaint.
 
-**Time entry: recommendation.** Three separate `Input type="number"` fields
-(Hours / Minutes / Seconds) over a single free-text `"H:MM:SS"` field.
-Reasoning: a single text field is ambiguous on entry ("1:23" — is that
-1:23 or 0:01:23?) and needs a regex parser with its own edge cases; three
-number inputs map directly to `hours*3600 + minutes*60 + seconds` with no
-parsing step, each field individually range-checked (`0–59` for
+**Time entry: recommendation.** Three separate numeric text fields
+(Hours / Minutes / Seconds, `type="text" inputMode="numeric"`) over a single
+free-text `"H:MM:SS"` field. Not `type="number"`: its native spinner chrome
+clipped "MM"/"SS" inside a narrow box (#65). Reasoning: a single text field
+is ambiguous on entry ("1:23" — is that 1:23 or 0:01:23?) and needs a regex
+parser with its own edge cases; three digit-only fields map directly to
+`hours*3600 + minutes*60 + seconds` with no parsing step (MM/SS pad to two
+digits on blur), each field individually range-checked (`0–59` for
 minutes/seconds), and each gets the mobile numeric keypad via
 `inputMode="numeric"`. Cost: three tab stops instead of one, and every
 distance (even ones that are realistically always sub-hour, like 5K) shows

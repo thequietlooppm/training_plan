@@ -412,19 +412,17 @@ export function PlanSetupPage() {
 
       <Form {...form}>
         {/*
-          `noValidate` (§3 fix): the Hours/Minutes/Seconds `Input type="number"`
-          fields carry native `min`/`max` attributes (0-23 / 0-59) for the
-          numeric keypad + spinner affordance (§6.2) — without `noValidate`,
-          an out-of-range value (e.g. Minutes = 60) fails the browser's own
-          HTML5 constraint validation on submit, which silently blocks the
-          native `submit` event entirely before it ever reaches
-          `form.handleSubmit`/RHF/zod. That left the runner with either a
-          non-standard native browser tooltip (inconsistent with this app's
-          own error styling) or, on the browsers/setups where that tooltip
-          doesn't fire reliably, no feedback at all — `errors.*` never
-          populates because `onValid`/`onInvalid` never run. `noValidate`
-          defers entirely to this form's own zod schema + RHF error display,
-          which is the only validation UI the design spec calls for.
+          `noValidate` (§3 fix): the Hours/Minutes/Seconds fields are
+          `type="text"` with `pattern="[0-9]*"` (§6.2, #65), so a non-digit
+          value (e.g. Minutes = "1a") fails the browser's own HTML5
+          constraint validation on submit, which silently blocks the native
+          `submit` event before it reaches `form.handleSubmit`/RHF/zod. That
+          leaves the runner with either a non-standard native browser
+          tooltip (inconsistent with this app's own error styling) or no
+          feedback at all — `errors.*` never populates because
+          `onValid`/`onInvalid` never run. `noValidate` defers entirely to
+          this form's own zod schema + RHF error display, which is the only
+          validation UI the design spec calls for.
         */}
         <form
           noValidate

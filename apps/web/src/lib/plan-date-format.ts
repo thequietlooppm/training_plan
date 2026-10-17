@@ -95,6 +95,25 @@ export function formatWeekRange(start: string, end: string): string {
     : `${monthShort(start)} ${s.day}–${monthShort(end)} ${e.day}`;
 }
 
+/**
+ * "Sunday, October 18, 2026": the full form, for the race-date field's
+ * long-form line. Returns "" for empty, malformed or non-existent dates
+ * (e.g. 2026-02-31) so a half-typed value shows nothing.
+ */
+export function formatDateFull(date: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return "";
+  const { year, month, day } = parts(date);
+  const check = new Date(Date.UTC(year, month - 1, day));
+  if (
+    check.getUTCFullYear() !== year ||
+    check.getUTCMonth() !== month - 1 ||
+    check.getUTCDate() !== day
+  ) {
+    return "";
+  }
+  return `${weekdayName(isoWeekday(date))}, ${MONTHS_LONG[month - 1]} ${day}, ${year}`;
+}
+
 /** "5 mi", "26.2 mi", "10.5 mi": drops a trailing ".0". */
 export function formatMiles(miles: number): string {
   const rounded = Math.round(miles * 10) / 10;

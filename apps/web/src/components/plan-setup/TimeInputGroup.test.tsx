@@ -1,12 +1,20 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { afterEach, describe, expect, it } from "vitest";
 import { TimeInputGroup } from "./TimeInputGroup";
 
 type V = { h: string; m: string; s: string };
 
-function Harness({ errorMessage }: { errorMessage?: string }) {
-  const { register } = useForm<V>({ defaultValues: { h: "", m: "", s: "" } });
+function Harness({
+  errorMessage,
+  onForm,
+}: {
+  errorMessage?: string;
+  onForm?: (getValues: () => V) => void;
+}) {
+  const { register, getValues } = useForm<V>({ defaultValues: { h: "", m: "", s: "" } });
+  useEffect(() => onForm?.(getValues), [onForm, getValues]);
   return (
     <TimeInputGroup<V>
       legend="Goal time"
@@ -48,6 +56,24 @@ describe("TimeInputGroup", () => {
     fireEvent.change(hours, { target: { value: "3" } });
     fireEvent.blur(hours);
     expect(hours.value).toBe("3");
+  });
+
+  it("writes the padded value to form state, not just the field", () => {
+    let getValues: () => V = () => ({ h: "", m: "", s: "" });
+    render(<Harness onForm={(g) => (getValues = g)} />);
+    const seconds = screen.getByLabelText("Seconds");
+    fireEvent.change(seconds, { target: { value: "5" } });
+    fireEvent.blur(seconds);
+    expect(getValues().s).toBe("05");
+  });
+
+  it("keeps a visible unit caption under each box once digits are typed", () => {
+    const { container } = render(<Harness />);
+    fireEvent.change(screen.getByLabelText("Minutes"), { target: { value: "45" } });
+    const captions = [...container.querySelectorAll("fieldset span[aria-hidden='true']")]
+      .map((el) => el.textContent)
+      .filter((t) => t !== ":");
+    expect(captions).toEqual(["h", "min", "s"]);
   });
 
   it("wraps at narrow widths and uses no fixed-width container", () => {
