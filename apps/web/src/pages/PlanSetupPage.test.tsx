@@ -181,6 +181,22 @@ describe("PlanSetupPage — invalid Minutes/Seconds surfaces its own error (not 
     });
   });
 
+  it("surfaces the Minutes error when a non-digit is typed (\"1a\")", async () => {
+    renderWithProviders(<PlanSetupPage />);
+    setRaceDate(futureDateString());
+    fireEvent.click(screen.getByRole("radio", { name: "Half" }));
+    fireEvent.change(document.getElementById("goal-time-minutes")!, {
+      target: { value: "1a" },
+    });
+    submit();
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Minutes must be a whole number between 0 and 59."),
+      ).toBeDefined();
+    });
+  });
+
   it("shows an inline error under the time group when Seconds is out of range, even though Hours is untouched", async () => {
     renderWithProviders(<PlanSetupPage />);
 

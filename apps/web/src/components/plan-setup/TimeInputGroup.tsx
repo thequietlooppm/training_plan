@@ -1,11 +1,15 @@
+import type { FocusEvent } from "react";
 import type { FieldValues, Path, UseFormRegister } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { padTwoDigits } from "@/lib/plan-setup-format";
 
 /**
- * Three separate `Input type="number"` fields (Hours / Minutes / Seconds)
- * over a single free-text "H:MM:SS" field — avoids parse ambiguity, maps
- * directly to `hours*3600 + minutes*60 + seconds`, gets per-field range
+ * Three separate numeric text fields (Hours / Minutes / Seconds) --
+ * `type="text" inputMode="numeric"`, not `type="number"`, because the native
+ * spinner chrome clipped "MM"/"SS" inside a narrow box (#65). Separate
+ * fields over a single free-text "H:MM:SS" field avoid parse ambiguity, map
+ * directly to `hours*3600 + minutes*60 + seconds`, get per-field range
  * checks and a numeric keypad on mobile. See design spec §6.2 "Time entry:
  * recommendation" for the full trade-off.
  *
@@ -13,12 +17,15 @@ import { Label } from "@/components/ui/label";
  * primitive — a custom composite assembled from `Input` + `Label` inside a
  * `fieldset`, per design spec §6.2/§8.
  *
- * The visible labels ("H" / "MM" / "SS") are decorative placeholders; each
+ * The visible placeholders ("H" / "MM" / "SS") are decorative cues; each
  * input still gets a real, individually-announced `<Label>` ("Hours" /
  * "Minutes" / "Seconds"), kept visually condensed via `sr-only` rather than
  * removed — screen-reader users get the full word, sighted users get the
- * compact cue (§8).
+ * compact cue (§8). The row wraps (`flex-wrap`) so it never clips at 320px
+ * or 200% zoom.
  */
+const FIELD_CLASS = "h-11 w-14 px-2 text-center tabular-nums";
+
 export function TimeInputGroup<TFieldValues extends FieldValues>({
   legend,
   idPrefix,
@@ -40,67 +47,53 @@ export function TimeInputGroup<TFieldValues extends FieldValues>({
   const describedBy = errorMessage ? errorId : undefined;
   const invalid = Boolean(errorMessage);
 
+  const fields = [
+    { key: "hours", label: "Hours", placeholder: "H", name: hoursName, pad: false },
+    { key: "minutes", label: "Minutes", placeholder: "MM", name: minutesName, pad: true },
+    { key: "seconds", label: "Seconds", placeholder: "SS", name: secondsName, pad: true },
+  ] as const;
+
   return (
     <fieldset className="grid gap-2">
       <legend className="text-sm font-medium">{legend}</legend>
-      <div className="flex items-center gap-1.5">
-        <div className="grid gap-1">
-          <Label htmlFor={`${idPrefix}-hours`} className="sr-only">
-            Hours
-          </Label>
-          <Input
-            id={`${idPrefix}-hours`}
-            type="number"
-            inputMode="numeric"
-            min={0}
-            max={23}
-            placeholder="H"
-            className="h-11 w-14 text-center"
-            aria-invalid={invalid}
-            aria-describedby={describedBy}
-            {...register(hoursName)}
-          />
-        </div>
-        <span aria-hidden="true" className="text-muted-foreground">
-          :
-        </span>
-        <div className="grid gap-1">
-          <Label htmlFor={`${idPrefix}-minutes`} className="sr-only">
-            Minutes
-          </Label>
-          <Input
-            id={`${idPrefix}-minutes`}
-            type="number"
-            inputMode="numeric"
-            min={0}
-            max={59}
-            placeholder="MM"
-            className="h-11 w-14 text-center"
-            aria-invalid={invalid}
-            aria-describedby={describedBy}
-            {...register(minutesName)}
-          />
-        </div>
-        <span aria-hidden="true" className="text-muted-foreground">
-          :
-        </span>
-        <div className="grid gap-1">
-          <Label htmlFor={`${idPrefix}-seconds`} className="sr-only">
-            Seconds
-          </Label>
-          <Input
-            id={`${idPrefix}-seconds`}
-            type="number"
-            inputMode="numeric"
-            min={0}
-            max={59}
-            placeholder="SS"
-            className="h-11 w-14 text-center"
-            aria-invalid={invalid}
-            aria-describedby={describedBy}
-            {...register(secondsName)}
-          />
-        </div>
+      <div className="flex flex-wrap items-end gap-2">
+        {fields.map((field, index) => {
+          const { onBlur, ...rest } = register(field.name);
+          const handleBlur = (event: FocusEvent<HTMLInputElement>) => {
+            if (field.pad) {
+              event.currentTarget.value = padTwoDigits(event.currentTarget.value);
+            }
+            return onBlur(event);
+          };
+          return (
+            <div key={field.key} className="flex items-end gap-2">
+              {index > 0 ? (
+                <span aria-hidden="true" className="pb-2 text-muted-foreground">
+                  :
+                </span>
+              ) : null}
+              <div className="grid gap-1">
+                <Label htmlFor={`${idPrefix}-${field.key}`} className="sr-only">
+                  {field.label}
+                </Label>
+                <Input
+                  id={`${idPrefix}-${field.key}`}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={2}
+                  autoComplete="off"
+                  placeholder={field.placeholder}
+                  className={FIELD_CLASS}
+                  aria-invalid={invalid}
+                  aria-describedby={describedBy}
+                  onBlur={handleBlur}
+                  {...rest}
+                />
+              </div>
+            </div>
+          );
+        })}
       </div>
       {errorMessage ? (
         <p id={errorId} role="alert" className="text-sm text-destructive">
